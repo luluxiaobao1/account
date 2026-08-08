@@ -3984,7 +3984,7 @@ export default function AdminPage() {
                                                                         ))}
                                                                     </div>
                                                                 </td>
-                                                                <td className="py-3 px-3 max-w-[300px]">
+                                                                <td className="py-3 px-3" style={{ maxWidth: '200px', width: '200px' }}>
                                                                     <div className="text-sm text-gray-600 flex flex-wrap gap-1">
                                                                         {key.apiPath
                                                                             .split(/[,，\n]/)
