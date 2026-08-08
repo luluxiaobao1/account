@@ -4733,19 +4733,19 @@ export default function AdminPage() {
                                                             </td>
                                                             <td className="py-3 px-4">
                                                                 <div className="text-sm text-gray-600 space-y-0.5">
-                                                                    {(pkg as Record<string, unknown>).priceHint ? (
-                                                                        <div>{(pkg as Record<string, unknown>).priceHint as string}</div>
+                                                                    {pkg.priceHint ? (
+                                                                        <div>{pkg.priceHint}</div>
                                                                     ) : null}
-                                                                    {(pkg as Record<string, unknown>).hourLimit5 != null ? (
-                                                                        <div>5小时限额: {(pkg as Record<string, unknown>).hourLimit5 as number}</div>
+                                                                    {pkg.hourLimit5 != null ? (
+                                                                        <div>5小时限额: {pkg.hourLimit5}</div>
                                                                     ) : null}
-                                                                    {(pkg as Record<string, unknown>).weekLimit != null ? (
-                                                                        <div>周限额: {(pkg as Record<string, unknown>).weekLimit as number}</div>
+                                                                    {pkg.weekLimit != null ? (
+                                                                        <div>周限额: {pkg.weekLimit}</div>
                                                                     ) : null}
-                                                                    {(pkg as Record<string, unknown>).monthLimit != null ? (
-                                                                        <div>月限额: {(pkg as Record<string, unknown>).monthLimit as number}</div>
+                                                                    {pkg.monthLimit != null ? (
+                                                                        <div>月限额: {pkg.monthLimit}</div>
                                                                     ) : null}
-                                                                    {!(pkg as Record<string, unknown>).priceHint && (pkg as Record<string, unknown>).hourLimit5 == null && (pkg as Record<string, unknown>).weekLimit == null && (pkg as Record<string, unknown>).monthLimit == null && (
+                                                                    {!pkg.priceHint && pkg.hourLimit5 == null && pkg.weekLimit == null && pkg.monthLimit == null && (
                                                                         <span className="text-gray-400">-</span>
                                                                     )}
                                                                 </div>
