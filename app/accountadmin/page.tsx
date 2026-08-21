@@ -190,16 +190,28 @@ const adminTabs = [
 // 密钥管理 - 对接类型
 type AccessKeyType = "internal" | "thirdparty";
 
+// 密钥管理 - 授权范围：全部接口 / 指定接口
+type AccessKeyScope = "all" | "specified";
+
+// 密钥管理 - 指定接口项（记录接口所属系统，支持跨系统选择）
+interface SpecifiedApiItem {
+    apiId: string; // 接口ID
+    systemId: string; // 所属系统/产品ID
+}
+
 // 密钥管理 - 密钥数据结构
 interface AccessKey {
     id: number;
     name: string; // 密钥名称
-    subject: string; // 对接主体名称
-    type: AccessKeyType; // 对接服务：智汇云平台/智汇云产品
-    productId?: string; // 当对接服务为「智汇云产品」时，记录所选产品ID
+    subject: string; // 对接方名称(谁接)
+    type: AccessKeyType; // 对接系统(接谁)：智汇云平台/智汇云产品
+    scope: AccessKeyScope; // 授权范围：全部接口 / 指定接口
+    productId?: string; // 当对接系统为「智汇云产品」时，记录所选产品ID
     products?: KeyProduct[]; // 支持多个产品
     ipWhitelist: string[]; // 绑定IP白名单
-    apiPath: string; // 对接接口
+    apiPath: string; // 对接接口（路径文本，展示用）
+    apiIds?: string[]; // 对接接口ID列表（与系统间对接API接口列表联动）
+    permission?: "read" | "readwrite" | "manage"; // 权限类型：只读 / 读写 / 管理(含删除、超管)
     remark: string; // 备注
     ak: string; // Access Key
     sk: string; // Secret Key（脱敏展示）
@@ -208,24 +220,44 @@ interface AccessKey {
     updateTime: string; // 最近一次更新时间
 }
 
-// 密钥管理 - 智汇云产品（用于对接服务选择）
+// 密钥管理 - 所属系统（智汇云平台 / 智汇云产品，用于对接服务选择）
 interface KeyProduct {
     id: string;
-    name: string; // 产品名称
-    identifier: string; // 产品标识
-    category: string; // 产品分类
+    name: string; // 系统/产品名称
+    identifier: string; // 系统/产品标识
+    category: string; // 分类
+    systemType: "platform" | "product"; // 所属系统大类：智汇云平台 / 智汇云产品
 }
 
-// 密钥管理 - 智汇云产品列表mock数据
+// 密钥管理 - 所属系统列表mock数据（智汇云平台 + 智汇云产品）
 const keyProductsData: KeyProduct[] = [
-    { id: "prod-ecs", name: "云服务器 ECS", identifier: "ecs", category: "计算" },
-    { id: "prod-oss", name: "对象存储 OSS", identifier: "oss", category: "存储" },
-    { id: "prod-rds", name: "云数据库 RDS", identifier: "rds", category: "数据库" },
-    { id: "prod-slb", name: "负载均衡 SLB", identifier: "slb", category: "网络" },
-    { id: "prod-vpc", name: "专有网络 VPC", identifier: "vpc", category: "网络" },
-    { id: "prod-cdn", name: "内容分发 CDN", identifier: "cdn", category: "网络" },
-    { id: "prod-k8s", name: "容器服务 K8s", identifier: "k8s", category: "容器" },
-    { id: "prod-redis", name: "云缓存 Redis", identifier: "redis", category: "数据库" },
+    // 智汇云平台
+    { id: "plat-billing", name: "计费平台", identifier: "billing", category: "平台", systemType: "platform" },
+    { id: "plat-zyunuc", name: "统一账号 zyunuc", identifier: "zyunuc", category: "平台", systemType: "platform" },
+    { id: "plat-bazhuayu", name: "八爪鱼调度平台", identifier: "bazhuayu", category: "平台", systemType: "platform" },
+    { id: "plat-monitor", name: "统一监控平台", identifier: "monitor", category: "平台", systemType: "platform" },
+    { id: "plat-console", name: "云控制台", identifier: "console", category: "平台", systemType: "platform" },
+    // 智汇云产品
+    { id: "prod-ecs", name: "云服务器 ECS", identifier: "ecs", category: "计算", systemType: "product" },
+    { id: "prod-oss", name: "对象存储 OSS", identifier: "oss", category: "存储", systemType: "product" },
+    { id: "prod-rds", name: "云数据库 RDS", identifier: "rds", category: "数据库", systemType: "product" },
+    { id: "prod-slb", name: "负载均衡 SLB", identifier: "slb", category: "网络", systemType: "product" },
+    { id: "prod-vpc", name: "专有网络 VPC", identifier: "vpc", category: "网络", systemType: "product" },
+    { id: "prod-cdn", name: "内容分发 CDN", identifier: "cdn", category: "网络", systemType: "product" },
+    { id: "prod-k8s", name: "容器服务 K8s", identifier: "k8s", category: "容器", systemType: "product" },
+    { id: "prod-redis", name: "云缓存 Redis", identifier: "redis", category: "数据库", systemType: "product" },
+];
+
+// 密钥管理 - 智汇云平台系统列表（计费 / zyunuc / 八爪鱼）
+interface PlatformSystem {
+    id: string;
+    name: string; // 系统名称
+    identifier: string; // 系统标识
+}
+const platformSystemsData: PlatformSystem[] = [
+    { id: "sys-billing", name: "计费", identifier: "billing" },
+    { id: "sys-zyunuc", name: "zyunuc", identifier: "zyunuc" },
+    { id: "sys-bazhuayu", name: "八爪鱼", identifier: "bazhuayu" },
 ];
 
 // 密钥管理 - 可选择的接口数据结构
@@ -237,7 +269,28 @@ interface ApiInterface {
     method: "GET" | "POST" | "PUT" | "DELETE";
     group: string; // 所属分组/服务
     description: string; // 接口描述
+    permission?: "read" | "readwrite" | "manage"; // 权限类型：只读 / 读写 / 管理(含删除、超管)
+    createdAt?: string; // 创建时间
+    updatedAt?: string; // 编辑时间
 }
+
+// 根据接口ID生成稳定的mock时间（创建时间/编辑时间），保证同一接口每次渲染时间一致
+const getApiMockTimes = (id: string): { createdAt: string; updatedAt: string } => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = (hash * 31 + id.charCodeAt(i)) & 0x7fffffff;
+    }
+    const base = new Date(2024, 0, 1).getTime();
+    const createdOffset = (hash % 300) * 24 * 60 * 60 * 1000; // 0~300天
+    const createdTime = base + createdOffset;
+    const updatedTime = createdTime + ((hash % 60) + 1) * 24 * 60 * 60 * 1000; // 创建后1~60天
+    const fmt = (t: number) => {
+        const d = new Date(t);
+        const p = (n: number) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    return { createdAt: fmt(createdTime), updatedAt: fmt(updatedTime) };
+};
 
 // 密钥管理 - 可选择接口mock数据（按产品归属）
 const apiInterfacesData: ApiInterface[] = [
@@ -277,6 +330,26 @@ const apiInterfacesData: ApiInterface[] = [
     { id: "redis-1", productId: "prod-redis", name: "查询缓存实例", path: "/api/v1/redis/instances", method: "GET", group: "实例管理", description: "查询Redis实例列表" },
     { id: "redis-2", productId: "prod-redis", name: "创建缓存实例", path: "/api/v1/redis/instances", method: "POST", group: "实例管理", description: "创建一个Redis实例" },
     { id: "redis-3", productId: "prod-redis", name: "清空缓存", path: "/api/v1/redis/flush", method: "POST", group: "缓存操作", description: "清空指定实例的缓存" },
+    // 计费平台
+    { id: "billing-1", productId: "plat-billing", name: "查询账单列表", path: "/api/v1/billing/bills", method: "GET", group: "账单管理", description: "分页查询账单列表" },
+    { id: "billing-2", productId: "plat-billing", name: "查询计费项", path: "/api/v1/billing/items", method: "GET", group: "计费配置", description: "查询产品计费项" },
+    { id: "billing-3", productId: "plat-billing", name: "发起扣费", path: "/api/v1/billing/charge", method: "POST", group: "扣费管理", description: "对指定账户发起扣费" },
+    { id: "billing-4", productId: "plat-billing", name: "查询余额", path: "/api/v1/billing/balance", method: "GET", group: "账户管理", description: "查询账户余额" },
+    // 统一账号 zyunuc
+    { id: "zyunuc-1", productId: "plat-zyunuc", name: "查询用户信息", path: "/api/v1/uc/users/{id}", method: "GET", group: "用户管理", description: "根据ID查询用户信息" },
+    { id: "zyunuc-2", productId: "plat-zyunuc", name: "查询组织架构", path: "/api/v1/uc/orgs", method: "GET", group: "组织管理", description: "查询企业组织架构" },
+    { id: "zyunuc-3", productId: "plat-zyunuc", name: "校验登录态", path: "/api/v1/uc/session/verify", method: "POST", group: "认证管理", description: "校验用户登录态" },
+    // 八爪鱼调度平台
+    { id: "bazhuayu-1", productId: "plat-bazhuayu", name: "查询任务列表", path: "/api/v1/octopus/tasks", method: "GET", group: "任务管理", description: "查询调度任务列表" },
+    { id: "bazhuayu-2", productId: "plat-bazhuayu", name: "创建调度任务", path: "/api/v1/octopus/tasks", method: "POST", group: "任务管理", description: "创建一个调度任务" },
+    { id: "bazhuayu-3", productId: "plat-bazhuayu", name: "触发任务执行", path: "/api/v1/octopus/tasks/{id}/run", method: "POST", group: "任务操作", description: "手动触发任务执行" },
+    // 统一监控平台
+    { id: "monitor-1", productId: "plat-monitor", name: "查询监控指标", path: "/api/v1/monitor/metrics", method: "GET", group: "指标管理", description: "查询监控指标数据" },
+    { id: "monitor-2", productId: "plat-monitor", name: "查询告警列表", path: "/api/v1/monitor/alerts", method: "GET", group: "告警管理", description: "查询告警记录列表" },
+    { id: "monitor-3", productId: "plat-monitor", name: "创建告警规则", path: "/api/v1/monitor/rules", method: "POST", group: "告警管理", description: "创建一条告警规则" },
+    // 云控制台
+    { id: "console-1", productId: "plat-console", name: "查询菜单权限", path: "/api/v1/console/menus", method: "GET", group: "权限管理", description: "查询控制台菜单权限" },
+    { id: "console-2", productId: "plat-console", name: "查询操作日志", path: "/api/v1/console/logs", method: "GET", group: "日志管理", description: "查询控制台操作日志" },
 ];
 
 // 密钥管理 - mock数据
@@ -286,8 +359,10 @@ const accessKeysData: AccessKey[] = [
         name: "内部风控服务密钥",
         subject: "风控中心",
         type: "internal",
+        scope: "all",
         ipWhitelist: ["10.12.34.56", "10.12.34.57"],
         apiPath: "/api/v1/risk/check",
+        permission: "readwrite",
         remark: "风控系统对接，仅限内网调用",
         ak: "MOCK_AK_8f2a9d3c7b1e6054",
         sk: "MOCK_SK_3b7e1f9a2c8d4065e1a9b3c7d2f8e4a6",
@@ -301,8 +376,10 @@ const accessKeysData: AccessKey[] = [
         subject: "腾讯云计算（北京）有限责任公司",
         type: "thirdparty",
         productId: "prod-oss",
+        scope: "specified",
         ipWhitelist: ["119.28.45.123"],
         apiPath: "/api/v1/partner/sync",
+        permission: "read",
         remark: "对象存储 OSS 数据同步对接，按月结算",
         ak: "MOCK_AK_2c4e6b8a0d1f3579",
         sk: "MOCK_SK_9a1c3e5b7d2f4068e3a1b5c9d7f2e4a8",
@@ -315,8 +392,10 @@ const accessKeysData: AccessKey[] = [
         name: "内部计费网关密钥",
         subject: "计费平台",
         type: "internal",
+        scope: "all",
         ipWhitelist: ["10.0.0.0/24"],
         apiPath: "/api/v1/billing/charge",
+        permission: "manage",
         remark: "",
         ak: "MOCK_AK_5d7f9b1c3e2a4068",
         sk: "MOCK_SK_6b8d0f2a4c1e3079b5d7f9a1c3e2b4d6",
@@ -330,8 +409,11 @@ const accessKeysData: AccessKey[] = [
         subject: "北京字节跳动科技有限公司",
         type: "thirdparty",
         productId: "prod-ecs",
+        scope: "specified",
         ipWhitelist: ["180.97.23.12", "180.97.23.13"],
         apiPath: "/api/v1/ecs/instances, /api/v1/ecs/instances/{id}/start, /api/v1/ecs/instances/{id}/stop",
+        apiIds: ["ecs-1", "ecs-3", "ecs-4"],
+        permission: "readwrite",
         remark: "云服务器 ECS 接口对接",
         ak: "MOCK_AK_7e9c1b3a5d8f2046",
         sk: "MOCK_SK_4c6e8a0b2d1f3057a9c7e1b3d5f8a2c4",
@@ -871,28 +953,305 @@ export default function AdminPage() {
         name: string;
         subject: string;
         type: AccessKeyType;
+        scope: AccessKeyScope;
         ipWhitelist: string;
         apiPath: string;
+        permission: "read" | "readwrite" | "manage";
         remark: string;
     }>({
         name: "",
         subject: "",
         type: "internal", // 默认内部服务
+        scope: "all", // 默认全部接口
         ipWhitelist: "",
         apiPath: "",
+        permission: "read", // 默认只读
         remark: "",
     });
-    const [productDialogOpen, setProductDialogOpen] = useState(false); // 选择智汇云产品弹框
     const [selectedProductId, setSelectedProductId] = useState<string>(""); // 已选智汇云产品ID
-    const [productDialogSearch, setProductDialogSearch] = useState(""); // 产品搜索
+    // 密钥管理 - 对接接口多选（与系统间对接API接口列表联动）
+    const [selectedApiIds, setSelectedApiIds] = useState<string[]>([]); // 已选接口ID列表
+    const [apiSelectDialogOpen, setApiSelectDialogOpen] = useState(false); // 添加接口弹框
+    const [apiSelectSearch, setApiSelectSearch] = useState(""); // 接口搜索关键字
+    const [apiSelectTempIds, setApiSelectTempIds] = useState<string[]>([]); // 弹框内暂存的勾选结果
+    // 密钥管理 - 已选接口按系统分组的折叠状态（存放已折叠的系统ID）
+    const [collapsedApiGroups, setCollapsedApiGroups] = useState<string[]>([]);
+    // 密钥管理 - 添加接口弹框内：左侧选中的系统ID（先选系统，再选该系统下的接口）
+    const [apiSelectSystemId, setApiSelectSystemId] = useState<string>("");
+    // 密钥管理 - 添加接口弹框内：系统搜索关键字
+    const [apiSelectSystemSearch, setApiSelectSystemSearch] = useState("");
     // 接口管理Tab - 当前选中的产品ID（左侧产品列表选中项）
     const [apiManagerSelectedProductId, setApiManagerSelectedProductId] = useState<string>("prod-ecs");
     // 接口管理Tab - 左侧产品搜索
     const [apiManagerProductSearch, setApiManagerProductSearch] = useState("");
+    // 接口管理Tab - 所属系统筛选（全部 / 智汇云平台 / 智汇云产品）
+    const [apiManagerSystemTypeFilter, setApiManagerSystemTypeFilter] = useState<"all" | "platform" | "product">("all");
     // 接口管理Tab - 接口名称搜索
     const [apiManagerApiNameSearch, setApiManagerApiNameSearch] = useState("");
     // 接口管理Tab - 所属模块筛选
     const [apiManagerModuleFilter, setApiManagerModuleFilter] = useState<string>("all");
+    // 接口管理Tab - 产线筛选（仅对智汇云产品生效，按产品分类/产线过滤）
+    const [apiManagerProductLineFilter, setApiManagerProductLineFilter] = useState<string>("all");
+    // 接口管理Tab - 动态新增的接口列表（叠加在mock数据之上）
+    const [customApiInterfaces, setCustomApiInterfaces] = useState<ApiInterface[]>([]);
+    // 接口管理Tab - 添加接口抽屉开关
+    const [addApiDrawerOpen, setAddApiDrawerOpen] = useState(false);
+    // 接口管理Tab - 正在编辑的接口ID（null 表示新建模式，非 null 表示逐条编辑模式）
+    const [editingApiId, setEditingApiId] = useState<string | null>(null);
+    // 接口管理Tab - 删除单个接口的二次确认（null 表示无待确认项）
+    const [apiDeleteConfirm, setApiDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+    // 接口管理Tab - 删除系统的二次确认（连同其下所有接口）
+    const [systemDeleteConfirm, setSystemDeleteConfirm] = useState<{ id: string; name: string; apiCount: number } | null>(null);
+    // 接口管理Tab - 被删除的系统ID集合（隐藏这些系统及其接口）
+    const [deletedSystemIds, setDeletedSystemIds] = useState<string[]>([]);
+    // 接口管理Tab - 被删除的接口ID集合（隐藏这些接口）
+    const [deletedApiIds, setDeletedApiIds] = useState<string[]>([]);
+    // 接口管理Tab - 新增接口 单行数据类型
+    type NewApiRow = {
+        name: string;
+        path: string;
+        method: "GET" | "POST" | "PUT" | "DELETE";
+        group: string;
+        description: string;
+    };
+    const createEmptyApiRow = (): NewApiRow => ({
+        name: "",
+        path: "",
+        method: "GET",
+        group: "",
+        description: "",
+    });
+    // 接口管理Tab - 新增接口表单数据（支持批量添加）
+    const [newApiForm, setNewApiForm] = useState<{
+        systemType: "platform" | "product"; // 所属系统大类：智汇云平台 / 智汇云产品
+        ownerId: string; // 平台系统ID 或 产品ID
+        permission: "read" | "readwrite" | "manage"; // 权限类型：只读 / 读写 / 管理
+        rows: NewApiRow[]; // 批量接口列表
+    }>({
+        systemType: "product",
+        ownerId: "prod-ecs",
+        permission: "read",
+        rows: [createEmptyApiRow()],
+    });
+    // 接口管理Tab - 表单校验错误（系统级 + 每行级）
+    const [newApiFormErrors, setNewApiFormErrors] = useState<{
+        ownerId?: string;
+        rows?: { [k: string]: string }[];
+    }>({});
+
+    // 合并mock接口与动态新增接口（过滤掉已删除的接口及已删除系统下的接口）
+    const allApiInterfaces = useMemo(
+        () =>
+            [...apiInterfacesData, ...customApiInterfaces].filter(
+                (a) => !deletedApiIds.includes(a.id) && !deletedSystemIds.includes(a.productId)
+            ),
+        [customApiInterfaces, deletedApiIds, deletedSystemIds]
+    );
+
+    // 接口管理Tab - 可见的系统/产品列表（过滤掉已删除的系统）
+    const visibleKeyProducts = useMemo(
+        () => keyProductsData.filter((p) => !deletedSystemIds.includes(p.id)),
+        [deletedSystemIds]
+    );
+
+    // 密钥管理 - 添加接口弹框：可选择的系统列表（全部平台系统 + 全部产品，均可选）
+    const apiDialogSystems = useMemo(
+        () =>
+            visibleKeyProducts.filter(
+                (p) => allApiInterfaces.some((a) => a.productId === p.id),
+            ),
+        [visibleKeyProducts, allApiInterfaces],
+    );
+
+    // 密钥管理 - 添加接口弹框：左侧选中系统下的接口列表
+    const apiDialogApis = useMemo(() => {
+        if (!apiSelectSystemId) return [];
+        return allApiInterfaces.filter((a) => a.productId === apiSelectSystemId);
+    }, [apiSelectSystemId, allApiInterfaces]);
+
+    // 密钥管理 - 已选接口对象列表
+    const selectedApiObjects = useMemo(
+        () => allApiInterfaces.filter((a) => selectedApiIds.includes(a.id)),
+        [allApiInterfaces, selectedApiIds]
+    );
+
+    // 密钥管理 - 已选接口路径文本（用于列表展示与数据存储）
+    const selectedApiPathText = useMemo(
+        () => selectedApiObjects.map((a) => a.path).join(", "),
+        [selectedApiObjects]
+    );
+
+    // 打开添加接口抽屉（新建模式）
+    const openAddApiDrawer = () => {
+        setEditingApiId(null);
+        const selected = keyProductsData.find((p) => p.id === apiManagerSelectedProductId);
+        setNewApiForm({
+            systemType: selected?.systemType || "product",
+            ownerId: selected?.id || "prod-ecs",
+            permission: "read",
+            rows: [createEmptyApiRow()],
+        });
+        setNewApiFormErrors({});
+        setAddApiDrawerOpen(true);
+    };
+
+    // 打开编辑接口抽屉（逐条编辑模式，回填单条接口内容）
+    const openEditApiDrawer = (api: ApiInterface) => {
+        const owner = keyProductsData.find((p) => p.id === api.productId);
+        setEditingApiId(api.id);
+        setNewApiForm({
+            systemType: owner?.systemType === "platform" ? "platform" : "product",
+            ownerId: api.productId,
+            permission: api.permission || "read",
+            rows: [
+                {
+                    name: api.name,
+                    path: api.path,
+                    method: api.method,
+                    group: api.group,
+                    description: api.description,
+                },
+            ],
+        });
+        setNewApiFormErrors({});
+        setAddApiDrawerOpen(true);
+    };
+
+    // 确认删除单个接口
+    const handleConfirmDeleteApi = () => {
+        if (!apiDeleteConfirm) return;
+        const id = apiDeleteConfirm.id;
+        // 自定义接口直接从列表移除；mock接口加入删除集合以隐藏
+        setCustomApiInterfaces((prev) => prev.filter((a) => a.id !== id));
+        setDeletedApiIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+        setApiDeleteConfirm(null);
+    };
+
+    // 确认删除系统（连同其下所有接口）
+    const handleConfirmDeleteSystem = () => {
+        if (!systemDeleteConfirm) return;
+        const sysId = systemDeleteConfirm.id;
+        setCustomApiInterfaces((prev) => prev.filter((a) => a.productId !== sysId));
+        setDeletedSystemIds((prev) => (prev.includes(sysId) ? prev : [...prev, sysId]));
+        // 若当前选中的正是被删除的系统，则清空选中
+        if (apiManagerSelectedProductId === sysId) {
+            setApiManagerSelectedProductId("");
+        }
+        setSystemDeleteConfirm(null);
+    };
+
+    // 批量表单 - 新增一行接口
+    const addNewApiRow = () => {
+        setNewApiForm((f) => ({ ...f, rows: [...f.rows, createEmptyApiRow()] }));
+    };
+
+    // 批量表单 - 删除指定行接口
+    const removeNewApiRow = (index: number) => {
+        setNewApiForm((f) => ({
+            ...f,
+            rows: f.rows.length > 1 ? f.rows.filter((_, i) => i !== index) : f.rows,
+        }));
+        setNewApiFormErrors((er) => ({
+            ...er,
+            rows: er.rows ? er.rows.filter((_, i) => i !== index) : er.rows,
+        }));
+    };
+
+    // 批量表单 - 更新某一行的字段
+    const updateNewApiRow = (index: number, patch: Partial<NewApiRow>) => {
+        setNewApiForm((f) => ({
+            ...f,
+            rows: f.rows.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+        }));
+        setNewApiFormErrors((er) => {
+            if (!er.rows) return er;
+            const rows = er.rows.map((r, i) =>
+                i === index
+                    ? Object.keys(patch).reduce((acc, k) => ({ ...acc, [k]: "" }), { ...r })
+                    : r
+            );
+            return { ...er, rows };
+        });
+    };
+
+    // 提交添加接口（批量）
+    const handleSubmitNewApi = () => {
+        const errors: { ownerId?: string; rows?: { [k: string]: string }[] } = {};
+        if (!newApiForm.ownerId) {
+            errors.ownerId = newApiForm.systemType === "platform" ? "请选择所属系统" : "请选择所属产品";
+        }
+        const rowErrors: { [k: string]: string }[] = newApiForm.rows.map((row) => {
+            const e: { [k: string]: string } = {};
+            if (!row.name.trim()) e.name = "请输入接口名称";
+            if (!row.path.trim()) e.path = "请输入接口路径";
+            else if (!row.path.trim().startsWith("/")) e.path = "接口路径需以 / 开头";
+            if (!row.group.trim()) e.group = "请输入所属模块";
+            return e;
+        });
+        const hasRowError = rowErrors.some((e) => Object.keys(e).length > 0);
+        if (errors.ownerId || hasRowError) {
+            setNewApiFormErrors({ ...errors, rows: rowErrors });
+            return;
+        }
+        const nowStr = (() => {
+            const d = new Date();
+            const p = (n: number) => String(n).padStart(2, "0");
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        })();
+
+        // 编辑模式：仅编辑单条接口
+        if (editingApiId) {
+            const row = newApiForm.rows[0];
+            const existingTimes = getApiMockTimes(editingApiId);
+            const updated: ApiInterface = {
+                id: editingApiId,
+                productId: newApiForm.ownerId,
+                name: row.name.trim(),
+                path: row.path.trim(),
+                method: row.method,
+                group: row.group.trim(),
+                description: row.description.trim(),
+                permission: newApiForm.permission,
+                createdAt: existingTimes.createdAt,
+                updatedAt: nowStr,
+            };
+            setCustomApiInterfaces((prev) => {
+                const isCustom = prev.some((a) => a.id === editingApiId);
+                if (isCustom) {
+                    return prev.map((a) => (a.id === editingApiId ? updated : a));
+                }
+                // mock接口：隐藏原始项，追加编辑后的自定义副本（保留同一ID便于时间稳定）
+                return [...prev, updated];
+            });
+            setDeletedApiIds((prev) => (prev.includes(editingApiId) ? prev : [...prev, editingApiId]));
+            if (newApiForm.systemType === "product") {
+                setApiManagerSelectedProductId(newApiForm.ownerId);
+            }
+            setEditingApiId(null);
+            setAddApiDrawerOpen(false);
+            return;
+        }
+
+        const base = Date.now();
+        const newItems: ApiInterface[] = newApiForm.rows.map((row, i) => ({
+            id: `custom-${base}-${i}`,
+            productId: newApiForm.ownerId,
+            name: row.name.trim(),
+            path: row.path.trim(),
+            method: row.method,
+            group: row.group.trim(),
+            description: row.description.trim(),
+            permission: newApiForm.permission,
+            createdAt: nowStr,
+            updatedAt: nowStr,
+        }));
+        setCustomApiInterfaces((prev) => [...prev, ...newItems]);
+        // 若归属为智汇云产品，切换到该产品便于用户立即看到结果
+        if (newApiForm.systemType === "product") {
+            setApiManagerSelectedProductId(newApiForm.ownerId);
+        }
+        setAddApiDrawerOpen(false);
+    };
 
     // 生成随机AK/SK
     const generateAkSk = () => {
@@ -948,9 +1307,12 @@ export default function AdminPage() {
             name: newAccessKey.name || "未命名密钥",
             subject: newAccessKey.subject,
             type: newAccessKey.type,
+            scope: newAccessKey.scope,
             productId: newAccessKey.type === "thirdparty" ? selectedProductId : undefined,
             ipWhitelist: newAccessKey.ipWhitelist.split(/[,，\n]/).map(s => s.trim()).filter(Boolean),
-            apiPath: newAccessKey.apiPath,
+            apiPath: newAccessKey.scope === "all" ? "" : selectedApiPathText,
+            apiIds: newAccessKey.scope === "all" ? [] : selectedApiIds,
+            permission: newAccessKey.permission,
             remark: newAccessKey.remark,
             ak,
             sk,
@@ -966,11 +1328,14 @@ export default function AdminPage() {
             name: "",
             subject: "",
             type: "internal",
+            scope: "all",
             ipWhitelist: "",
             apiPath: "",
+            permission: "read",
             remark: "",
         });
         setSelectedProductId("");
+        setSelectedApiIds([]);
         setEditingAccessKeyId(null);
     };
 
@@ -981,11 +1346,20 @@ export default function AdminPage() {
             name: key.name,
             subject: key.subject,
             type: key.type,
+            scope: key.scope || "all",
             ipWhitelist: key.ipWhitelist.join(", "),
             apiPath: key.apiPath,
+            permission: key.permission || "read",
             remark: key.remark,
         });
         setSelectedProductId(key.type === "thirdparty" ? (key.productId || "") : "");
+        // 回填已选接口：优先使用 apiIds，其次按接口路径反查匹配
+        if (key.apiIds && key.apiIds.length > 0) {
+            setSelectedApiIds(key.apiIds);
+        } else {
+            const paths = key.apiPath.split(/[,，\n]/).map(s => s.trim()).filter(Boolean);
+            setSelectedApiIds(allApiInterfaces.filter(a => paths.includes(a.path)).map(a => a.id));
+        }
         setCreateAccessKeyDialogOpen(true);
     };
 
@@ -1003,9 +1377,12 @@ export default function AdminPage() {
                         name: newAccessKey.name || "未命名密钥",
                         subject: newAccessKey.subject,
                         type: newAccessKey.type,
+                        scope: newAccessKey.scope,
                         productId: newAccessKey.type === "thirdparty" ? selectedProductId : undefined,
                         ipWhitelist: newAccessKey.ipWhitelist.split(/[,，\n]/).map(s => s.trim()).filter(Boolean),
-                        apiPath: newAccessKey.apiPath,
+                        apiPath: newAccessKey.scope === "all" ? "" : selectedApiPathText,
+                        apiIds: newAccessKey.scope === "all" ? [] : selectedApiIds,
+                        permission: newAccessKey.permission,
                         remark: newAccessKey.remark,
                         updateTime,
                     }
@@ -1018,11 +1395,14 @@ export default function AdminPage() {
             name: "",
             subject: "",
             type: "internal",
+            scope: "all",
             ipWhitelist: "",
             apiPath: "",
+            permission: "read",
             remark: "",
         });
         setSelectedProductId("");
+        setSelectedApiIds([]);
     };
 
     // 关闭创建/编辑表单并重置
@@ -1033,11 +1413,14 @@ export default function AdminPage() {
             name: "",
             subject: "",
             type: "internal",
+            scope: "all",
             ipWhitelist: "",
             apiPath: "",
+            permission: "read",
             remark: "",
         });
         setSelectedProductId("");
+        setSelectedApiIds([]);
     };
 
     // 切换密钥启用/停用
@@ -1430,7 +1813,7 @@ export default function AdminPage() {
                                             : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
                                     }`}
                                 >
-                                    API接口
+                                    系统间对接API接口
                                 </div>
                             </div>
                         )}
@@ -3521,98 +3904,250 @@ export default function AdminPage() {
                                                         />
                                                     </div>
 
-                                                    {/* 对接主体名称 */}
+                                                    {/* 对接方名称(谁接) */}
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-2">对接主体名称 <span className="text-red-500">*</span></label>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">对接方名称(谁接) <span className="text-red-500">*</span></label>
                                                         <input
                                                             type="text"
                                                             value={newAccessKey.subject}
                                                             onChange={(e) => setNewAccessKey({ ...newAccessKey, subject: e.target.value })}
                                                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                            placeholder="请输入对接主体名称，如公司/部门/系统名称"
+                                                            placeholder="请输入对接方名称，如公司/部门/系统名称"
                                                         />
                                                     </div>
 
-                                                    {/* 对接服务 */}
+                                                    {/* 对接系统(接谁) —— 分段卡片选择：「全部接口」/「指定接口」 */}
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-2">对接服务 <span className="text-red-500">*</span></label>
-                                                        <div className="flex items-center gap-6">
-                                                            <label className="flex items-center cursor-pointer">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="accessKeyType"
-                                                                    checked={newAccessKey.type === "internal"}
-                                                                    onChange={() => {
-                                                                        setNewAccessKey({ ...newAccessKey, type: "internal", apiPath: "" });
-                                                                        setSelectedProductId("");
-                                                                    }}
-                                                                    className="w-4 h-4 text-[#006bff] border-gray-300 focus:ring-[#006bff]"
-                                                                />
-                                                                <span className="ml-2 text-sm text-gray-700">智汇云平台</span>
-                                                            </label>
-                                                            <label className="flex items-center cursor-pointer">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="accessKeyType"
-                                                                    checked={newAccessKey.type === "thirdparty"}
-                                                                    onChange={() => {
-                                                                        setNewAccessKey({ ...newAccessKey, type: "thirdparty", apiPath: "" });
-                                                                        setSelectedProductId("");
-                                                                    }}
-                                                                    className="w-4 h-4 text-[#006bff] border-gray-300 focus:ring-[#006bff]"
-                                                                />
-                                                                <span className="ml-2 text-sm text-gray-700">智汇云产品</span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">对接系统(接谁) <span className="text-red-500">*</span></label>
 
-                                                    {/* 选择产品（仅智汇云产品时展示） */}
-                                                    {newAccessKey.type === "thirdparty" && (
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 mb-2">选择产品 <span className="text-red-500">*</span></label>
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 min-h-[38px] flex items-center">
-                                                                    {(() => {
-                                                                        const prod = keyProductsData.find(p => p.id === selectedProductId);
-                                                                        if (!prod) {
-                                                                            return <span className="text-gray-400">请选择智汇云产品，如云服务器 ECS</span>;
-                                                                        }
-                                                                        return (
-                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#006bff] rounded text-xs">
-                                                                                {prod.name}（{prod.identifier}）
+                                                        {/* 授权范围：上下两行（「全部接口」在上，其权限级别同行内联；「指定接口」在下） */}
+                                                        <div className="space-y-2">
+                                                            {/* 权限范围：4个按钮平铺（只读 / 读写 / 管理 / 指定接口） */}
+                                                            <div className="grid grid-cols-4 gap-2">
+                                                                {([
+                                                                    {
+                                                                        key: "read",
+                                                                        label: "只读",
+                                                                        suffix: "(全部只读接口)",
+                                                                        desc: "仅可查询数据",
+                                                                        scope: "all",
+                                                                        permission: "read",
+                                                                        icon: "M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
+                                                                    },
+                                                                    {
+                                                                        key: "readwrite",
+                                                                        label: "读写",
+                                                                        suffix: "(全部读写接口)",
+                                                                        desc: "可查询与修改",
+                                                                        scope: "all",
+                                                                        permission: "readwrite",
+                                                                        icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z",
+                                                                    },
+                                                                    {
+                                                                        key: "manage",
+                                                                        label: "管理",
+                                                                        suffix: "(全部接口)",
+                                                                        desc: "含高危操作",
+                                                                        scope: "all",
+                                                                        permission: "manage",
+                                                                        icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z",
+                                                                    },
+                                                                    {
+                                                                        key: "specified",
+                                                                        label: "指定接口",
+                                                                        suffix: "(跨系统精细选择)",
+                                                                        desc: "仅授权勾选的接口",
+                                                                        scope: "specified",
+                                                                        permission: null,
+                                                                        icon: "M4 6h16M4 12h8m-8 6h5",
+                                                                    },
+                                                                ] as const).map((opt) => {
+                                                                    const active = opt.scope === "all"
+                                                                        ? newAccessKey.scope === "all" && newAccessKey.permission === opt.permission
+                                                                        : newAccessKey.scope === "specified";
+                                                                    return (
+                                                                        <button
+                                                                            key={opt.key}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (opt.permission) {
+                                                                                    setNewAccessKey({ ...newAccessKey, scope: "all", permission: opt.permission });
+                                                                                } else {
+                                                                                    setNewAccessKey({ ...newAccessKey, scope: "specified" });
+                                                                                }
+                                                                            }}
+                                                                            title={opt.desc}
+                                                                            className={`group relative flex flex-col items-start gap-1 rounded-md border px-2.5 py-2 text-left transition-all duration-200 ${active
+                                                                                ? "border-[#006bff] bg-[#006bff]/[0.03]"
+                                                                                : "border-gray-200 bg-white hover:border-gray-300"}`}
+                                                                        >
+                                                                            <span className="flex w-full items-center gap-1.5">
+                                                                                <svg className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-200 ${active ? "text-[#006bff]" : "text-gray-400 group-hover:text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={opt.icon} />
+                                                                                </svg>
+                                                                                <span className={`text-[13px] font-medium whitespace-nowrap transition-colors ${active ? "text-[#006bff]" : "text-gray-800"}`}>{opt.label}</span>
+                                                                                <span className={`ml-auto flex items-center justify-center w-3.5 h-3.5 rounded-full border flex-shrink-0 transition-all duration-200 ${active ? "border-[#006bff] bg-[#006bff]" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
+                                                                                    <svg className={`w-2 h-2 text-white transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`} fill="none" stroke="currentColor" strokeWidth={4} viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                                    </svg>
+                                                                                </span>
                                                                             </span>
-                                                                        );
-                                                                    })()}
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setProductDialogSearch("");
-                                                                        setProductDialogOpen(true);
-                                                                    }}
-                                                                    className="flex items-center gap-1 px-4 py-2 border border-[#006bff] text-[#006bff] rounded-lg text-sm hover:bg-blue-50 transition-colors whitespace-nowrap"
-                                                                >
-                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                                                    </svg>
-                                                                    选择产品
-                                                                </button>
+                                                                            <span className={`text-[11px] truncate w-full transition-colors ${active ? "text-[#006bff]/70" : "text-gray-350"}`}>{opt.suffix}</span>
+                                                                        </button>
+                                                                    );
+                                                                })}
                                                             </div>
-                                                            <p className="text-xs text-gray-400 mt-1.5">选择产品后，可在下方对接接口中填写该产品的接口</p>
-                                                        </div>
-                                                    )}
 
-                                                    {/* 对接接口 */}
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-2">对接接口 <span className="text-red-500">*</span></label>
-                                                        <textarea
-                                                            value={newAccessKey.apiPath}
-                                                            onChange={(e) => setNewAccessKey({ ...newAccessKey, apiPath: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                            placeholder="请输入对接接口，支持填写多个，用逗号或换行分隔，如：/api/v1/risk/check, /api/v1/risk/query"
-                                                            rows={3}
-                                                        />
-                                                        <p className="text-xs text-gray-400 mt-1.5">支持填写多个接口，用逗号或换行分隔</p>
+                                                            {/* 管理权限风险提示 */}
+                                                            {newAccessKey.scope === "all" && newAccessKey.permission === "manage" && (
+                                                                <div className="flex items-start gap-1.5 rounded bg-amber-50/70 border border-amber-100 px-2 py-1.5">
+                                                                    <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                                    </svg>
+                                                                    <span className="text-[11px] text-amber-700 leading-[1.6]">管理权限包含删除、超管等高危操作，请谨慎授予</span>
+                                                                </div>
+                                                            )}
+
+
+                                                        </div>
+
+                                                        {/* 指定接口 - 已选接口配置面板（按系统分组） */}
+                                                        {newAccessKey.scope === "specified" && (
+                                                            <div className="mt-2 rounded-md border border-gray-150 bg-gray-50/50 px-3 py-2.5">
+                                                                <div className="flex items-center justify-between gap-3 mb-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[11px] font-medium text-gray-500 tracking-wide">已选接口</span>
+                                                                        <span className={`px-1.5 py-px rounded text-[11px] font-medium tabular-nums transition-colors ${selectedApiObjects.length > 0 ? "bg-[#006bff]/10 text-[#006bff]" : "bg-gray-150 text-gray-400"}`}>
+                                                                            {selectedApiObjects.length}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2.5">
+                                                                        {selectedApiObjects.length > 0 && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setSelectedApiIds([])}
+                                                                                className="text-[11px] text-gray-400 hover:text-red-500 transition-colors"
+                                                                            >
+                                                                                清空
+                                                                            </button>
+                                                                        )}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setApiSelectTempIds(selectedApiIds);
+                                                                                setApiSelectSearch("");
+                                                                                setApiSelectSystemSearch("");
+                                                                                setApiSelectSystemId(apiDialogSystems[0]?.id || "");
+                                                                                setApiSelectDialogOpen(true);
+                                                                            }}
+                                                                            className="flex items-center gap-1 px-2.5 py-1 bg-white border border-[#006bff]/30 text-[#006bff] rounded-md text-[11px] font-medium hover:bg-[#006bff]/[0.04] hover:border-[#006bff] transition-all whitespace-nowrap"
+                                                                        >
+                                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 4v16m8-8H4" />
+                                                                            </svg>
+                                                                            添加接口
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                {selectedApiObjects.length === 0 ? (
+                                                                    <div className="rounded border border-dashed border-gray-250 bg-white py-5 text-center">
+                                                                        <svg className="w-6 h-6 mx-auto text-gray-250" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.3} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h7m4-5v6m3-3h-6" />
+                                                                        </svg>
+                                                                        <p className="text-[13px] text-gray-500 mt-1.5">暂未选择接口</p>
+                                                                        <p className="text-[11px] text-gray-350 mt-0.5">点击右上角「添加接口」按系统勾选</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="space-y-1.5">
+                                                                        {(() => {
+                                                                            // 按所属系统分组
+                                                                            const groups = new Map<string, typeof selectedApiObjects>();
+                                                                            selectedApiObjects.forEach((api) => {
+                                                                                const arr = groups.get(api.productId) || [];
+                                                                                arr.push(api);
+                                                                                groups.set(api.productId, arr);
+                                                                            });
+                                                                            const methodColor: Record<string, string> = {
+                                                                                GET: "bg-emerald-50 text-emerald-600",
+                                                                                POST: "bg-blue-50 text-blue-600",
+                                                                                PUT: "bg-orange-50 text-orange-600",
+                                                                                DELETE: "bg-red-50 text-red-600",
+                                                                            };
+                                                                            return Array.from(groups.entries()).map(([sysId, apis]) => {
+                                                                                const sys = keyProductsData.find((p) => p.id === sysId);
+                                                                                const collapsed = collapsedApiGroups.includes(sysId);
+                                                                                return (
+                                                                                    <div key={sysId} className="rounded-md border border-gray-150 bg-white overflow-hidden">
+                                                                                        <div className="group/hd flex items-center justify-between gap-2 pl-2 pr-2.5 py-1.5 bg-gray-50/60 border-b border-gray-100">
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() =>
+                                                                                                    setCollapsedApiGroups((prev) =>
+                                                                                                        collapsed ? prev.filter((id) => id !== sysId) : [...prev, sysId],
+                                                                                                    )
+                                                                                                }
+                                                                                                className="flex items-center gap-1.5 min-w-0 flex-1 text-left"
+                                                                                            >
+                                                                                                <svg
+                                                                                                    className={`w-3 h-3 text-gray-350 flex-shrink-0 transition-transform duration-200 ${collapsed ? "" : "rotate-90"}`}
+                                                                                                    fill="none"
+                                                                                                    stroke="currentColor"
+                                                                                                    viewBox="0 0 24 24"
+                                                                                                >
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M9 5l7 7-7 7" />
+                                                                                                </svg>
+                                                                                                <span className={`px-1 py-px rounded text-[10px] font-medium flex-shrink-0 ${sys?.systemType === "platform" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-700"}`}>
+                                                                                                    {sys?.systemType === "platform" ? "平台" : "产品"}
+                                                                                                </span>
+                                                                                                <span className="text-[13px] font-medium text-gray-800 truncate">{sys?.name || sysId}</span>
+                                                                                                <span className="text-[11px] text-gray-350 flex-shrink-0 tabular-nums">· {apis.length}</span>
+                                                                                            </button>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => {
+                                                                                                    const ids = apis.map((a) => a.id);
+                                                                                                    setSelectedApiIds((prev) => prev.filter((id) => !ids.includes(id)));
+                                                                                                }}
+                                                                                                className="text-[11px] text-gray-350 hover:text-red-500 transition-all flex-shrink-0 opacity-0 group-hover/hd:opacity-100"
+                                                                                            >
+                                                                                                移除
+                                                                                            </button>
+                                                                                        </div>
+                                                                                        {!collapsed && (
+                                                                                            <div className="divide-y divide-gray-50">
+                                                                                                {apis.map((api) => (
+                                                                                                    <div
+                                                                                                        key={api.id}
+                                                                                                        className="group flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50/70 transition-colors"
+                                                                                                    >
+                                                                                                        <span className={`px-1 py-px rounded text-[9px] font-semibold flex-shrink-0 w-11 text-center tracking-wide ${methodColor[api.method] || "bg-gray-100 text-gray-600"}`}>
+                                                                                                            {api.method}
+                                                                                                        </span>
+                                                                                                        <span className="text-[13px] text-gray-700 truncate flex-shrink-0 max-w-[150px]">{api.name}</span>
+                                                                                                        <span className="text-[11px] text-gray-400 font-mono truncate flex-1 min-w-0">{api.path}</span>
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            onClick={() => setSelectedApiIds((ids) => ids.filter((id) => id !== api.id))}
+                                                                                                            className="flex-shrink-0 p-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                                                                                                            title="移除该接口"
+                                                                                                        >
+                                                                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
+                                                                                                            </svg>
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            });
+                                                                        })()}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     {/* 绑定IP白名单 */}
@@ -3652,7 +4187,7 @@ export default function AdminPage() {
                                                 </button>
                                                 <button
                                                     onClick={editingAccessKeyId != null ? handleUpdateAccessKey : handleCreateAccessKey}
-                                                    disabled={!newAccessKey.subject || !newAccessKey.ipWhitelist || !newAccessKey.apiPath || (newAccessKey.type === "thirdparty" && !selectedProductId)}
+                                                    disabled={!newAccessKey.subject || !newAccessKey.ipWhitelist || (newAccessKey.scope === "specified" && selectedApiIds.length === 0)}
                                                     className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                                                 >
                                                      {editingAccessKeyId != null ? "保存" : "创建"}
@@ -3661,24 +4196,24 @@ export default function AdminPage() {
                                         </div>
                                     </div>
 
-                                    {/* 选择智汇云产品 - 弹框 */}
-                                    {productDialogOpen && (
+                                    {/* 添加对接接口 - 弹框（左侧选择系统，右侧选择该系统下的接口，支持跨系统累加） */}
+                                    {apiSelectDialogOpen && (
                                         <div className="fixed inset-0 z-50 flex items-center justify-center">
                                             {/* 遮罩 */}
                                             <div
                                                 className="absolute inset-0 bg-black/30"
-                                                onClick={() => setProductDialogOpen(false)}
+                                                onClick={() => setApiSelectDialogOpen(false)}
                                             />
                                             {/* 弹框主体 */}
-                                            <div className="relative w-[640px] max-w-full bg-white rounded-lg shadow-xl flex flex-col max-h-[80vh]">
+                                            <div className="relative w-[880px] max-w-full bg-white rounded-lg shadow-xl flex flex-col max-h-[80vh]">
                                                 {/* 头部 */}
                                                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                                     <div>
-                                                        <h3 className="text-lg font-semibold text-gray-900">选择智汇云产品</h3>
-                                                        <p className="text-sm text-gray-500 mt-0.5">选择一项产品后，对接接口将仅展示该产品的接口</p>
+                                                        <h3 className="text-lg font-semibold text-gray-900">添加接口</h3>
+                                                        <p className="text-sm text-gray-500 mt-0.5">先在左侧选择系统，再在右侧勾选该系统下的接口，支持跨系统多选</p>
                                                     </div>
                                                     <button
-                                                        onClick={() => setProductDialogOpen(false)}
+                                                        onClick={() => setApiSelectDialogOpen(false)}
                                                         className="text-gray-400 hover:text-gray-600"
                                                     >
                                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3687,87 +4222,197 @@ export default function AdminPage() {
                                                     </button>
                                                 </div>
 
-                                                {/* 搜索栏 */}
-                                                <div className="px-6 py-3 border-b border-gray-100">
-                                                    <div className="relative">
-                                                        <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                                        </svg>
-                                                        <input
-                                                            type="text"
-                                                            value={productDialogSearch}
-                                                            onChange={(e) => setProductDialogSearch(e.target.value)}
-                                                            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                            placeholder="搜索产品名称或标识"
-                                                        />
+                                                {/* 主体：左右两栏 */}
+                                                <div className="flex-1 flex min-h-0">
+                                                    {/* 左侧：选择系统 */}
+                                                    <div className="w-[260px] flex-shrink-0 border-r border-gray-200 flex flex-col min-h-0">
+                                                        <div className="px-4 py-3 border-b border-gray-100">
+                                                            <div className="text-xs font-medium text-gray-500 mb-2">选择系统</div>
+                                                            <div className="relative">
+                                                                <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                                </svg>
+                                                                <input
+                                                                    type="text"
+                                                                    value={apiSelectSystemSearch}
+                                                                    onChange={(e) => setApiSelectSystemSearch(e.target.value)}
+                                                                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                    placeholder="搜索系统名称"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 overflow-auto p-2">
+                                                            {(() => {
+                                                                const kw = apiSelectSystemSearch.trim().toLowerCase();
+                                                                const list = kw
+                                                                    ? apiDialogSystems.filter(
+                                                                        (p) =>
+                                                                            p.name.toLowerCase().includes(kw) ||
+                                                                            p.identifier.toLowerCase().includes(kw),
+                                                                    )
+                                                                    : apiDialogSystems;
+                                                                if (list.length === 0) {
+                                                                    return <div className="text-center text-sm text-gray-400 py-10">未找到匹配的系统</div>;
+                                                                }
+                                                                // 按平台/产品分组展示
+                                                                const platforms = list.filter((p) => p.systemType === "platform");
+                                                                const products = list.filter((p) => p.systemType === "product");
+                                                                const renderGroup = (title: string, items: typeof list) =>
+                                                                    items.length === 0 ? null : (
+                                                                        <div className="mb-2">
+                                                                            <div className="px-2 py-1 text-[11px] text-gray-400">{title}</div>
+                                                                            {items.map((sys) => {
+                                                                                const active = apiSelectSystemId === sys.id;
+                                                                                const total = allApiInterfaces.filter((a) => a.productId === sys.id).length;
+                                                                                const chosen = apiSelectTempIds.filter((id) =>
+                                                                                    allApiInterfaces.some((a) => a.id === id && a.productId === sys.id),
+                                                                                ).length;
+                                                                                return (
+                                                                                    <button
+                                                                                        key={sys.id}
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            setApiSelectSystemId(sys.id);
+                                                                                            setApiSelectSearch("");
+                                                                                        }}
+                                                                                        className={`w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg text-left transition-colors ${active ? "bg-blue-50 text-[#006bff]" : "text-gray-700 hover:bg-gray-50"}`}
+                                                                                    >
+                                                                                        <span className="text-sm truncate">{sys.name}</span>
+                                                                                        {chosen > 0 ? (
+                                                                                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#006bff] text-white flex-shrink-0">{chosen}</span>
+                                                                                        ) : (
+                                                                                            <span className="text-[11px] text-gray-400 flex-shrink-0">{total}</span>
+                                                                                        )}
+                                                                                    </button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    );
+                                                                return (
+                                                                    <>
+                                                                        {renderGroup("智汇云平台", platforms)}
+                                                                        {renderGroup("智汇云产品", products)}
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 右侧：选择接口 */}
+                                                    <div className="flex-1 flex flex-col min-w-0 min-h-0">
+                                                        <div className="px-6 py-3 border-b border-gray-100">
+                                                            <div className="relative">
+                                                                <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                                </svg>
+                                                                <input
+                                                                    type="text"
+                                                                    value={apiSelectSearch}
+                                                                    onChange={(e) => setApiSelectSearch(e.target.value)}
+                                                                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                    placeholder="搜索接口名称或接口路径"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 overflow-auto px-6 py-3">
+                                                            {(() => {
+                                                                if (!apiSelectSystemId) {
+                                                                    return <div className="text-center text-[13px] text-gray-400 py-10">请先在左侧选择一个系统</div>;
+                                                                }
+                                                                const kw = apiSelectSearch.trim().toLowerCase();
+                                                                const list = kw
+                                                                    ? apiDialogApis.filter(
+                                                                        (a) =>
+                                                                            a.name.toLowerCase().includes(kw) ||
+                                                                            a.path.toLowerCase().includes(kw) ||
+                                                                            a.group.toLowerCase().includes(kw),
+                                                                    )
+                                                                    : apiDialogApis;
+                                                                if (list.length === 0) {
+                                                                    return <div className="text-center text-[13px] text-gray-400 py-10">暂无可选择的接口</div>;
+                                                                }
+                                                                const methodColor: Record<string, string> = {
+                                                                    GET: "bg-emerald-50 text-emerald-600",
+                                                                    POST: "bg-blue-50 text-blue-600",
+                                                                    PUT: "bg-orange-50 text-orange-600",
+                                                                    DELETE: "bg-red-50 text-red-600",
+                                                                };
+                                                                const allChecked = list.every((a) => apiSelectTempIds.includes(a.id));
+                                                                return (
+                                                                    <div>
+                                                                        {/* 全选 */}
+                                                                        <div className="flex items-center justify-between gap-3 px-0.5 pb-2 mb-2 border-b border-gray-100">
+                                                                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={allChecked}
+                                                                                    onChange={() => {
+                                                                                        const ids = list.map((a) => a.id);
+                                                                                        setApiSelectTempIds((prev) =>
+                                                                                            allChecked
+                                                                                                ? prev.filter((id) => !ids.includes(id))
+                                                                                                : Array.from(new Set([...prev, ...ids])),
+                                                                                        );
+                                                                                    }}
+                                                                                    className="w-3.5 h-3.5 rounded-[3px] text-[#006bff] border-gray-300 focus:ring-1 focus:ring-[#006bff]/30 focus:ring-offset-0"
+                                                                                />
+                                                                                <span className="text-[13px] text-gray-600">全选当前列表</span>
+                                                                            </label>
+                                                                            <span className="text-[11px] text-gray-350 tabular-nums">共 {list.length} 个接口</span>
+                                                                        </div>
+                                                                        <div className="rounded-md border border-gray-150 divide-y divide-gray-50 overflow-hidden">
+                                                                            {list.map((api) => {
+                                                                                const checked = apiSelectTempIds.includes(api.id);
+                                                                                return (
+                                                                                    <label
+                                                                                        key={api.id}
+                                                                                        className={`flex items-center gap-2.5 px-2.5 py-2 cursor-pointer transition-colors ${checked ? "bg-[#006bff]/[0.035]" : "bg-white hover:bg-gray-50/70"}`}
+                                                                                    >
+                                                                                        <input
+                                                                                            type="checkbox"
+                                                                                            checked={checked}
+                                                                                            onChange={() =>
+                                                                                                setApiSelectTempIds((prev) =>
+                                                                                                    checked ? prev.filter((id) => id !== api.id) : [...prev, api.id],
+                                                                                                )
+                                                                                            }
+                                                                                            className="w-3.5 h-3.5 rounded-[3px] text-[#006bff] border-gray-300 focus:ring-1 focus:ring-[#006bff]/30 focus:ring-offset-0 flex-shrink-0"
+                                                                                        />
+                                                                                        <span className={`px-1 py-px rounded text-[9px] font-semibold flex-shrink-0 w-11 text-center tracking-wide ${methodColor[api.method] || "bg-gray-100 text-gray-600"}`}>{api.method}</span>
+                                                                                        <span className={`text-[13px] flex-shrink-0 truncate max-w-[170px] transition-colors ${checked ? "text-[#006bff] font-medium" : "text-gray-800"}`}>{api.name}</span>
+                                                                                        <span className="text-[11px] text-gray-400 font-mono truncate flex-1 min-w-0">{api.path}</span>
+                                                                                        <span className="px-1 py-px rounded text-[10px] bg-gray-100 text-gray-500 flex-shrink-0">{api.group}</span>
+                                                                                    </label>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                {/* 产品列表 */}
-                                                <div className="flex-1 overflow-auto px-6 py-3">
-                                                    {(() => {
-                                                        const kw = productDialogSearch.trim().toLowerCase();
-                                                        const list = kw
-                                                            ? keyProductsData.filter(p =>
-                                                                p.name.toLowerCase().includes(kw) ||
-                                                                p.identifier.toLowerCase().includes(kw) ||
-                                                                p.category.toLowerCase().includes(kw)
-                                                            )
-                                                            : keyProductsData;
-                                                        if (list.length === 0) {
-                                                            return <div className="text-center text-sm text-gray-400 py-10">未找到匹配的产品</div>;
-                                                        }
-                                                        return (
-                                                            <div className="grid grid-cols-1 gap-2">
-                                                                {list.map(prod => {
-                                                                    const checked = selectedProductId === prod.id;
-                                                                    // 当前产品的接口数
-                                                                    const apiCount = apiInterfacesData.filter(a => a.productId === prod.id).length;
-                                                                    return (
-                                                                        <label
-                                                                            key={prod.id}
-                                                                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "border-[#006bff] bg-blue-50/40" : "border-gray-200 hover:border-gray-300"}`}
-                                                                        >
-                                                                            <input
-                                                                                type="radio"
-                                                                                name="keyProduct"
-                                                                                checked={checked}
-                                                                                onChange={() => setSelectedProductId(prod.id)}
-                                                                                className="w-4 h-4 text-[#006bff] border-gray-300 focus:ring-[#006bff]"
-                                                                            />
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <span className="text-sm font-medium text-gray-900">{prod.name}</span>
-                                                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">{prod.category}</span>
-                                                                                    <span className="text-xs text-gray-400">标识：{prod.identifier}</span>
-                                                                                </div>
-                                                                                <div className="text-xs text-gray-400 mt-0.5">可对接 {apiCount} 个接口</div>
-                                                                            </div>
-                                                                        </label>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
-
                                                 {/* 底部操作栏 */}
-                                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-                                                    <button
-                                                        onClick={() => setProductDialogOpen(false)}
-                                                        className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                                    >
-                                                        取消
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setNewAccessKey({ ...newAccessKey, apiPath: "" });
-                                                            setProductDialogOpen(false);
-                                                        }}
-                                                        className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
-                                                    >
-                                                        确定
-                                                    </button>
+                                                <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                                                    <span className="text-sm text-gray-500">已选 {apiSelectTempIds.length} 个接口</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <button
+                                                            onClick={() => setApiSelectDialogOpen(false)}
+                                                            className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            取消
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedApiIds(apiSelectTempIds);
+                                                                setApiSelectDialogOpen(false);
+                                                            }}
+                                                            className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                                                        >
+                                                            确定
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -3802,7 +4447,7 @@ export default function AdminPage() {
                                                     onChange={(e) => setAccessKeyTypeFilter(e.target.value as "all" | AccessKeyType)}
                                                     className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                                 >
-                                                    <option value="all">全部对接服务</option>
+                                                    <option value="all">全部对接系统</option>
                                                     <option value="internal">智汇云平台</option>
                                                     <option value="thirdparty">智汇云产品</option>
                                                 </select>
@@ -3821,12 +4466,15 @@ export default function AdminPage() {
                                                     onClick={() => {
                                                         setEditingAccessKeyId(null);
                                                         setSelectedProductId("");
+                                                        setSelectedApiIds([]);
                                                         setNewAccessKey({
                                                             name: "",
                                                             subject: "",
                                                             type: "internal",
+                                                            scope: "all",
                                                             ipWhitelist: "",
                                                             apiPath: "",
+                                                            permission: "read",
                                                             remark: "",
                                                         });
                                                         setCreateAccessKeyDialogOpen(true);
@@ -3846,33 +4494,35 @@ export default function AdminPage() {
                                     <div className="bg-white rounded-lg border border-gray-200">
                                         <table className="w-full table-fixed">
                                             <colgroup>
-                                                <col className="w-[18%]" />
                                                 <col className="w-[12%]" />
-                                                <col className="w-[14%]" />
-                                                <col className="w-[20%]" />
-                                                <col className="w-[12%]" />
-                                                <col className="w-[14%]" />
-                                                <col className="w-[6%]" />
-                                                <col className="w-[10%]" />
+                                                <col className="w-[16%]" />
                                                 <col className="w-[8%]" />
+                                                <col className="w-[10%]" />
+                                                <col className="w-[14%]" />
+                                                <col className="w-[9%]" />
+                                                <col className="w-[6%]" />
+                                                <col className="w-[8%]" />
+                                                <col className="w-[8%]" />
+                                                <col className="w-[9%]" />
                                             </colgroup>
                                             <thead>
                                                 <tr className="bg-gray-50 border-b border-gray-200">
                                                     <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">密钥名称</th>
-                                                    <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">对接主体</th>
-                                                    <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">对接服务</th>
                                                     <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">AK / SK</th>
-                                                    <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">IP白名单</th>
+                                                    <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">对接方名称(谁接)</th>
+                                                    <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">对接系统(接谁)</th>
                                                     <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">对接接口</th>
+                                                    <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">绑定IP白名单</th>
                                                     <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">状态</th>
                                                     <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">创建时间</th>
+                                                    <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">更新时间</th>
                                                     <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">操作</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {filteredAccessKeys.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={9} className="py-16 text-center">
+                                                        <td colSpan={10} className="py-16 text-center">
                                                             <div className="flex flex-col items-center text-gray-400">
                                                                 <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a4 4 0 11-8 0 4 4 0 018 0zM12 7v10m0 0l-3 3m3-3l3 3" />
@@ -3890,27 +4540,6 @@ export default function AdminPage() {
                                                                     <div className="font-medium text-gray-900">{key.name}</div>
                                                                     {key.remark && (
                                                                         <div className="text-xs text-gray-400 mt-0.5 max-w-[180px] truncate" title={key.remark}>{key.remark}</div>
-                                                                    )}
-                                                                </td>
-                                                                <td className="py-3 px-3">
-                                                                    <span className="text-sm text-gray-700">{key.subject}</span>
-                                                                </td>
-                                                                <td className="py-3 px-3">
-                                                                    {key.type === "internal" ? (
-                                                                        <span className="inline-block px-2 py-1 text-xs rounded bg-blue-50 text-blue-700">
-                                                                            智汇云平台
-                                                                        </span>
-                                                                    ) : (
-                                                                        <div className="flex flex-col gap-1">
-                                                                            {key.productId && (() => {
-                                                                                const prod = keyProductsData.find(p => p.id === key.productId);
-                                                                                return prod ? (
-                                                                                    <span className="inline-block px-2 py-1 text-xs rounded bg-amber-50 text-amber-700">
-                                                                                        {prod.category} {prod.name} ({prod.identifier})
-                                                                                    </span>
-                                                                                ) : null;
-                                                                            })()}
-                                                                        </div>
                                                                     )}
                                                                 </td>
                                                                 <td className="py-3 px-3">
@@ -3978,21 +4607,77 @@ export default function AdminPage() {
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-3 px-3">
+                                                                    <span className="text-sm text-gray-700">{key.subject}</span>
+                                                                </td>
+                                                                <td className="py-3 px-3">
+                                                                    {key.type === "internal" ? (
+                                                                        <span className="inline-block px-2 py-1 text-xs rounded bg-blue-50 text-blue-700">
+                                                                            智汇云平台
+                                                                        </span>
+                                                                    ) : (
+                                                                        <div className="flex flex-col gap-1">
+                                                                            {key.productId && (() => {
+                                                                                const prod = keyProductsData.find(p => p.id === key.productId);
+                                                                                return prod ? (
+                                                                                    <span className="inline-block px-2 py-1 text-xs rounded bg-amber-50 text-amber-700">
+                                                                                        {prod.category} {prod.name} ({prod.identifier})
+                                                                                    </span>
+                                                                                ) : null;
+                                                                            })()}
+                                                                        </div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-3">
+                                                                    {key.scope === "all" ? (() => {
+                                                                        // 全部接口场景：按权限级别展示对应的接口范围文案
+                                                                        const scopeMap: Record<string, { label: string; cls: string }> = {
+                                                                            read: { label: "全部只读接口", cls: "bg-gray-50 text-gray-600" },
+                                                                            readwrite: { label: "全部读写接口", cls: "bg-emerald-50 text-emerald-600" },
+                                                                            manage: { label: "管理全部接口", cls: "bg-amber-50 text-amber-700" },
+                                                                        };
+                                                                        const s = scopeMap[key.permission || "read"];
+                                                                        return (
+                                                                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded ${s.cls}`}>
+                                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                                </svg>
+                                                                                {s.label}
+                                                                            </span>
+                                                                        );
+                                                                    })() : (
+                                                                        (() => {
+                                                                            const paths = key.apiPath
+                                                                                .split(/[,，\n]/)
+                                                                                .map(p => p.trim())
+                                                                                .filter(Boolean);
+                                                                            if (paths.length === 0) {
+                                                                                return <span className="text-xs text-gray-400">—</span>;
+                                                                            }
+                                                                            return (
+                                                                                <div className="max-w-[240px]">
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <span className="px-1.5 py-0.5 text-[11px] bg-[#006bff]/10 text-[#006bff] rounded font-medium flex-shrink-0">
+                                                                                            {paths.length} 个接口
+                                                                                        </span>
+                                                                                        <span className="text-xs text-gray-500 font-mono truncate" title={paths.join("\n")}>
+                                                                                            {paths[0]}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    {paths.length > 1 && (
+                                                                                        <div className="text-[11px] text-gray-400 mt-0.5" title={paths.join("\n")}>
+                                                                                            等 {paths.length} 个，悬停查看全部
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        })()
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-3">
                                                                     <div className="text-sm text-gray-600">
                                                                         {key.ipWhitelist.map((ip, idx) => (
                                                                             <span key={idx} className="inline-block px-1.5 py-0.5 mr-1 mb-1 text-xs bg-gray-100 text-gray-600 rounded font-mono">{ip}</span>
                                                                         ))}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-3 px-3" style={{ maxWidth: '200px', width: '200px' }}>
-                                                                    <div className="text-sm text-gray-600 flex flex-wrap gap-1">
-                                                                        {key.apiPath
-                                                                            .split(/[,，\n]/)
-                                                                            .map(p => p.trim())
-                                                                            .filter(Boolean)
-                                                                            .map((path, idx) => (
-                                                                                <span key={idx} className="px-1.5 py-0.5 text-xs bg-blue-50 text-blue-600 rounded font-mono break-all">{path}</span>
-                                                                            ))}
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-3 px-3">
@@ -4006,6 +4691,9 @@ export default function AdminPage() {
                                                                 </td>
                                                                 <td className="py-3 px-3">
                                                                     <span className="text-sm text-gray-600">{key.createTime}</span>
+                                                                </td>
+                                                                <td className="py-3 px-3">
+                                                                    <span className="text-sm text-gray-600">{key.updateTime}</span>
                                                                 </td>
                                                                 <td className="py-3 px-3">
                                                                     <div className="flex items-center gap-2">
@@ -4229,85 +4917,172 @@ export default function AdminPage() {
                             <div className="p-6">
                                 {/* 页面标题 */}
                                 <div className="mb-6">
-                                    <h2 className="text-xl font-semibold text-gray-900 mb-1">API接口</h2>
-                                    <p className="text-sm text-gray-500">查看各业务对外提供的接口列表，按业务（产品）维度分组展示</p>
+                                    <h2 className="text-xl font-semibold text-gray-900 mb-1">系统间对接API接口</h2>
+                                    <p className="text-sm text-gray-500">各系统对外提供的接口列表</p>
                                 </div>
 
-                                {/* 顶部统计 */}
-                                <div className="grid grid-cols-4 gap-4 mb-6">
-                                    <div className="bg-white rounded-lg border border-gray-200 p-5">
-                                        <div className="text-sm text-gray-500 mb-2">业务数量</div>
+                                {/* 顶部统计 + 添加接口 */}
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="bg-white rounded-lg border border-gray-200 p-5 flex-1 max-w-[300px]">
+                                        <div className="text-sm text-gray-500 mb-2">系统数量</div>
                                         <div className="text-2xl font-semibold text-gray-900">{keyProductsData.length}</div>
                                     </div>
-                                    <div className="bg-white rounded-lg border border-gray-200 p-5">
+                                    <div className="bg-white rounded-lg border border-gray-200 p-5 flex-1 max-w-[300px]">
                                         <div className="text-sm text-gray-500 mb-2">接口总数</div>
-                                        <div className="text-2xl font-semibold text-[#006bff]">{apiInterfacesData.length}</div>
+                                        <div className="text-2xl font-semibold text-[#006bff]">{allApiInterfaces.length}</div>
                                     </div>
-                                    <div className="bg-white rounded-lg border border-gray-200 p-5">
-                                        <div className="text-sm text-gray-500 mb-2">GET 接口</div>
-                                        <div className="text-2xl font-semibold text-green-600">{apiInterfacesData.filter(a => a.method === "GET").length}</div>
-                                    </div>
-                                    <div className="bg-white rounded-lg border border-gray-200 p-5">
-                                        <div className="text-sm text-gray-500 mb-2">POST / 其他</div>
-                                        <div className="text-2xl font-semibold text-orange-500">{apiInterfacesData.filter(a => a.method !== "GET").length}</div>
-                                    </div>
+                                    <div className="flex-1" />
+                                    <button
+                                        onClick={openAddApiDrawer}
+                                        className="flex items-center gap-1.5 px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors flex-shrink-0"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        添加接口
+                                    </button>
                                 </div>
 
                                 {/* 左右两栏布局：左侧产品列表 + 右侧当前产品接口列表 */}
                                 <div className="flex gap-4">
                                     {/* 左侧 - 产品列表 */}
-                                    <div className="w-64 flex-shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col" style={{ height: "calc(100vh - 300px)", minHeight: 500 }}>
+                                    <div className="w-80 flex-shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col" style={{ height: "calc(100vh - 300px)", minHeight: 500 }}>
                                         <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white flex-shrink-0">
-                                            <div className="text-sm font-semibold text-gray-900 mb-2">产品列表</div>
-                                            <div className="relative">
+                                            <div className="text-sm font-semibold text-gray-900 mb-2">所属系统模块</div>
+                                            <div className="relative mb-2">
                                                 <input
                                                     type="text"
                                                     value={apiManagerProductSearch}
                                                     onChange={(e) => setApiManagerProductSearch(e.target.value)}
-                                                    placeholder="搜索产品"
+                                                    placeholder="搜索系统/产品"
                                                     className="w-full pl-7 pr-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:border-blue-500 bg-white"
                                                 />
                                                 <svg className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
                                                 </svg>
                                             </div>
+                                            {/* 所属系统筛选：智汇云平台 / 智汇云产品 */}
+                                            <div className="flex items-center gap-1 mb-2">
+                                                {([
+                                                    { key: "all", label: "全部" },
+                                                    { key: "platform", label: "智汇云平台" },
+                                                    { key: "product", label: "智汇云产品" },
+                                                ] as const).map((opt) => (
+                                                    <button
+                                                        key={opt.key}
+                                                        onClick={() => { setApiManagerSystemTypeFilter(opt.key); if (opt.key !== "product") setApiManagerProductLineFilter("all"); }}
+                                                        className={`flex-1 px-1.5 py-1 text-[11px] rounded-md border transition-colors ${apiManagerSystemTypeFilter === opt.key ? "bg-blue-500 text-white border-blue-500" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {/* 产线筛选：仅对智汇云产品生效 */}
+                                            {apiManagerSystemTypeFilter === "product" && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[11px] text-gray-500 flex-shrink-0">产线</span>
+                                                    <select
+                                                        value={apiManagerProductLineFilter}
+                                                        onChange={(e) => setApiManagerProductLineFilter(e.target.value)}
+                                                        className="flex-1 min-w-0 px-2 py-1 text-[11px] border border-gray-200 rounded-md focus:outline-none focus:border-blue-500 bg-white"
+                                                    >
+                                                        <option value="all">全部产线</option>
+                                                        {Array.from(new Set(keyProductsData.filter(p => p.systemType === "product").map(p => p.category))).map(c => (
+                                                            <option key={c} value={c}>{c}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex-1 overflow-y-auto py-1">
                                             {(() => {
-                                                const list = keyProductsData
-                                                    .map((p) => {
-                                                        const cnt = apiInterfacesData.filter(a => a.productId === p.id).length;
-                                                        return { ...p, apiCount: cnt };
-                                                    })
-                                                    .filter((p) => {
-                                                        if (!apiManagerProductSearch.trim()) return true;
-                                                        const k = apiManagerProductSearch.trim().toLowerCase();
-                                                        return p.name.toLowerCase().includes(k) || p.identifier.toLowerCase().includes(k) || p.category.toLowerCase().includes(k);
-                                                    });
-                                                if (list.length === 0) {
-                                                    return <div className="px-4 py-8 text-center text-xs text-gray-400">未找到匹配产品</div>;
-                                                }
-                                                return list.map((product) => {
+                                                const kw = apiManagerProductSearch.trim().toLowerCase();
+                                                const matchSearch = (p: typeof keyProductsData[number]) => {
+                                                    if (!kw) return true;
+                                                    return p.name.toLowerCase().includes(kw) || p.identifier.toLowerCase().includes(kw) || p.category.toLowerCase().includes(kw);
+                                                };
+                                                const withCount = visibleKeyProducts.map((p) => ({ ...p, apiCount: allApiInterfaces.filter(a => a.productId === p.id).length }));
+
+                                                const platformList = withCount.filter(p => p.systemType === "platform" && matchSearch(p));
+                                                const productList = withCount.filter(p => {
+                                                    if (p.systemType !== "product") return false;
+                                                    if (apiManagerProductLineFilter !== "all" && p.category !== apiManagerProductLineFilter) return false;
+                                                    return matchSearch(p);
+                                                });
+
+                                                const showPlatform = apiManagerSystemTypeFilter !== "product";
+                                                const showProduct = apiManagerSystemTypeFilter !== "platform";
+
+                                                const renderItem = (product: typeof withCount[number]) => {
                                                     const checked = apiManagerSelectedProductId === product.id;
                                                     return (
                                                         <div
                                                             key={product.id}
                                                             onClick={() => setApiManagerSelectedProductId(product.id)}
-                                                            className={`mx-2 my-1 px-3 py-2.5 rounded-md cursor-pointer transition-colors flex items-center gap-2.5 ${checked ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-50 border border-transparent"}`}
+                                                            className={`group mx-2 my-1 px-3 py-2.5 rounded-md cursor-pointer transition-colors flex items-center gap-2.5 ${checked ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-50 border border-transparent"}`}
                                                         >
                                                             <div className={`w-8 h-8 rounded-md flex items-center justify-center text-sm font-semibold flex-shrink-0 ${checked ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600"}`}>
                                                                 {product.name.charAt(0)}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className={`text-sm truncate ${checked ? "text-blue-700 font-semibold" : "text-gray-800"}`}>{product.name}</div>
-                                                                <div className="text-[11px] text-gray-400 font-mono truncate mt-0.5">{product.identifier}</div>
+                                                                <div className="flex items-center gap-1 mt-0.5">
+                                                                    <span className={`inline-block px-1 py-px text-[10px] rounded ${product.systemType === "platform" ? "bg-purple-50 text-purple-600" : "bg-emerald-50 text-emerald-600"}`}>
+                                                                        {product.systemType === "platform" ? "平台" : product.category}
+                                                                    </span>
+                                                                    <span className="text-[11px] text-gray-400 font-mono truncate">{product.identifier}</span>
+                                                                </div>
                                                             </div>
                                                             <span className={`inline-flex items-center justify-center text-[11px] font-medium min-w-[22px] h-5 px-1.5 rounded ${checked ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600"}`}>
                                                                 {product.apiCount}
                                                             </span>
+                                                            {/* 删除系统按钮：删除该系统及其下所有接口 */}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSystemDeleteConfirm({ id: product.id, name: product.name, apiCount: product.apiCount });
+                                                                }}
+                                                                title="删除该系统及其下所有接口"
+                                                                className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                                                            >
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
                                                         </div>
                                                     );
-                                                });
+                                                };
+
+                                                if (platformList.length === 0 && productList.length === 0) {
+                                                    return <div className="px-4 py-8 text-center text-xs text-gray-400">未找到匹配的系统/产品</div>;
+                                                }
+
+                                                return (
+                                                    <>
+                                                        {showPlatform && platformList.length > 0 && (
+                                                            <div className="mb-1">
+                                                                <div className="sticky top-0 z-10 px-3 py-1.5 bg-gray-50/95 backdrop-blur-sm flex items-center gap-1.5">
+                                                                    <span className="w-1 h-3 rounded-full bg-purple-400" />
+                                                                    <span className="text-[11px] font-semibold text-gray-600">智汇云平台</span>
+                                                                    <span className="text-[10px] text-gray-400">({platformList.length})</span>
+                                                                </div>
+                                                                {platformList.map(renderItem)}
+                                                            </div>
+                                                        )}
+                                                        {showProduct && (
+                                                            <div>
+                                                                <div className="sticky top-0 z-10 px-3 py-1.5 bg-gray-50/95 backdrop-blur-sm flex items-center gap-1.5">
+                                                                    <span className="w-1 h-3 rounded-full bg-emerald-400" />
+                                                                    <span className="text-[11px] font-semibold text-gray-600">智汇云产品</span>
+                                                                    <span className="text-[10px] text-gray-400">({productList.length})</span>
+                                                                </div>
+                                                                {productList.length > 0 ? productList.map(renderItem) : (
+                                                                    <div className="px-4 py-4 text-center text-[11px] text-gray-400">该产线下暂无产品</div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
                                             })()}
                                         </div>
                                     </div>
@@ -4323,7 +5098,7 @@ export default function AdminPage() {
                                                     </div>
                                                 );
                                             }
-                                            const productApis = apiInterfacesData.filter(a => a.productId === currentProduct.id);
+                                            const productApis = allApiInterfaces.filter(a => a.productId === currentProduct.id);
                                             const groups = Array.from(new Set(productApis.map(a => a.group)));
                                             return (
                                                 <>
@@ -4375,7 +5150,7 @@ export default function AdminPage() {
                                                     </div>
 
                                                     {/* 接口表格 */}
-                                                    <div className="flex-1 overflow-y-auto">
+                                                    <div className="flex-1 overflow-auto">
                                                         {(() => {
                                                             // 1. 按接口名称和所属模块筛选
                                                             const kw = apiManagerApiNameSearch.trim().toLowerCase();
@@ -4394,19 +5169,23 @@ export default function AdminPage() {
                                                             return (
                                                             <table className="w-full table-fixed">
                                                                 <colgroup>
-                                                                    <col style={{ width: "130px" }} />
-                                                                    <col style={{ width: "90px" }} />
-                                                                    <col style={{ width: "160px" }} />
-                                                                    <col style={{ width: "280px" }} />
-                                                                    <col />
+                                                                    <col style={{ width: "32%" }} />
+                                                                    <col style={{ width: "10%" }} />
+                                                                    <col style={{ width: "8%" }} />
+                                                                    <col style={{ width: "15%" }} />
+                                                                    <col style={{ width: "11%" }} />
+                                                                    <col style={{ width: "11%" }} />
+                                                                    <col style={{ width: "13%" }} />
                                                                 </colgroup>
                                                                 <thead className="sticky top-0 bg-white z-10">
                                                                     <tr className="bg-gray-50/50 border-b border-gray-200">
-                                                                        <th className="text-left py-2.5 px-5 text-xs font-medium text-gray-500">所属模块</th>
-                                                                        <th className="text-left py-2.5 px-5 text-xs font-medium text-gray-500">请求方法</th>
-                                                                        <th className="text-left py-2.5 px-5 text-xs font-medium text-gray-500">接口名称</th>
-                                                                        <th className="text-left py-2.5 px-5 text-xs font-medium text-gray-500">接口路径</th>
-                                                                        <th className="text-left py-2.5 px-5 text-xs font-medium text-gray-500">接口描述</th>
+                                                                        <th className="text-left py-2.5 px-4 text-xs font-medium text-gray-500">接口信息</th>
+                                                                        <th className="text-left py-2.5 px-4 text-xs font-medium text-gray-500">所属模块</th>
+                                                                        <th className="text-left py-2.5 px-4 text-xs font-medium text-gray-500">权限类型</th>
+                                                                        <th className="text-left py-2.5 px-4 text-xs font-medium text-gray-500">接口描述</th>
+                                                                        <th className="text-left py-2.5 px-4 text-xs font-medium text-gray-500">创建时间</th>
+                                                                        <th className="text-left py-2.5 px-4 text-xs font-medium text-gray-500">编辑时间</th>
+                                                                        <th className="text-left py-2.5 px-4 text-xs font-medium text-gray-500">操作</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -4417,26 +5196,94 @@ export default function AdminPage() {
                                                                             PUT: "bg-orange-50 text-orange-600 border-orange-200",
                                                                             DELETE: "bg-red-50 text-red-600 border-red-200",
                                                                         };
+                                                                        const times = getApiMockTimes(api.id);
                                                                         return (
-                                                                            <tr key={api.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
-                                                                                <td className="py-3 px-5">
+                                                                            <tr key={api.id} className="group border-b border-gray-100 last:border-b-0 hover:bg-blue-50/30 transition-colors">
+                                                                                {/* 接口信息：请求方法 + 接口名称 + 接口路径 合并一行 */}
+                                                                                <td className="py-3 px-4">
+                                                                                    <div className="flex items-start gap-2">
+                                                                                        <span className={`flex-shrink-0 inline-block px-2 py-0.5 mt-0.5 rounded text-[11px] font-medium border ${methodColor[api.method] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                                                                                            {api.method}
+                                                                                        </span>
+                                                                                        <div className="min-w-0 flex-1">
+                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                <span className="text-sm text-gray-900 font-medium truncate">{api.name}</span>
+                                                                                                <button
+                                                                                                    onClick={() => openEditApiDrawer(api)}
+                                                                                                    className="flex-shrink-0 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-[#006bff] transition-all"
+                                                                                                    title="编辑接口"
+                                                                                                >
+                                                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                                                    </svg>
+                                                                                                </button>
+                                                                                            </div>
+                                                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                                                <span className="text-xs text-gray-500 font-mono truncate" title={api.path}>{api.path}</span>
+                                                                                                <button
+                                                                                                    onClick={() => handleCopy(api.path, `api-path-${api.id}`)}
+                                                                                                    className="flex-shrink-0 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-[#006bff] transition-all"
+                                                                                                    title="复制接口路径"
+                                                                                                >
+                                                                                                    {copiedField === `api-path-${api.id}` ? (
+                                                                                                        <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                                                        </svg>
+                                                                                                    ) : (
+                                                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                                                                        </svg>
+                                                                                                    )}
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className="py-3 px-4">
                                                                                     <span className="inline-block px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-200">
                                                                                         {api.group}
                                                                                     </span>
                                                                                 </td>
-                                                                                <td className="py-3 px-5">
-                                                                                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium border ${methodColor[api.method] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                                                                                        {api.method}
-                                                                                    </span>
+                                                                                <td className="py-3 px-4">
+                                                                                    {(() => {
+                                                                                        const permMap: Record<string, { label: string; cls: string }> = {
+                                                                                            read: { label: "只读", cls: "bg-gray-50 text-gray-600 border-gray-200" },
+                                                                                            readwrite: { label: "读写", cls: "bg-blue-50 text-blue-600 border-blue-200" },
+                                                                                            manage: { label: "管理", cls: "bg-amber-50 text-amber-600 border-amber-200" },
+                                                                                        };
+                                                                                        const p = permMap[api.permission || "read"];
+                                                                                        return (
+                                                                                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium border ${p.cls}`}>
+                                                                                                {p.label}
+                                                                                            </span>
+                                                                                        );
+                                                                                    })()}
                                                                                 </td>
-                                                                                <td className="py-3 px-5">
-                                                                                    <span className="text-sm text-gray-900">{api.name}</span>
+                                                                                <td className="py-3 px-4">
+                                                                                    <span className="text-sm text-gray-500 break-words whitespace-normal">{api.description}</span>
                                                                                 </td>
-                                                                                <td className="py-3 px-5">
-                                                                                    <span className="text-sm text-gray-700 font-mono">{api.path}</span>
+                                                                                <td className="py-3 px-4">
+                                                                                    <span className="text-xs text-gray-500 break-words">{api.createdAt ?? times.createdAt}</span>
                                                                                 </td>
-                                                                                <td className="py-3 px-5">
-                                                                                    <span className="text-sm text-gray-500">{api.description}</span>
+                                                                                <td className="py-3 px-4">
+                                                                                    <span className="text-xs text-gray-500 break-words">{api.updatedAt ?? times.updatedAt}</span>
+                                                                                </td>
+                                                                                <td className="py-3 px-4">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <button
+                                                                                            className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                                                                                            onClick={() => openEditApiDrawer(api)}
+                                                                                        >
+                                                                                            编辑
+                                                                                        </button>
+                                                                                        <span className="text-gray-200">|</span>
+                                                                                        <button
+                                                                                            className="text-xs text-red-500 hover:text-red-700 transition-colors"
+                                                                                            onClick={() => setApiDeleteConfirm({ id: api.id, name: api.name })}
+                                                                                        >
+                                                                                            删除
+                                                                                        </button>
+                                                                                    </div>
                                                                                 </td>
                                                                             </tr>
                                                                         );
@@ -5414,6 +6261,342 @@ export default function AdminPage() {
                                 className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
                             >
                                 确认导入
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 添加接口抽屉 */}
+            {addApiDrawerOpen && (
+                <div className="fixed inset-0 z-[130]">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => { setAddApiDrawerOpen(false); setEditingApiId(null); }} />
+                    <div className="absolute right-0 top-0 bottom-0 w-[1100px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                        {/* 抽屉头部 */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">{editingApiId ? "编辑接口" : "添加接口"}</h3>
+                                <p className="text-sm text-gray-500 mt-1">{editingApiId ? "修改该接口的对接信息" : "系统间调用接口"}</p>
+                            </div>
+                            <button
+                                onClick={() => { setAddApiDrawerOpen(false); setEditingApiId(null); }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* 抽屉内容 */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className="space-y-5">
+                                {/* 所属系统 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">所属系统 <span className="text-red-500">*</span></label>
+                                    <div className="flex items-center gap-6 mb-3">
+                                        {([
+                                            { key: "platform", label: "智汇云平台" },
+                                            { key: "product", label: "智汇云产品" },
+                                        ] as const).map((opt) => {
+                                            const active = newApiForm.systemType === opt.key;
+                                            return (
+                                                <label
+                                                    key={opt.key}
+                                                    className="flex items-center gap-2 cursor-pointer select-none"
+                                                    onClick={() => {
+                                                        const list = keyProductsData.filter((p) => p.systemType === opt.key);
+                                                        const defaultId = list[0]?.id || "";
+                                                        setNewApiForm((f) => ({ ...f, systemType: opt.key, ownerId: defaultId }));
+                                                        setNewApiFormErrors((er) => ({ ...er, ownerId: "" }));
+                                                    }}
+                                                >
+                                                    <span className={`relative flex items-center justify-center w-4 h-4 rounded-full border transition-colors ${active ? "border-[#006bff]" : "border-gray-300"}`}>
+                                                        {active && <span className="w-2 h-2 rounded-full bg-[#006bff]" />}
+                                                    </span>
+                                                    <span className={`text-sm ${active ? "text-gray-900 font-medium" : "text-gray-600"}`}>{opt.label}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <select
+                                        value={newApiForm.ownerId}
+                                        onChange={(e) => {
+                                            setNewApiForm((f) => ({ ...f, ownerId: e.target.value }));
+                                            setNewApiFormErrors((er) => ({ ...er, ownerId: "" }));
+                                        }}
+                                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 ${newApiFormErrors.ownerId ? "border-red-400" : "border-gray-200"}`}
+                                    >
+                                        {newApiForm.systemType === "platform"
+                                            ? keyProductsData.filter((p) => p.systemType === "platform").map((p) => (
+                                                <option key={p.id} value={p.id}>{p.name}（{p.identifier}）</option>
+                                            ))
+                                            : keyProductsData.filter((p) => p.systemType === "product").map((p) => (
+                                                <option key={p.id} value={p.id}>{p.name}（{p.identifier}）</option>
+                                            ))}
+                                    </select>
+                                    {newApiFormErrors.ownerId && <p className="text-xs text-red-500 mt-1">{newApiFormErrors.ownerId}</p>}
+                                </div>
+
+                                {/* 权限类型 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">权限类型 <span className="text-red-500">*</span></label>
+                                    <div className="flex items-center gap-6">
+                                        {([
+                                            { key: "read", label: "只读" },
+                                            { key: "readwrite", label: "读写" },
+                                            { key: "manage", label: "管理", hint: "包含删除、超管等权限" },
+                                        ] as const).map((opt) => {
+                                            const active = newApiForm.permission === opt.key;
+                                            return (
+                                                <label
+                                                    key={opt.key}
+                                                    className="flex items-center gap-2 cursor-pointer select-none"
+                                                    onClick={() => setNewApiForm((f) => ({ ...f, permission: opt.key }))}
+                                                >
+                                                    <span className={`relative flex items-center justify-center w-4 h-4 rounded-full border transition-colors ${active ? "border-[#006bff]" : "border-gray-300"}`}>
+                                                        {active && <span className="w-2 h-2 rounded-full bg-[#006bff]" />}
+                                                    </span>
+                                                    <span className={`text-sm ${active ? "text-gray-900 font-medium" : "text-gray-600"}`}>{opt.label}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    {newApiForm.permission === "manage" && (
+                                        <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            管理权限包含删除、超管等高危操作，请谨慎授予
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* 接口列表（批量） */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-medium text-gray-700">接口信息 <span className="text-red-500">*</span></label>
+                                        {!editingApiId && <span className="text-xs text-gray-400">共 {newApiForm.rows.length} 条</span>}
+                                    </div>
+                                    <div className="space-y-3">
+                                        {newApiForm.rows.map((row, index) => {
+                                            const rowErr = newApiFormErrors.rows?.[index] || {};
+                                            const textColorMap: Record<string, string> = {
+                                                GET: "bg-green-500",
+                                                POST: "bg-blue-500",
+                                                PUT: "bg-orange-500",
+                                                DELETE: "bg-red-500",
+                                            };
+                                            return (
+                                                <div key={index} className="group border border-gray-200 rounded-lg p-4 relative transition-colors hover:border-[#006bff]/40 hover:bg-blue-50/20">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <span className="inline-flex items-center gap-2 text-xs font-medium text-gray-500">
+                                                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-gray-100 text-[11px] text-gray-600 group-hover:bg-[#006bff]/10 group-hover:text-[#006bff]">
+                                                                {editingApiId ? "·" : index + 1}
+                                                            </span>
+                                                            {editingApiId ? "接口信息" : `接口 ${index + 1}`}
+                                                        </span>
+                                                        {newApiForm.rows.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeNewApiRow(index)}
+                                                                className="flex items-center gap-1 text-xs text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all"
+                                                                title="删除此接口"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                                删除
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {/* 第一行：请求方法 + 接口名称 + 接口路径 */}
+                                                        <div className="grid grid-cols-12 gap-3">
+                                                            {/* 请求方法 —— 下拉选择（带方法色标） */}
+                                                            <div className="col-span-2">
+                                                                <label className="block text-xs text-gray-500 mb-1">请求方法 <span className="text-red-500">*</span></label>
+                                                                <div className="relative">
+                                                                    <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full ${textColorMap[row.method]}`} />
+                                                                    <select
+                                                                        value={row.method}
+                                                                        onChange={(e) => updateNewApiRow(index, { method: e.target.value as ApiInterface["method"] })}
+                                                                        className="w-full h-9 pl-6 pr-7 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500"
+                                                                    >
+                                                                        {(["GET", "POST", "PUT", "DELETE"] as const).map((m) => (
+                                                                            <option key={m} value={m}>{m}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                            {/* 接口名称 */}
+                                                            <div className="col-span-3">
+                                                                <label className="block text-xs text-gray-500 mb-1">接口名称 <span className="text-red-500">*</span></label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={row.name}
+                                                                    onChange={(e) => updateNewApiRow(index, { name: e.target.value })}
+                                                                    placeholder="如：查询实例列表"
+                                                                    className={`w-full h-9 px-3 border rounded-lg text-sm focus:outline-none focus:border-blue-500 ${rowErr.name ? "border-red-400" : "border-gray-200"}`}
+                                                                />
+                                                                {rowErr.name && <p className="text-xs text-red-500 mt-1">{rowErr.name}</p>}
+                                                            </div>
+                                                            {/* 接口路径 */}
+                                                            <div className="col-span-7">
+                                                                <label className="block text-xs text-gray-500 mb-1">接口路径 <span className="text-red-500">*</span></label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={row.path}
+                                                                    onChange={(e) => updateNewApiRow(index, { path: e.target.value })}
+                                                                    placeholder="如：/api/v1/ecs/instances"
+                                                                    className={`w-full h-9 px-3 border rounded-lg text-sm font-mono focus:outline-none focus:border-blue-500 ${rowErr.path ? "border-red-400" : "border-gray-200"}`}
+                                                                />
+                                                                {rowErr.path && <p className="text-xs text-red-500 mt-1">{rowErr.path}</p>}
+                                                            </div>
+                                                        </div>
+                                                        {/* 第二行：所属模块 + 接口描述 */}
+                                                        <div className="grid grid-cols-12 gap-3">
+                                                            {/* 所属模块 */}
+                                                            <div className="col-span-3">
+                                                                <label className="block text-xs text-gray-500 mb-1">所属模块 <span className="text-red-500">*</span></label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={row.group}
+                                                                    onChange={(e) => updateNewApiRow(index, { group: e.target.value })}
+                                                                    placeholder="如：权限、资源组、实例管理"
+                                                                    className={`w-full h-9 px-3 border rounded-lg text-sm focus:outline-none focus:border-blue-500 ${rowErr.group ? "border-red-400" : "border-gray-200"}`}
+                                                                    list="api-group-suggestions"
+                                                                />
+                                                                {rowErr.group && <p className="text-xs text-red-500 mt-1">{rowErr.group}</p>}
+                                                            </div>
+                                                            {/* 接口描述 */}
+                                                            <div className="col-span-9">
+                                                                <label className="block text-xs text-gray-500 mb-1">接口描述</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={row.description}
+                                                                    onChange={(e) => updateNewApiRow(index, { description: e.target.value })}
+                                                                    placeholder="请输入接口描述（选填）"
+                                                                    className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <datalist id="api-group-suggestions">
+                                        {Array.from(new Set(allApiInterfaces.filter(a => a.productId === newApiForm.ownerId).map(a => a.group))).map(g => (
+                                            <option key={g} value={g} />
+                                        ))}
+                                    </datalist>
+                                    {!editingApiId && (
+                                        <button
+                                            type="button"
+                                            onClick={addNewApiRow}
+                                            className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-[#006bff] hover:text-[#006bff] transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            添加一行接口
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 抽屉底部 */}
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                            <button
+                                onClick={() => { setAddApiDrawerOpen(false); setEditingApiId(null); }}
+                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleSubmitNewApi}
+                                className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                            >
+                                {editingApiId ? "保存修改" : "确认添加"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 删除接口二次确认弹窗 */}
+            {apiDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[140]">
+                    <div className="bg-white rounded-lg shadow-xl w-[400px] max-w-[90vw]">
+                        <div className="p-6">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-base font-semibold text-gray-900 mb-1">确认删除接口</h3>
+                                    <p className="text-sm text-gray-500">
+                                        删除后该接口的对接配置将被移除且无法恢复。确定要删除接口「{apiDeleteConfirm.name}」吗？
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                            <button
+                                onClick={() => setApiDeleteConfirm(null)}
+                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleConfirmDeleteApi}
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+                            >
+                                确认删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 删除系统二次确认弹窗 */}
+            {systemDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[140]">
+                    <div className="bg-white rounded-lg shadow-xl w-[420px] max-w-[90vw]">
+                        <div className="p-6">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-base font-semibold text-gray-900 mb-1">确认删除系统</h3>
+                                    <p className="text-sm text-gray-500">
+                                        删除系统「{systemDeleteConfirm.name}」将同时删除其下全部 {systemDeleteConfirm.apiCount} 个接口，操作不可恢复。确定要删除吗？
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                            <button
+                                onClick={() => setSystemDeleteConfirm(null)}
+                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleConfirmDeleteSystem}
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+                            >
+                                确认删除
                             </button>
                         </div>
                     </div>
