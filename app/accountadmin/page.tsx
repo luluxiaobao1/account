@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, Fragment } from "react";
 import {
     fetchPackages,
     createPackageApi,
@@ -71,40 +71,6 @@ const zhihuiProductsData = [
     },
 ];
 
-// 智企产品数据
-const zhiqiProductsData = [
-    {
-        id: 101,
-        name: "大模型",
-        category: "AI/大语言模型",
-        identifier: "llm",
-        visibility: "所有企业可见",
-        status: "online",
-        onlineTime: "2026-03-22 09:30:00",
-        icon: "ai",
-    },
-    {
-        id: 102,
-        name: "龙虾",
-        category: "AI/智能助手",
-        identifier: "lobster",
-        visibility: "所有企业可见",
-        status: "online",
-        onlineTime: "2026-03-15 14:20:00",
-        icon: "bot",
-    },
-    {
-        id: 103,
-        name: "APICloud",
-        category: "开发/API服务",
-        identifier: "apicloud",
-        visibility: "所有企业可见",
-        status: "online",
-        onlineTime: "2026-03-12 10:45:00",
-        icon: "api",
-    },
-];
-
 // 产品计费项数据
 const billingItemsData = [
     { id: 1, name: "chat_360-mirothinker-1.7_输出", tagName: "__", identifier: "api_t_s_2036746716615655424", product: "API市场 APIMKT (apimarket)", unit: "1百万tokens", rule: "用量求和", createTime: "2026-03-25 18:07:13", remark: "" },
@@ -133,25 +99,954 @@ const resourcePackagesData = [
     { id: 10, name: "4090D-48G-基础版-8卡", identifier: "6_49_8", product: "AI开发平台TAI (tai)", type: "总量节省", createTime: "2026-03-02 18:42:50", updateTime: "2026-03-13 17:58:20", status: "online" },
 ];
 
-// 智企产品计费项数据
-const zhiqiBillingItemsData = [
-    { id: 101, name: "大模型_输入Token", tagName: "__", identifier: "zhiqi_llm_input", product: "大模型 (llm)", unit: "1百万tokens", rule: "用量求和", createTime: "2026-03-24 10:30:00", remark: "" },
-    { id: 102, name: "大模型_输出Token", tagName: "__", identifier: "zhiqi_llm_output", product: "大模型 (llm)", unit: "1百万tokens", rule: "用量求和", createTime: "2026-03-24 10:30:00", remark: "" },
-    { id: 103, name: "龙虾_对话次数", tagName: "__", identifier: "zhiqi_lobster_chat", product: "龙虾 (lobster)", unit: "1次", rule: "用量求和", createTime: "2026-03-22 14:20:00", remark: "" },
-    { id: 104, name: "龙虾_会话时长", tagName: "__", identifier: "zhiqi_lobster_duration", product: "龙虾 (lobster)", unit: "1分钟", rule: "用量求和", createTime: "2026-03-22 14:20:00", remark: "" },
-    { id: 105, name: "APICloud_API调用次数", tagName: "__", identifier: "zhiqi_api_calls", product: "APICloud (apicloud)", unit: "1次", rule: "用量求和", createTime: "2026-03-20 09:15:00", remark: "" },
-    { id: 106, name: "APICloud_存储容量", tagName: "__", identifier: "zhiqi_api_storage", product: "APICloud (apicloud)", unit: "1GB", rule: "用量求和", createTime: "2026-03-20 09:15:00", remark: "" },
+// ===== 经营分析 - 产品分析 =====
+interface ProductAnalysisRow {
+    id: number;
+    period: string;                 // 账期
+    productLine: string;            // 所属产线
+    settlementUnit: string;         // 归属结算单元(ops)
+    productName: string;            // 产品名称
+    totalRevenue: number;           // 总收入(元)
+    innerRevenue: number;           // 公司内收入(元)
+    innerNonMidRevenue: number;     // 公司内非中台收入(元)
+    midNonZyunRevenue: number;      // 中台内非智汇云收入(元)
+    zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
+    unitRevenue: number;            // 本结算单元收入(元)
+    outerRevenue: number;           // 公司外收入(元) = 集团内外部事业部 + 外部(360.cn)
+    outerGroupRevenue: number;      // 公司外收入 - 集团内外部事业部(元)：内部portal下标记为「外部」的客户收入
+    outerPortalRevenue: number;     // 公司外收入 - 外部(360.cn)(元)：非内部portal（外部portal）的收入
+    hasOuterPortal: boolean;        // 该产品是否关联了外部portal（内外部portal产品合并展示）
+    outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
+    innerTotalRevenue: number;      // 内结算总收入(元)
+    productCost: number;            // 产品成本(元)
+    innerProfit: number;            // 内结算价利润(元)
+    outerProfit: number;            // 外部利润(元)
+    innerMargin: number;            // 内结算毛利率
+    outerMargin: number;            // 外部毛利率
+    balance: number;                // 收支差额(元)
+}
+
+const productAnalysisData: ProductAnalysisRow[] = [
+    {
+        id: 1, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部",
+        productName: "云服务器 ECS_裸金属CPU(计量)(cloud_server)",
+        totalRevenue: 42139500, innerRevenue: 38257000, innerNonMidRevenue: 12768600,
+        midNonZyunRevenue: 114800, zyunNonUnitRevenue: 12430583.01, unitRevenue: 12943000,
+        outerRevenue: 3882500, outerGroupRevenue: 2482500, outerPortalRevenue: 1400000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 2968000, innerTotalRevenue: 41225000,
+        productCost: 34417000, innerProfit: 6808000, outerProfit: 914500,
+        innerMargin: 16.51, outerMargin: 23.55, balance: 7722500,
+    },
+    {
+        id: 2, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部",
+        productName: "托管集群服务 MCS_容器服务(cluster)",
+        totalRevenue: 25950500, innerRevenue: 25721900, innerNonMidRevenue: 60100,
+        midNonZyunRevenue: 0, zyunNonUnitRevenue: 25661800, unitRevenue: 0,
+        outerRevenue: 228600, outerGroupRevenue: 148600, outerPortalRevenue: 80000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 165700, innerTotalRevenue: 25887500,
+        productCost: 26003000, innerProfit: -115500, outerProfit: 62900,
+        innerMargin: -0.45, outerMargin: 27.54, balance: -52600,
+    },
+    {
+        id: 3, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部",
+        productName: "云服务器 ECS_裸金属GPU(计量)(cloud_server)",
+        totalRevenue: 14374000, innerRevenue: 14374000, innerNonMidRevenue: 530900,
+        midNonZyunRevenue: 150500, zyunNonUnitRevenue: 10400, unitRevenue: 13682200,
+        outerRevenue: 0, outerGroupRevenue: 0, outerPortalRevenue: 0, hasOuterPortal: false,
+        outerInnerPriceRevenue: 0, innerTotalRevenue: 14374000,
+        productCost: 14399600, innerProfit: -25600, outerProfit: 0,
+        innerMargin: -0.18, outerMargin: 0, balance: -25600,
+    },
+    {
+        id: 4, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-智能工程部",
+        productName: "托管集群服务 MCS_A机器(cluster)",
+        totalRevenue: 13662800, innerRevenue: 13545000, innerNonMidRevenue: 11921900,
+        midNonZyunRevenue: 1623300, zyunNonUnitRevenue: 6977500, unitRevenue: 0,
+        outerRevenue: 117800, outerGroupRevenue: 77800, outerPortalRevenue: 40000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 110200, innerTotalRevenue: 13655200,
+        productCost: 13648100, innerProfit: 70823.90, outerProfit: 75783.25,
+        innerMargin: 0.05, outerMargin: 6.43, balance: 147000,
+    },
+    {
+        id: 5, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-云平台部",
+        productName: "对象存储 OSS_标准存储(计量)(oss_storage)",
+        totalRevenue: 9834600, innerRevenue: 8912300, innerNonMidRevenue: 3421000,
+        midNonZyunRevenue: 88900, zyunNonUnitRevenue: 2903400, unitRevenue: 2499000,
+        outerRevenue: 922300, outerGroupRevenue: 602300, outerPortalRevenue: 320000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 704500, innerTotalRevenue: 9616800,
+        productCost: 7845200, innerProfit: 1771600, outerProfit: 217800,
+        innerMargin: 18.42, outerMargin: 23.62, balance: 1989400,
+    },
+    {
+        id: 6, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-系统部",
+        productName: "块存储 EBS_高效云盘(计量)(ebs_disk)",
+        totalRevenue: 7218900, innerRevenue: 7010400, innerNonMidRevenue: 2145700,
+        midNonZyunRevenue: 62300, zyunNonUnitRevenue: 2312800, unitRevenue: 2489600,
+        outerRevenue: 208500, outerGroupRevenue: 148500, outerPortalRevenue: 60000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 158900, innerTotalRevenue: 7169300,
+        productCost: 6534100, innerProfit: 635200, outerProfit: 49600,
+        innerMargin: 8.86, outerMargin: 23.79, balance: 684800,
+    },
+    {
+        id: 7, period: "202608", productLine: "网络服务", settlementUnit: "智汇云-云平台部",
+        productName: "内容分发 CDN_流量(计量)(cdn_flow)",
+        totalRevenue: 6543200, innerRevenue: 4321800, innerNonMidRevenue: 1876500,
+        midNonZyunRevenue: 145200, zyunNonUnitRevenue: 1200100, unitRevenue: 1100000,
+        outerRevenue: 2221400, outerGroupRevenue: 1321400, outerPortalRevenue: 900000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 1698300, innerTotalRevenue: 6020100,
+        productCost: 5612700, innerProfit: 407400, outerProfit: 523100,
+        innerMargin: 6.77, outerMargin: 23.55, balance: 930500,
+    },
+    {
+        id: 8, period: "202608", productLine: "数据库", settlementUnit: "智汇云-智能工程部",
+        productName: "云数据库 PGSQL_基础版(计量)(pgsql)",
+        totalRevenue: 5127400, innerRevenue: 5127400, innerNonMidRevenue: 1023400,
+        midNonZyunRevenue: 34500, zyunNonUnitRevenue: 2145600, unitRevenue: 1923900,
+        outerRevenue: 0, outerGroupRevenue: 0, outerPortalRevenue: 0, hasOuterPortal: false,
+        outerInnerPriceRevenue: 0, innerTotalRevenue: 5127400,
+        productCost: 4890200, innerProfit: 237200, outerProfit: 0,
+        innerMargin: 4.63, outerMargin: 0, balance: 237200,
+    },
+    {
+        id: 9, period: "202608", productLine: "大模型", settlementUnit: "360人工智能研究院",
+        productName: "大模型服务 LLM_推理(计量)(llm_infer)",
+        totalRevenue: 4312800, innerRevenue: 3105600, innerNonMidRevenue: 1502300,
+        midNonZyunRevenue: 210400, zyunNonUnitRevenue: 892900, unitRevenue: 500000,
+        outerRevenue: 1207200, outerGroupRevenue: 757200, outerPortalRevenue: 450000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 923100, innerTotalRevenue: 4028700,
+        productCost: 3921500, innerProfit: 107200, outerProfit: 284100,
+        innerMargin: 2.66, outerMargin: 23.53, balance: 391300,
+    },
+    {
+        id: 10, period: "202608", productLine: "安全服务", settlementUnit: "安全技术中台",
+        productName: "Web应用防火墙 WAF_标准版(waf)",
+        totalRevenue: 2876500, innerRevenue: 2210300, innerNonMidRevenue: 780200,
+        midNonZyunRevenue: 45600, zyunNonUnitRevenue: 684500, unitRevenue: 700000,
+        outerRevenue: 666200, outerGroupRevenue: 416200, outerPortalRevenue: 250000, hasOuterPortal: true,
+        outerInnerPriceRevenue: 509600, innerTotalRevenue: 2719900,
+        productCost: 2401300, innerProfit: 318600, outerProfit: 156600,
+        innerMargin: 11.71, outerMargin: 23.51, balance: 475200,
+    },
 ];
 
-// 智企产品套餐数据
-const zhiqiResourcePackagesData = [
-    { id: 101, name: "大模型基础版", identifier: "llm_basic_01", product: "大模型 (llm)", type: "总价包", createTime: "2026-03-22 15:30:00", updateTime: "2026-03-24 10:20:00", status: "online" },
-    { id: 102, name: "大模型专业版", identifier: "llm_pro_01", product: "大模型 (llm)", type: "总量节省", createTime: "2026-03-21 09:15:00", updateTime: "2026-03-23 14:30:00", status: "online" },
-    { id: 103, name: "龙虾标准版", identifier: "lobster_std_01", product: "龙虾 (lobster)", type: "总价包", createTime: "2026-03-18 11:20:00", updateTime: "2026-03-20 09:45:00", status: "online" },
-    { id: 104, name: "龙虾专业版", identifier: "lobster_pro_01", product: "龙虾 (lobster)", type: "总量节省", createTime: "2026-03-17 14:30:00", updateTime: "2026-03-19 16:20:00", status: "online" },
-    { id: 105, name: "APICloud基础包", identifier: "api_basic_01", product: "APICloud (apicloud)", type: "总价包", createTime: "2026-03-15 10:00:00", updateTime: "2026-03-18 11:30:00", status: "online" },
-    { id: 106, name: "APICloud高级包", identifier: "api_adv_01", product: "APICloud (apicloud)", type: "总量节省", createTime: "2026-03-12 09:30:00", updateTime: "2026-03-14 15:20:00", status: "online" },
+// 产品分析 - 内外Portal关联的子行（外层产品行 = 各Portal对应列相加，毛利率两列除外）
+interface ProductAnalysisPortalRow {
+    portalName: string;             // Portal 名称
+    internal: boolean;              // 是否为内部Portal
+    productIdentifier: string;      // 该Portal下的产品标识（内、外Portal标识不同）
+    totalRevenue: number;
+    innerRevenue: number;
+    innerNonMidRevenue: number;
+    midNonZyunRevenue: number;
+    zyunNonUnitRevenue: number;
+    unitRevenue: number;
+    outerGroupRevenue: number;
+    outerPortalRevenue: number;
+    outerInnerPriceRevenue: number;
+    innerTotalRevenue: number;
+    productCost: number;
+    innerProfit: number;
+    outerProfit: number;
+    innerMargin: number;            // 各Portal单独计算，不参与外层求和
+    outerMargin: number;            // 各Portal单独计算，不参与外层求和
+    balance: number;
+}
+
+// 产品分析 - 取产品名称末尾的英文产品标识，如 "云服务器 ECS(cloud_server)" -> "cloud_server"
+const getAnalysisIdentifier = (name: string) => {
+    const m = name.match(/\(([a-z0-9_]+)\)\s*$/i);
+    return m ? m[1] : "";
+};
+
+// 产品分析 - 按内外Portal拆分产品行；未关联外部Portal时返回空数组（不可展开）
+// 拆分规则：内部Portal承载「公司内收入 + 集团内的外部事业部收入」，外部Portal承载「外部(360.cn)收入」；
+// 外部Portal各列由「外层产品行 - 内部Portal」倒推，保证除毛利率外每列相加严格等于外层产品行。
+const getAnalysisPortalRows = (row: ProductAnalysisRow): ProductAnalysisPortalRow[] => {
+    if (!row.hasOuterPortal) return [];
+    const base = getAnalysisIdentifier(row.productName);
+
+    // 外部收入对应的内结算价收入：按「集团内的外部事业部 / 外部(360.cn)」收入占比拆分
+    const outerTotal = row.outerGroupRevenue + row.outerPortalRevenue;
+    const groupRatio = outerTotal > 0 ? row.outerGroupRevenue / outerTotal : 0;
+    const innerOuterInnerPrice = row.outerInnerPriceRevenue * groupRatio;
+
+    // 内部Portal
+    const innerInnerTotal = row.innerRevenue + innerOuterInnerPrice;
+    const innerCost = row.innerTotalRevenue > 0 ? row.productCost * (innerInnerTotal / row.innerTotalRevenue) : row.productCost;
+    const innerProfit = innerInnerTotal - innerCost;
+    const innerOuterProfit = row.outerGroupRevenue - innerOuterInnerPrice;
+    const inner: ProductAnalysisPortalRow = {
+        portalName: "智汇云内网门户",
+        internal: true,
+        productIdentifier: base ? `${base}_in` : "-",
+        totalRevenue: row.innerRevenue + row.outerGroupRevenue,
+        innerRevenue: row.innerRevenue,
+        innerNonMidRevenue: row.innerNonMidRevenue,
+        midNonZyunRevenue: row.midNonZyunRevenue,
+        zyunNonUnitRevenue: row.zyunNonUnitRevenue,
+        unitRevenue: row.unitRevenue,
+        outerGroupRevenue: row.outerGroupRevenue,
+        outerPortalRevenue: 0,
+        outerInnerPriceRevenue: innerOuterInnerPrice,
+        innerTotalRevenue: innerInnerTotal,
+        productCost: innerCost,
+        innerProfit,
+        outerProfit: innerOuterProfit,
+        innerMargin: innerInnerTotal > 0 ? (innerProfit / innerInnerTotal) * 100 : 0,
+        outerMargin: row.outerGroupRevenue > 0 ? (innerOuterProfit / row.outerGroupRevenue) * 100 : 0,
+        balance: innerProfit + innerOuterProfit,
+    };
+
+    // 外部Portal（由外层产品行倒推）
+    const outerInnerTotal = row.innerTotalRevenue - inner.innerTotalRevenue;
+    const outerProfitVal = row.outerProfit - inner.outerProfit;
+    const outerInnerProfit = row.innerProfit - inner.innerProfit;
+    const outer: ProductAnalysisPortalRow = {
+        portalName: "智汇云官网(360.cn)",
+        internal: false,
+        productIdentifier: base ? `${base}_out` : "-",
+        totalRevenue: row.totalRevenue - inner.totalRevenue,
+        innerRevenue: 0,
+        innerNonMidRevenue: 0,
+        midNonZyunRevenue: 0,
+        zyunNonUnitRevenue: 0,
+        unitRevenue: 0,
+        outerGroupRevenue: 0,
+        outerPortalRevenue: row.outerPortalRevenue,
+        outerInnerPriceRevenue: row.outerInnerPriceRevenue - inner.outerInnerPriceRevenue,
+        innerTotalRevenue: outerInnerTotal,
+        productCost: row.productCost - inner.productCost,
+        innerProfit: outerInnerProfit,
+        outerProfit: outerProfitVal,
+        innerMargin: outerInnerTotal > 0 ? (outerInnerProfit / outerInnerTotal) * 100 : 0,
+        outerMargin: row.outerPortalRevenue > 0 ? (outerProfitVal / row.outerPortalRevenue) * 100 : 0,
+        balance: row.balance - inner.balance,
+    };
+
+    return [inner, outer];
+};
+
+// 产品分析 - 账单类型选项
+const analysisBillTypes = [
+    { value: "month", label: "月账单" },
+    { value: "day", label: "天账单" },
+    { value: "hour", label: "小时账单" },
 ];
+
+// 产品分析 - 所属产线选项
+const analysisProductLines = ["弹性计算", "存储服务", "网络服务", "数据库", "大模型", "安全服务"];
+
+// 产品分析 - 结算单元选项
+const analysisSettlementUnits = [
+    "智汇云-云平台部",
+    "智汇云-智能工程部",
+    "智汇云-系统部",
+    "360人工智能研究院",
+    "安全技术中台",
+];
+
+// 产品分析 - 金额格式化（以「万」为单位展示）
+const formatWan = (v: number) => {
+    if (v === 0) return "0.00";
+    return `${(v / 10000).toFixed(2)} 万`;
+};
+
+// 产品分析 - 金额精确值（tooltip 展示）
+const formatExactAmount = (v: number) =>
+    v.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// 产品分析 - 净化产品名称展示（去除内外标识与末尾英文标识后缀，如 "(cloud_server)"）
+const cleanProductName = (name: string) => name.replace(/\([a-z0-9_]+\)\s*$/i, "").trim();
+
+// 产品分析 - 表头单元格（支持问号提示 / 重点列高亮 / 合并单元格）
+const AnalysisTh = ({
+    label,
+    tip,
+    align = "right",
+    width,
+    highlight = false,
+    colSpan,
+    rowSpan,
+}: {
+    label: string;
+    tip?: string;
+    align?: "left" | "right" | "center";
+    width?: string;
+    highlight?: boolean;   // 需重点说明的列：深橙底、白字
+    colSpan?: number;
+    rowSpan?: number;
+}) => (
+    <th
+        style={width ? { minWidth: width } : undefined}
+        colSpan={colSpan}
+        rowSpan={rowSpan}
+        className={`px-3 py-3 ${
+            align === "left" ? "text-left" : align === "center" ? "text-center" : "text-right"
+        } text-xs font-medium align-bottom ${
+            highlight ? "bg-orange-500 text-white" : "text-gray-600"
+        }`}
+    >
+        <span className={`inline-flex items-start gap-1 ${align === "left" ? "" : align === "center" ? "justify-center" : "justify-end"}`}>
+            <span className="leading-[1.5]">{label}</span>
+            {tip && (
+                <span className="group/tip relative inline-flex flex-shrink-0 mt-[2px]">
+                    <svg className={`w-3.5 h-3.5 ${highlight ? "text-white/80 hover:text-white" : "text-gray-400 hover:text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[240px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                        {tip}
+                        <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                    </span>
+                </span>
+            )}
+        </span>
+    </th>
+);
+
+// 产品分析 - 金额单元格（悬停展示精确值，highlight 为重点列浅橙底）
+const AnalysisAmountCell = ({
+    value,
+    link = false,
+    highlight = false,
+    onClick,
+}: {
+    value: number;
+    link?: boolean;
+    highlight?: boolean;
+    onClick?: () => void;
+}) => (
+    <td className={`px-3 py-3 text-right text-sm whitespace-nowrap ${highlight ? "bg-orange-50/70" : ""}`}>
+        <span
+            onClick={onClick}
+            className={`group/amt relative inline-block ${link ? "text-blue-600 hover:text-blue-700 cursor-pointer" : "text-gray-900"}`}
+        >
+            {formatWan(value)}
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] text-white shadow-lg group-hover/amt:block">
+                {formatExactAmount(value)}
+                <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+            </span>
+        </span>
+    </td>
+);
+
+// ===== 经营分析 - 部门分析 =====
+interface DepartmentAnalysisRow {
+    id: number;
+    opsUnit: string;        // ops结算单元名称
+    bizTree: string;        // 业务树名称
+    totalRevenue: number;   // 总收入(元)
+    totalCost: number;      // 总成本(元)
+}
+
+const departmentAnalysisData: DepartmentAnalysisRow[] = [
+    { id: 1, opsUnit: "智汇云-基础架构部", bizTree: "技术中台", totalRevenue: 0, totalCost: 105200 },
+    { id: 2, opsUnit: "智汇云-系统部", bizTree: "技术中台", totalRevenue: 0, totalCost: 1584.62 },
+    { id: 3, opsUnit: "智汇云-应用平台部", bizTree: "技术中台", totalRevenue: 0, totalCost: 37400 },
+    { id: 4, opsUnit: "智汇云-云平台部", bizTree: "技术中台", totalRevenue: 0, totalCost: 1657600 },
+    { id: 5, opsUnit: "智汇云-智能工程部", bizTree: "技术中台", totalRevenue: -76300, totalCost: 0 },
+    { id: 6, opsUnit: "智汇云-系统运维部", bizTree: "技术中台", totalRevenue: 0, totalCost: 892400 },
+    { id: 7, opsUnit: "智汇云-数据平台部", bizTree: "技术中台", totalRevenue: 2431.08, totalCost: 45900 },
+    { id: 8, opsUnit: "智汇云-安全技术部", bizTree: "安全中台", totalRevenue: 0, totalCost: 268300 },
+    { id: 9, opsUnit: "360人工智能研究院", bizTree: "人工智能研究院", totalRevenue: 431280, totalCost: 392150 },
+    { id: 10, opsUnit: "智汇云-商业化产品部", bizTree: "商业化", totalRevenue: 1207200, totalCost: 923100 },
+    { id: 11, opsUnit: "智汇云-交付服务部", bizTree: "商业化", totalRevenue: 0, totalCost: 78650.35 },
+    { id: 12, opsUnit: "智汇云-研发效能部", bizTree: "技术中台", totalRevenue: 0, totalCost: 5420.77 },
+];
+
+// 部门分析 - 业务树选项
+const departmentBizTrees = ["技术中台", "安全中台", "人工智能研究院", "商业化"];
+
+// 部门分析 - 金额格式化（万元/元自适应）
+const formatDeptAmount = (v: number) => {
+    if (v === 0) return "0.00";
+    if (Math.abs(v) < 10000) {
+        return v.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return `${(v / 10000).toFixed(2)} 万`;
+};
+
+// 部门分析 - 金额单元格（左对齐，悬停展示精确值；link 为真时可点击查看收支明细）
+const DeptAmountCell = ({ value, link = false, onClick }: { value: number; link?: boolean; onClick?: () => void }) => (
+    <td className="px-4 py-4 text-left text-sm whitespace-nowrap">
+        <span
+            onClick={link ? onClick : undefined}
+            className={`group/amt relative inline-block ${link ? "text-blue-600 hover:text-blue-700 cursor-pointer" : "text-gray-900"}`}
+        >
+            {formatDeptAmount(value)}
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] text-white shadow-lg group-hover/amt:block">
+                {formatExactAmount(value)}
+                <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+            </span>
+        </span>
+    </td>
+);
+
+// 部门分析 - 结算单元收支明细弹窗数据（按收入/成本类型拆分为若干条明细，金额之和等于汇总值）
+const deptRevenueTypesByUnit: Record<string, string[]> = {
+    default: ["对内结算收入", "对外销售收入", "服务分成收入"],
+};
+const deptCostTypesByUnit: Record<string, string[]> = {
+    default: ["计算资源成本", "存储资源成本", "带宽资源成本", "人力分摊成本"],
+};
+
+const getDeptDetailRows = (
+    unit: DepartmentAnalysisRow,
+    tab: "revenue" | "cost",
+    period: string
+) => {
+    const total = tab === "revenue" ? unit.totalRevenue : unit.totalCost;
+    const types = tab === "revenue" ? deptRevenueTypesByUnit.default : deptCostTypesByUnit.default;
+    if (total === 0) return [];
+
+    // 按类型权重拆分总额，确保各条之和等于汇总值
+    const weights = types.map((_, i) => types.length - i);
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    let allocated = 0;
+    return types.map((type, i) => {
+        const amount = i === types.length - 1
+            ? total - allocated
+            : Math.round((total * weights[i]) / weightSum * 100) / 100;
+        allocated += amount;
+        return {
+            period: period.replace("-", ""),
+            type,
+            source: unit.opsUnit,
+            amount,
+        };
+    });
+};
+
+// 产品分析 - 总收入明细（收入明细 Tab）数据：按「收入类型/收入来源」拆分，金额之和等于总收入
+const productRevenueDetailTypes: { type: string; source: string }[] = [
+    { type: "自身账单", source: "账单" },
+];
+
+const getProductRevenueDetailRows = (row: ProductAnalysisRow) => {
+    const total = row.totalRevenue;
+    if (total === 0) return [];
+    const types = productRevenueDetailTypes;
+    const weights = types.map((_, i) => types.length - i);
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    let allocated = 0;
+    return types.map((t, i) => {
+        const amount = i === types.length - 1
+            ? total - allocated
+            : Math.round((total * weights[i]) / weightSum * 100) / 100;
+        allocated += amount;
+        return { period: row.period, type: t.type, source: t.source, amount };
+    });
+};
+
+// 产品分析 - 「集团内外部事业部」收入明细：按结算单元名称拆分账单
+const outerGroupSettlementUnits = ["智汇云-云平台部", "智汇云-智能工程部", "智汇云-系统部"];
+
+// 内外属性 - 枚举选项
+const innerOuterAttributeOptions = ["集团内", "集团内非中台", "中台内非智汇云", "智汇云内", "集团外"];
+
+// 「集团内的外部事业部」明细 - 各结算单元对应的内外属性
+const outerGroupUnitAttributeMap: Record<string, string> = {
+    "智汇云-云平台部": "智汇云内",
+    "智汇云-智能工程部": "中台内非智汇云",
+    "智汇云-系统部": "集团内非中台",
+};
+
+const getOuterGroupDetailRows = (row: ProductAnalysisRow) => {
+    const total = row.outerGroupRevenue;
+    if (total === 0) return [];
+    const units = outerGroupSettlementUnits;
+    const weights = units.map((_, i) => units.length - i);
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    let allocated = 0;
+    return units.map((unitName, i) => {
+        const amount = i === units.length - 1
+            ? total - allocated
+            : Math.round((total * weights[i]) / weightSum * 100) / 100;
+        allocated += amount;
+        return {
+            period: row.period,
+            unitName,
+            attribute: outerGroupUnitAttributeMap[unitName] || innerOuterAttributeOptions[0],
+            amount,
+        };
+    });
+};
+
+// 产品分析 - 通用结算单元账单金额明细：按结算单元名称拆分账单金额（用于各可点击收入列）
+const getUnitBillDetailRows = (row: ProductAnalysisRow, amount: number) => {
+    if (amount === 0) return [];
+    const units = outerGroupSettlementUnits;
+    const weights = units.map((_, i) => units.length - i);
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    let allocated = 0;
+    return units.map((unitName, i) => {
+        const amt = i === units.length - 1
+            ? amount - allocated
+            : Math.round((amount * weights[i]) / weightSum * 100) / 100;
+        allocated += amt;
+        return { period: row.period, unitName, amount: amt };
+    });
+};
+
+
+
+// 产品分析 - 「外部(360.cn)」收入明细：按租户名称拆分账单
+const outerPortalTenantNames = ["360安全云-租户A", "360政企云-租户B", "360营销云-租户C"];
+
+const getOuterPortalDetailRows = (row: ProductAnalysisRow) => {
+    const total = row.outerPortalRevenue;
+    if (total === 0) return [];
+    const tenants = outerPortalTenantNames;
+    const weights = tenants.map((_, i) => tenants.length - i);
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    let allocated = 0;
+    return tenants.map((tenantName, i) => {
+        const amount = i === tenants.length - 1
+            ? total - allocated
+            : Math.round((total * weights[i]) / weightSum * 100) / 100;
+        allocated += amount;
+        return { period: row.period, tenantName, amount };
+    });
+};
+
+// 产品分析 - 「公司内收入」明细：来源一为集团内部结算单元账单，来源二为内部结算单元账号在外部portal上
+// 使用产生的费用（该费用关联回内部结算单元，计入内部收入）。仅当 hasOuterPortal 为 true 时才存在来源二。
+const innerRevenuePortalUsageAccounts = ["智汇云-云平台部@外部portal账号A", "智汇云-智能工程部@外部portal账号B"];
+
+// 来源一：集团内部结算单元账单明细
+const getInnerRevenueUnitBillRows = (row: ProductAnalysisRow) => {
+    const total = row.hasOuterPortal ? Math.round(row.innerRevenue * 0.8 * 100) / 100 : row.innerRevenue;
+    if (total === 0) return [];
+    const units = outerGroupSettlementUnits;
+    const weights = units.map((_, i) => units.length - i);
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    let allocated = 0;
+    return units.map((unitName, i) => {
+        const amount = i === units.length - 1
+            ? total - allocated
+            : Math.round((total * weights[i]) / weightSum * 100) / 100;
+        allocated += amount;
+        return { period: row.period, unitName, amount };
+    });
+};
+
+// 来源二：内部结算单元账号在外部portal上使用产生的费用明细（关联回内部结算单元，计入内部收入）
+const getInnerRevenuePortalUsageRows = (row: ProductAnalysisRow) => {
+    if (!row.hasOuterPortal) return [];
+    const total = Math.round(row.innerRevenue * 0.2 * 100) / 100;
+    if (total === 0) return [];
+    const accounts = innerRevenuePortalUsageAccounts;
+    const weights = accounts.map((_, i) => accounts.length - i);
+    const weightSum = weights.reduce((s, w) => s + w, 0);
+    let allocated = 0;
+    return accounts.map((account, i) => {
+        const amount = i === accounts.length - 1
+            ? total - allocated
+            : Math.round((total * weights[i]) / weightSum * 100) / 100;
+        allocated += amount;
+        const [unitName, portalAccount] = account.split("@");
+        return { period: row.period, unitName, portalAccount, amount };
+    });
+};
+
+// ===== 经营分析 - 整体分析 =====
+// 整体分析行：字段与「产品分析」保持一致，数值为平台侧全部产品的合计值
+interface OverallAnalysisRow {
+    id: number;
+    period: string;                 // 账期（按月/天/小时）
+    totalRevenue: number;           // 总收入(元)
+    innerRevenue: number;           // 公司内收入(元)
+    innerNonMidRevenue: number;     // 公司内非中台收入(元)
+    midNonZyunRevenue: number;      // 中台内非智汇云收入(元)
+    zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
+    unitRevenue: number;            // 本结算单元收入(元)
+    outerRevenue: number;           // 公司外收入(元)
+    outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
+    innerTotalRevenue: number;      // 内结算总收入(元)
+    productCost: number;            // 产品成本(元)
+    innerProfit: number;            // 内结算价利润(元)
+    outerProfit: number;            // 外部利润(元)
+    innerMargin: number;            // 内结算毛利率
+    outerMargin: number;            // 外部毛利率
+    balance: number;                // 收支差额(元)
+}
+
+// 整体分析 - 产品分析各列求和（作为单账期的基准值）
+const overallBaseTotals = productAnalysisData.reduce(
+    (acc, row) => ({
+        totalRevenue: acc.totalRevenue + row.totalRevenue,
+        innerRevenue: acc.innerRevenue + row.innerRevenue,
+        innerNonMidRevenue: acc.innerNonMidRevenue + row.innerNonMidRevenue,
+        midNonZyunRevenue: acc.midNonZyunRevenue + row.midNonZyunRevenue,
+        zyunNonUnitRevenue: acc.zyunNonUnitRevenue + row.zyunNonUnitRevenue,
+        unitRevenue: acc.unitRevenue + row.unitRevenue,
+        outerRevenue: acc.outerRevenue + row.outerRevenue,
+        outerInnerPriceRevenue: acc.outerInnerPriceRevenue + row.outerInnerPriceRevenue,
+        innerTotalRevenue: acc.innerTotalRevenue + row.innerTotalRevenue,
+        productCost: acc.productCost + row.productCost,
+        innerProfit: acc.innerProfit + row.innerProfit,
+        outerProfit: acc.outerProfit + row.outerProfit,
+        balance: acc.balance + row.balance,
+    }),
+    {
+        totalRevenue: 0, innerRevenue: 0, innerNonMidRevenue: 0, midNonZyunRevenue: 0,
+        zyunNonUnitRevenue: 0, unitRevenue: 0, outerRevenue: 0, outerInnerPriceRevenue: 0,
+        innerTotalRevenue: 0, productCost: 0, innerProfit: 0, outerProfit: 0, balance: 0,
+    }
+);
+
+// 整体分析 - 稳定的伪随机波动系数（保证每次渲染结果一致）
+const overallWave = (seed: number) => {
+    const s = Math.sin(seed * 12.9898) * 43758.5453;
+    return s - Math.floor(s); // 0 ~ 1
+};
+
+// 整体分析 - 按账期与缩放比例构造一行合计数据
+const buildOverallRow = (id: number, period: string, scale: number, seed: number): OverallAnalysisRow => {
+    const revFactor = scale * (0.88 + overallWave(seed) * 0.26);       // 收入波动
+    const costFactor = scale * (0.9 + overallWave(seed + 77) * 0.22);  // 成本波动
+    const b = overallBaseTotals;
+
+    const totalRevenue = b.totalRevenue * revFactor;
+    const innerRevenue = b.innerRevenue * revFactor;
+    const outerRevenue = b.outerRevenue * revFactor;
+    const outerInnerPriceRevenue = b.outerInnerPriceRevenue * revFactor;
+    const innerTotalRevenue = b.innerTotalRevenue * revFactor;
+    const productCost = b.productCost * costFactor;
+    const innerProfit = innerTotalRevenue - productCost;
+    const outerProfit = outerRevenue - outerInnerPriceRevenue;
+
+    return {
+        id,
+        period,
+        totalRevenue,
+        innerRevenue,
+        innerNonMidRevenue: b.innerNonMidRevenue * revFactor,
+        midNonZyunRevenue: b.midNonZyunRevenue * revFactor,
+        zyunNonUnitRevenue: b.zyunNonUnitRevenue * revFactor,
+        unitRevenue: b.unitRevenue * revFactor,
+        outerRevenue,
+        outerInnerPriceRevenue,
+        innerTotalRevenue,
+        productCost,
+        innerProfit,
+        outerProfit,
+        innerMargin: innerTotalRevenue === 0 ? 0 : (innerProfit / innerTotalRevenue) * 100,
+        outerMargin: outerRevenue === 0 ? 0 : (outerProfit / outerRevenue) * 100,
+        balance: innerProfit + outerProfit,
+    };
+};
+
+// 整体分析 - 两位数补零
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+// 整体分析 - 月账单序列：选中月及其前 5 个月（共 6 个月，按时间正序）
+const buildOverallMonthlySeries = (anchorMonth: string): OverallAnalysisRow[] => {
+    const [y, m] = anchorMonth.split("-").map(Number);
+    if (!y || !m) return [];
+    return Array.from({ length: 6 }, (_, idx) => {
+        const d = new Date(y, m - 1 - (5 - idx), 1);
+        const yy = d.getFullYear();
+        const mm = d.getMonth() + 1;
+        return buildOverallRow(idx + 1, `${yy}${pad2(mm)}`, 1, yy * 12 + mm);
+    });
+};
+
+// 整体分析 - 天账单序列：选中天及其前 29 天（共 30 天，按时间正序）
+const buildOverallDailySeries = (anchorDate: string): OverallAnalysisRow[] => {
+    const [y, m, d] = anchorDate.split("-").map(Number);
+    if (!y || !m || !d) return [];
+    return Array.from({ length: 30 }, (_, idx) => {
+        const cur = new Date(y, m - 1, d - (29 - idx));
+        const yy = cur.getFullYear();
+        const mm = cur.getMonth() + 1;
+        const dd = cur.getDate();
+        return buildOverallRow(idx + 1, `${yy}${pad2(mm)}${pad2(dd)}`, 1 / 31, yy * 372 + mm * 31 + dd);
+    });
+};
+
+// 整体分析 - 小时账单序列：选中天及其前 6 天的每个小时（共 7×24 = 168 个点，按时间正序）
+const buildOverallHourlySeries = (anchorDate: string): OverallAnalysisRow[] => {
+    const [y, m, d] = anchorDate.split("-").map(Number);
+    if (!y || !m || !d) return [];
+    const rows: OverallAnalysisRow[] = [];
+    for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
+        const cur = new Date(y, m - 1, d - dayOffset);
+        const yy = cur.getFullYear();
+        const mm = cur.getMonth() + 1;
+        const dd = cur.getDate();
+        for (let h = 0; h < 24; h++) {
+            rows.push(
+                buildOverallRow(
+                    rows.length + 1,
+                    `${yy}${pad2(mm)}${pad2(dd)} ${pad2(h)}:00`,
+                    1 / (31 * 24),
+                    yy * 8928 + mm * 744 + dd * 24 + h
+                )
+            );
+        }
+    }
+    return rows;
+};
+
+// 整体分析 - 根据账单类型与账期取数据源（图表/列表共用，按时间正序）
+const getOverallDataset = (billType: string, period: string) => {
+    if (billType === "day") return buildOverallDailySeries(period);
+    if (billType === "hour") return buildOverallHourlySeries(period);
+    return buildOverallMonthlySeries(period);
+};
+
+// 整体分析 - 账期短标签（图表 X 轴展示）
+const overallShortLabel = (period: string, billType: string) => {
+    if (billType === "hour") {
+        const [datePart, timePart] = period.split(" ");
+        return `${Number(datePart.slice(6, 8))}日${(timePart ?? "").slice(0, 2)}时`;
+    }
+    if (billType === "day") return `${Number(period.slice(4, 6))}/${Number(period.slice(6, 8))}`;
+    return `${Number(period.slice(0, 4))}/${Number(period.slice(4, 6))}`;
+};
+
+// 整体分析 - 曲线图例项 key
+type OverallSeriesKey = "revenue" | "cost" | "innerMargin" | "outerMargin";
+
+// 整体分析 - 收入/成本 + 毛利率双坐标曲线图（纯 SVG 实现，无第三方依赖）
+// 主坐标（左）：总收入、总成本(元)；次坐标（右）：内结算毛利率、外部毛利率(%)
+// 图例支持点击显隐对应曲线，默认仅展示「总收入」「总成本」两条曲线
+const OverallTrendChart = ({
+    rows,
+    billType,
+}: {
+    rows: OverallAnalysisRow[];
+    billType: string;
+}) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+    // 曲线显隐状态：默认仅展示总收入、总成本
+    const [visible, setVisible] = useState<Record<OverallSeriesKey, boolean>>({
+        revenue: true,
+        cost: true,
+        innerMargin: false,
+        outerMargin: false,
+    });
+    const toggleSeries = (key: OverallSeriesKey) =>
+        setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
+
+    // 画布尺寸与内边距（右侧留出次坐标轴刻度空间）
+    const W = 960;
+    const H = 320;
+    const padL = 74;
+    const padR = 62;
+    const padT = 20;
+    const padB = 44;
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+
+    if (rows.length === 0) {
+        return <div className="flex h-[320px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    const revenues = rows.map((r) => r.totalRevenue);
+    const costs = rows.map((r) => r.productCost);
+    const innerMargins = rows.map((r) => r.innerMargin);
+    const outerMargins = rows.map((r) => r.outerMargin);
+
+    // 主坐标（金额）上限，向上取整到「整齐」刻度
+    const maxVal = Math.max(...revenues, ...costs, 1);
+    const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
+    const yMax = Math.ceil(maxVal / step) * step;
+
+    // 次坐标（毛利率）范围，按 10% 为一档向外取整
+    const marginValues = [...innerMargins, ...outerMargins];
+    const rawMin = Math.min(...marginValues, 0);
+    const rawMax = Math.max(...marginValues, 0);
+    const pMin = Math.floor(rawMin / 10) * 10;
+    const pMax = Math.max(Math.ceil(rawMax / 10) * 10, pMin + 10);
+
+    const xAt = (i: number) => (rows.length === 1 ? padL + innerW / 2 : padL + (innerW * i) / (rows.length - 1));
+    const yAt = (v: number) => padT + innerH - (v / yMax) * innerH;                       // 主坐标
+    const yPct = (v: number) => padT + innerH - ((v - pMin) / (pMax - pMin)) * innerH;    // 次坐标
+
+    const toPolyline = (values: number[], mapper: (v: number) => number) =>
+        values.map((v, i) => `${xAt(i)},${mapper(v)}`).join(" ");
+    const toAreaPath = (values: number[]) =>
+        `M ${xAt(0)},${padT + innerH} ` +
+        values.map((v, i) => `L ${xAt(i)},${yAt(v)}`).join(" ") +
+        ` L ${xAt(values.length - 1)},${padT + innerH} Z`;
+
+    // 5 等分网格线（主/次坐标共用同一批横线）
+    const tickCount = 5;
+    const ticks = Array.from({ length: tickCount + 1 }, (_, i) => i);
+    // X 轴标签抽稀，避免拥挤
+    const labelStride = Math.max(1, Math.ceil(rows.length / 12));
+    // 数据点较多时不再绘制圆点，避免视觉噪音
+    const showDots = rows.length <= 40;
+
+    return (
+        <div className="relative">
+            {/* 图例：点击可显示/隐藏对应曲线，默认仅展示总收入、总成本 */}
+            <div className="mb-2 flex flex-wrap items-center gap-5 px-1">
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("revenue")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.revenue ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-[3px] w-4 rounded-full bg-[#0f73f6] ${visible.revenue ? "" : "opacity-30"}`} />
+                    总收入
+                </button>
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("cost")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.cost ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-[3px] w-4 rounded-full bg-[#f5a623] ${visible.cost ? "" : "opacity-30"}`} />
+                    总成本
+                </button>
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("innerMargin")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.innerMargin ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-0 w-4 border-t-2 border-dashed border-[#22b07d] ${visible.innerMargin ? "" : "opacity-30"}`} />
+                    内结算毛利率
+                </button>
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("outerMargin")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.outerMargin ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-0 w-4 border-t-2 border-dashed border-[#9254de] ${visible.outerMargin ? "" : "opacity-30"}`} />
+                    外部毛利率
+                </button>
+            </div>
+
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 320 }} preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="overallRevFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0f73f6" stopOpacity="0.18" />
+                        <stop offset="100%" stopColor="#0f73f6" stopOpacity="0" />
+                    </linearGradient>
+                    <linearGradient id="overallCostFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f5a623" stopOpacity="0.16" />
+                        <stop offset="100%" stopColor="#f5a623" stopOpacity="0" />
+                    </linearGradient>
+                </defs>
+
+                {/* 横向网格线 + 左侧金额刻度 + 右侧毛利率刻度 */}
+                {ticks.map((t) => {
+                    const y = padT + innerH - (innerH * t) / tickCount;
+                    return (
+                        <g key={`tick-${t}`}>
+                            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="#eef0f3" strokeWidth={1} />
+                            <text x={padL - 10} y={y + 4} textAnchor="end" className="fill-gray-400" style={{ fontSize: 11 }}>
+                                {((yMax / tickCount) * t / 10000).toFixed(0)} 万
+                            </text>
+                            <text x={W - padR + 10} y={y + 4} textAnchor="start" className="fill-gray-400" style={{ fontSize: 11 }}>
+                                {(pMin + ((pMax - pMin) / tickCount) * t).toFixed(0)}%
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* 主坐标：面积 + 折线（按图例显隐控制渲染） */}
+                {visible.revenue && <path d={toAreaPath(revenues)} fill="url(#overallRevFill)" />}
+                {visible.cost && <path d={toAreaPath(costs)} fill="url(#overallCostFill)" />}
+                {visible.revenue && (
+                    <polyline points={toPolyline(revenues, yAt)} fill="none" stroke="#0f73f6" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                )}
+                {visible.cost && (
+                    <polyline points={toPolyline(costs, yAt)} fill="none" stroke="#f5a623" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                )}
+
+                {/* 次坐标：毛利率折线（虚线区分，按图例显隐控制渲染） */}
+                {visible.innerMargin && (
+                    <polyline points={toPolyline(innerMargins, yPct)} fill="none" stroke="#22b07d" strokeWidth={2} strokeDasharray="5 4" strokeLinejoin="round" strokeLinecap="round" />
+                )}
+                {visible.outerMargin && (
+                    <polyline points={toPolyline(outerMargins, yPct)} fill="none" stroke="#9254de" strokeWidth={2} strokeDasharray="5 4" strokeLinejoin="round" strokeLinecap="round" />
+                )}
+
+                {/* 数据点 */}
+                {rows.map((r, i) =>
+                    showDots || activeIndex === i ? (
+                        <g key={`pt-${i}`}>
+                            {visible.revenue && <circle cx={xAt(i)} cy={yAt(r.totalRevenue)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#0f73f6" strokeWidth={2} />}
+                            {visible.cost && <circle cx={xAt(i)} cy={yAt(r.productCost)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#f5a623" strokeWidth={2} />}
+                            {visible.innerMargin && <circle cx={xAt(i)} cy={yPct(r.innerMargin)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#22b07d" strokeWidth={2} />}
+                            {visible.outerMargin && <circle cx={xAt(i)} cy={yPct(r.outerMargin)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#9254de" strokeWidth={2} />}
+                        </g>
+                    ) : null
+                )}
+
+                {/* X 轴标签 */}
+                {rows.map((r, i) =>
+                    i % labelStride === 0 ? (
+                        <text key={`lb-${i}`} x={xAt(i)} y={H - padB + 20} textAnchor="middle" className="fill-gray-400" style={{ fontSize: 11 }}>
+                            {overallShortLabel(r.period, billType)}
+                        </text>
+                    ) : null
+                )}
+
+                {/* 悬停高亮竖线 */}
+                {activeIndex !== null && (
+                    <line x1={xAt(activeIndex)} y1={padT} x2={xAt(activeIndex)} y2={padT + innerH} stroke="#c9d3e0" strokeWidth={1} strokeDasharray="4 3" />
+                )}
+
+                {/* 悬停热区 */}
+                {rows.map((_, i) => {
+                    const bandW = innerW / Math.max(rows.length - 1, 1);
+                    return (
+                        <rect
+                            key={`hit-${i}`}
+                            x={xAt(i) - bandW / 2}
+                            y={padT}
+                            width={bandW}
+                            height={innerH}
+                            fill="transparent"
+                            onMouseEnter={() => setActiveIndex(i)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        />
+                    );
+                })}
+            </svg>
+
+            {/* 悬停浮层 */}
+            {activeIndex !== null && (
+                <div
+                    className={`pointer-events-none absolute top-10 z-20 min-w-[210px] rounded-md bg-gray-700/95 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg ${
+                        xAt(activeIndex) / W > 0.6 ? "-translate-x-full" : ""
+                    }`}
+                    style={{
+                        left: `calc(${(xAt(activeIndex) / W) * 100}% ${xAt(activeIndex) / W > 0.6 ? "-" : "+"} 12px)`,
+                    }}
+                >
+                    <div className="mb-0.5 font-medium">{rows[activeIndex].period}</div>
+                    {visible.revenue && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">总收入</span>
+                            <span>{formatExactAmount(rows[activeIndex].totalRevenue)}</span>
+                        </div>
+                    )}
+                    {visible.cost && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">总成本</span>
+                            <span>{formatExactAmount(rows[activeIndex].productCost)}</span>
+                        </div>
+                    )}
+                    {visible.innerMargin && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">内结算毛利率</span>
+                            <span>{rows[activeIndex].innerMargin.toFixed(2)}%</span>
+                        </div>
+                    )}
+                    {visible.outerMargin && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">外部毛利率</span>
+                            <span>{rows[activeIndex].outerMargin.toFixed(2)}%</span>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
 
 // 兼容旧代码的别名
 const productsData = zhihuiProductsData;
@@ -467,6 +1362,110 @@ const getTabIcon = (icon: string, className: string = "w-5 h-5") => {
     }
 };
 
+// ===== 平台配置 - 企业配置：可选租户（输入租户ID检索） =====
+type EnterpriseTenantOption = { id: string; name: string };
+const enterpriseTenantOptions: EnterpriseTenantOption[] = [
+    { id: '100000001', name: '奇虎360' },
+    { id: '100000002', name: '360智汇云' },
+    { id: '100000003', name: '360人工智能部' },
+    { id: '100000004', name: '360政企安全' },
+    { id: '100000005', name: '360数科' },
+    { id: '100000006', name: '360企业安全集团' },
+];
+
+// 企业配置 - 租户下的组织架构（部门树）
+// units：该部门在 ops 侧已关联的结算单元（一个部门可关联 N 个结算单元），有值即代表「已关联结算单元」
+type OrgDeptNode = { id: string; name: string; units?: string[]; children?: OrgDeptNode[] };
+const tenantOrgTrees: Record<string, OrgDeptNode[]> = {
+    '100000001': [
+        {
+            id: 'd-1', name: '技术中台', children: [
+                { id: 'd-1-1', name: '智汇云事业部', units: ['智汇云-应用平台部', '智汇云-商业化产品部'], children: [
+                    { id: 'd-1-1-1', name: '云平台部', units: ['智汇云-云平台部', '智汇云-系统运维部'] },
+                    { id: 'd-1-1-2', name: '基础架构部', units: ['智汇云-基础架构部'] },
+                    { id: 'd-1-1-3', name: '产品运营部' },
+                ] },
+                { id: 'd-1-2', name: '系统部', units: ['智汇云-系统部'] },
+                { id: 'd-1-3', name: '效能平台部' },
+            ]
+        },
+        {
+            id: 'd-2', name: '安全中台', children: [
+                { id: 'd-2-1', name: '安全大脑研发部', units: ['智汇云-安全技术部'] },
+                { id: 'd-2-2', name: '威胁情报部' },
+            ]
+        },
+        { id: 'd-3', name: '人工智能研究院', units: ['360人工智能研究院'] },
+    ],
+    '100000002': [
+        {
+            id: 'z-1', name: '智汇云', children: [
+                { id: 'z-1-1', name: '云平台部', units: ['智汇云-云平台部'] },
+                { id: 'z-1-2', name: '智能工程部', units: ['智汇云-智能工程部', '智汇云-数据平台部'] },
+                { id: 'z-1-3', name: '系统运维部', units: ['智汇云-系统运维部', '智汇云-研发效能部'] },
+                { id: 'z-1-4', name: '市场部' },
+            ]
+        },
+    ],
+    '100000003': [
+        {
+            id: 'a-1', name: '人工智能研究院', children: [
+                { id: 'a-1-1', name: '大模型算法部', units: ['360人工智能研究院'] },
+                { id: 'a-1-2', name: 'AI工程部', units: ['智汇云-智能工程部'] },
+                { id: 'a-1-3', name: '数据标注部' },
+            ]
+        },
+    ],
+    '100000004': [
+        {
+            id: 's-1', name: '政企安全集团', children: [
+                { id: 's-1-1', name: '解决方案部', units: ['智汇云-安全技术部', '智汇云-交付服务部'] },
+                { id: 's-1-2', name: '交付服务部' },
+            ]
+        },
+    ],
+};
+// 未配置组织架构的租户使用的默认部门树
+const defaultTenantOrgTree: OrgDeptNode[] = [
+    {
+        id: 'def-1', name: '总部', children: [
+            { id: 'def-1-1', name: '技术部', units: ['智汇云-基础架构部'] },
+            { id: 'def-1-2', name: 'business部' },
+        ]
+    },
+];
+const getTenantOrgTree = (tenantId: string): OrgDeptNode[] =>
+    tenantOrgTrees[tenantId] || defaultTenantOrgTree;
+
+// 在部门树中按 id 定位节点
+const findOrgNode = (nodes: OrgDeptNode[], id: string): OrgDeptNode | null => {
+    for (const node of nodes) {
+        if (node.id === id) return node;
+        const hit = node.children ? findOrgNode(node.children, id) : null;
+        if (hit) return hit;
+    }
+    return null;
+};
+
+// 收集某个经营部门（含自身）下所有「已关联结算单元」的部门；path 为从经营部门起的层级路径
+type LinkedDept = { id: string; name: string; path: string; units: string[] };
+const collectLinkedDepts = (root: OrgDeptNode): LinkedDept[] => {
+    const result: LinkedDept[] = [];
+    const walk = (node: OrgDeptNode, ancestors: string[]) => {
+        if (node.units?.length) {
+            result.push({
+                id: node.id,
+                name: node.name,
+                path: [...ancestors, node.name].join(' / '),
+                units: node.units,
+            });
+        }
+        node.children?.forEach((child) => walk(child, [...ancestors, node.name]));
+    };
+    walk(root, []);
+    return result;
+};
+
 // 租户数据
 const tenantsData = [
     {
@@ -730,37 +1729,561 @@ const formatNumber = (num: number) => {
     return num.toLocaleString();
 };
 
+// ===== 账单管理 - 产品账单 =====
+// 单个 Portal 下的产品账单数据；当同一产品的内部Portal与外部Portal已关联时，portals 长度为2，
+// 列表按各列相加合并展示为一行，支持展开查看内部/外部Portal各自的数据
+interface ProductBillPortalRow {
+    portalName: string;          // Portal 名称
+    internal: boolean;           // 是否为内部Portal
+    productIdentifier: string;   // 该Portal对应的产品标识（内、外Portal产品标识不同）
+    standardAmount: number;      // 官方标准价金额(元)
+    payableAmount: number;       // 客户应付总金额(元)
+    payableLastPeriod: number;   // 上一账期客户应付总金额(元)，用于计算环比
+    arrearsAmount: number;       // 客户欠费总金额(元)
+    settling: boolean;           // 本账期是否处于"结算中"（尚未出准确欠费数据）
+}
+
+interface ProductBillRow {
+    id: string;
+    productName: string;
+    productIdentifier: string;
+    period: string;                      // 账期年月
+    portals: ProductBillPortalRow[];     // 长度为1：未关联Portal；长度>=2：内外Portal已关联合并
+}
+
+const productBillData: ProductBillRow[] = [
+    {
+        id: "llm-202603", productName: "大模型", productIdentifier: "llm", period: "202603",
+        portals: [
+            { portalName: "智汇云内网门户", internal: true, productIdentifier: "llm_in", standardAmount: 28456789.12, payableAmount: 17234567.89, payableLastPeriod: 16789234.56, arrearsAmount: 0, settling: true },
+            { portalName: "智汇云官网", internal: false, productIdentifier: "llm_out", standardAmount: 17221445.44, payableAmount: 11221555.89, payableLastPeriod: 14253333.33, arrearsAmount: 0, settling: true },
+        ],
+    },
+    {
+        id: "lobster-202603", productName: "龙虾", productIdentifier: "lobster", period: "202603",
+        portals: [
+            { portalName: "智汇云内网门户", internal: true, productIdentifier: "lobster_in", standardAmount: 19234567.89, payableAmount: 11234567.45, payableLastPeriod: 10089234.56, arrearsAmount: 0, settling: true },
+            { portalName: "智汇云官网", internal: false, productIdentifier: "lobster_out", standardAmount: 12955000.00, payableAmount: 8000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: true },
+        ],
+    },
+    {
+        id: "apicloud-202603", productName: "APICloud", productIdentifier: "apicloud", period: "202603",
+        portals: [
+            { portalName: "API市场门户", internal: false, productIdentifier: "apicloud", standardAmount: 18456789.23, payableAmount: 11567890.34, payableLastPeriod: 12263456.78, arrearsAmount: 0, settling: true },
+        ],
+    },
+    {
+        id: "llm-202602", productName: "大模型", productIdentifier: "llm", period: "202602",
+        portals: [
+            { portalName: "智汇云内网门户", internal: true, productIdentifier: "llm_in", standardAmount: 32345678.90, payableAmount: 19042567.89, payableLastPeriod: 18075234.56, arrearsAmount: 0, settling: false },
+            { portalName: "智汇云官网", internal: false, productIdentifier: "llm_out", standardAmount: 20000000.00, payableAmount: 12000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
+        ],
+    },
+    {
+        id: "lobster-202602", productName: "龙虾", productIdentifier: "lobster", period: "202602",
+        portals: [
+            { portalName: "智汇云内网门户", internal: true, productIdentifier: "lobster_in", standardAmount: 17567890.12, payableAmount: 10089234.56, payableLastPeriod: 10698567.89, arrearsAmount: 0, settling: false },
+            { portalName: "智汇云官网", internal: false, productIdentifier: "lobster_out", standardAmount: 11000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
+        ],
+    },
+    {
+        id: "apicloud-202602", productName: "APICloud", productIdentifier: "apicloud", period: "202602",
+        portals: [
+            { portalName: "API市场门户", internal: false, productIdentifier: "apicloud", standardAmount: 21234567.89, payableAmount: 12263456.78, payableLastPeriod: 11228567.90, arrearsAmount: 0, settling: false },
+        ],
+    },
+    {
+        id: "llm-202601", productName: "大模型", productIdentifier: "llm", period: "202601",
+        portals: [
+            { portalName: "智汇云内网门户", internal: true, productIdentifier: "llm_in", standardAmount: 30901234.56, payableAmount: 18075234.56, payableLastPeriod: 18714567.89, arrearsAmount: 0, settling: false },
+            { portalName: "智汇云官网", internal: false, productIdentifier: "llm_out", standardAmount: 18000000.00, payableAmount: 11000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
+        ],
+    },
+    {
+        id: "lobster-202601", productName: "龙虾", productIdentifier: "lobster", period: "202601",
+        portals: [
+            { portalName: "智汇云内网门户", internal: true, productIdentifier: "lobster_in", standardAmount: 16789012.34, payableAmount: 10698567.89, payableLastPeriod: 9926234.56, arrearsAmount: 0, settling: false },
+            { portalName: "智汇云官网", internal: false, productIdentifier: "lobster_out", standardAmount: 10000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
+        ],
+    },
+    {
+        id: "apicloud-202601", productName: "APICloud", productIdentifier: "apicloud", period: "202601",
+        portals: [
+            { portalName: "API市场门户", internal: false, productIdentifier: "apicloud", standardAmount: 19567890.12, payableAmount: 11228567.90, payableLastPeriod: 11445234.56, arrearsAmount: 0, settling: false },
+        ],
+    },
+];
+
+// 产品账单 - 汇总某产品行下所有Portal的数据（内外Portal已关联时为二者之和）
+const aggregateProductBillRow = (row: ProductBillRow) => {
+    const standardAmount = row.portals.reduce((s, p) => s + p.standardAmount, 0);
+    const payableAmount = row.portals.reduce((s, p) => s + p.payableAmount, 0);
+    const payableLastPeriod = row.portals.reduce((s, p) => s + p.payableLastPeriod, 0);
+    const arrearsAmount = row.portals.reduce((s, p) => s + p.arrearsAmount, 0);
+    const settling = row.portals.some((p) => p.settling);
+    return { standardAmount, payableAmount, payableLastPeriod, arrearsAmount, settling };
+};
+
+// 产品账单 - 计算环比变化（对比上一账期客户应付总金额）
+const getBillMomChange = (current: number, last: number) => {
+    if (last === 0) return { pct: 0, up: false };
+    const diff = current - last;
+    return { pct: Math.abs((diff / last) * 100), up: diff > 0 };
+};
+
 export default function AdminPage() {
     const [adminMenuExpanded, setAdminMenuExpanded] = useState(false); // 管理后台菜单展开状态
-    const [productMenuExpanded, setProductMenuExpanded] = useState(false); // 产品管理菜单展开状态
-    const [zhiqiBillMenuExpanded, setZhiqiBillMenuExpanded] = useState(false); // 账单管理菜单展开状态
-    const [platformConfigMenuExpanded, setPlatformConfigMenuExpanded] = useState(true); // 平台配置菜单展开状态
-    const [currentMenu, setCurrentMenu] = useState("platform-key"); // 当前选中的菜单: product-define, product-addon, product-billing, product-package, zhiqi-bill-overview, zhiqi-bill-customer, zhiqi-bill-product, zhiqi-bill-intranet, platform-key, platform-api, zhiqi-admin
+    const [productMenuExpanded, setProductMenuExpanded] = useState(true); // 产品管理菜单展开状态
+    const [zhiqiBillMenuExpanded, setZhiqiBillMenuExpanded] = useState(true); // 账单管理菜单展开状态
+    const [bizAnalysisMenuExpanded, setBizAnalysisMenuExpanded] = useState(true); // 经营分析菜单展开状态
+    const [platformConfigMenuExpanded, setPlatformConfigMenuExpanded] = useState(false); // 密钥管理菜单展开状态
+    const [platformSettingMenuExpanded, setPlatformSettingMenuExpanded] = useState(true); // 平台配置菜单展开状态
+    const [currentMenu, setCurrentMenu] = useState("product-define"); // 当前选中的菜单: product-define, product-addon, product-billing, product-package, zhiqi-bill-customer, zhiqi-bill-product, zhiqi-bill-intranet, analysis-product, analysis-department, platform-key, platform-api, platform-portal, platform-region, zhiqi-admin
+
+    // ===== 经营分析 - 整体分析 =====
+    const [overallBillType, setOverallBillType] = useState("month");     // 账单类型：month / day / hour
+    const [overallMonth, setOverallMonth] = useState("2026-08");         // 选中月（月账单）
+    const [overallDate, setOverallDate] = useState("2026-08-31");        // 选中天（天账单 / 小时账单）
+    const [overallPage, setOverallPage] = useState(1);                   // 当前页
+    const [overallPageSize, setOverallPageSize] = useState(10);          // 每页条数
+
+    // 整体分析 - 当前账期（月账单取选中月，天/小时账单取选中天）
+    const overallPeriodValue = overallBillType === "month" ? overallMonth : overallDate;
+
+    // 整体分析 - 当前账单类型与账期对应的数据源（图表按时间正序）
+    const overallChartRows = useMemo(
+        () => getOverallDataset(overallBillType, overallPeriodValue),
+        [overallBillType, overallPeriodValue]
+    );
+
+    // 整体分析 - 图表统计区间说明
+    const overallChartRangeTip = useMemo(() => {
+        if (overallBillType === "month") return `${overallMonth} 及其前 5 个月，共 6 个月`;
+        if (overallBillType === "day") return `${overallDate} 及其前 29 天，共 30 天`;
+        return `${overallDate} 及其前 6 天，按小时统计，共 168 个点`;
+    }, [overallBillType, overallMonth, overallDate]);
+
+    // 整体分析 - 列表数据（最新账期在前）
+    const overallListRows = useMemo(() => [...overallChartRows].reverse(), [overallChartRows]);
+
+    // 整体分析 - 汇总卡片（全部账期合计）
+    const overallSummary = useMemo(() => {
+        const totalRevenue = overallChartRows.reduce((s, r) => s + r.totalRevenue, 0);
+        const productCost = overallChartRows.reduce((s, r) => s + r.productCost, 0);
+        const balance = overallChartRows.reduce((s, r) => s + r.balance, 0);
+        const innerTotalRevenue = overallChartRows.reduce((s, r) => s + r.innerTotalRevenue, 0);
+        return {
+            totalRevenue,
+            productCost,
+            balance,
+            margin: innerTotalRevenue === 0 ? 0 : ((innerTotalRevenue - productCost) / innerTotalRevenue) * 100,
+        };
+    }, [overallChartRows]);
+
+    // 整体分析 - 当前页数据
+    const overallTotalPages = Math.max(1, Math.ceil(overallListRows.length / overallPageSize));
+    const pagedOverallRows = useMemo(() => {
+        const start = (overallPage - 1) * overallPageSize;
+        return overallListRows.slice(start, start + overallPageSize);
+    }, [overallListRows, overallPage, overallPageSize]);
+
+    // ===== 经营分析 - 产品分析 =====
+    const [analysisBillType, setAnalysisBillType] = useState("month");        // 账单类型
+    const [analysisPeriod, setAnalysisPeriod] = useState("2026-08");          // 账期
+    const [analysisProductLine, setAnalysisProductLine] = useState("");       // 所属产线
+    const [analysisSettlementUnit, setAnalysisSettlementUnit] = useState(""); // 结算单元
+    const [analysisProductTags, setAnalysisProductTags] = useState<string[]>(["云数据库 PGSQL (p..."]); // 产品名称多选标签
+    const [analysisProductPickerOpen, setAnalysisProductPickerOpen] = useState(false); // 产品下拉是否展开
+    const [analysisPage, setAnalysisPage] = useState(1);                     // 当前页
+    const [analysisPageSize, setAnalysisPageSize] = useState(10);            // 每页条数
+    const [expandedAnalysisRowIds, setExpandedAnalysisRowIds] = useState<number[]>([]); // 产品分析-已展开查看内外Portal明细的行ID
+
+    // 产品分析 - 总收入明细抽屉（趋势 / 收入明细 / 成本明细）
+    const [revenueDetailRow, setRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
+    const [revenueDetailTab, setRevenueDetailTab] = useState<"trend" | "revenue" | "cost">("revenue");
+    // 产品分析 - 「公司内收入」明细抽屉（结算单元账单 / 外部portal使用费用 两部分来源）
+    const [innerRevenueDetailRow, setInnerRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
+    // 产品分析 - 「集团内的外部事业部」收入明细抽屉
+    const [outerGroupDetailRow, setOuterGroupDetailRow] = useState<ProductAnalysisRow | null>(null);
+    // 产品分析 - 「外部(360.cn)」收入明细抽屉
+    const [outerPortalDetailRow, setOuterPortalDetailRow] = useState<ProductAnalysisRow | null>(null);
+    // 产品分析 - 结算单元账单金额明细抽屉（公司内非中台收入 / 中台内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
+    const [unitBillDetail, setUnitBillDetail] = useState<{ row: ProductAnalysisRow; title: string; amount: number } | null>(null);
+
+    // 产品分析 - 按筛选条件过滤
+    const filteredAnalysisRows = useMemo(() => {
+        return productAnalysisData.filter((row) => {
+            if (analysisProductLine && row.productLine !== analysisProductLine) return false;
+            if (analysisSettlementUnit && row.settlementUnit !== analysisSettlementUnit) return false;
+            return true;
+        });
+    }, [analysisProductLine, analysisSettlementUnit]);
+
+    // 产品分析 - 当前页数据
+    const analysisTotalPages = Math.max(1, Math.ceil(filteredAnalysisRows.length / analysisPageSize));
+    const pagedAnalysisRows = useMemo(() => {
+        const start = (analysisPage - 1) * analysisPageSize;
+        return filteredAnalysisRows.slice(start, start + analysisPageSize);
+    }, [filteredAnalysisRows, analysisPage, analysisPageSize]);
+
+    // 产品分析 - 合计（公司外收入按「集团内外部事业部」「外部(360.cn)」分开统计）
+    const analysisTotals = useMemo(() => {
+        return filteredAnalysisRows.reduce(
+            (acc, row) => ({
+                totalRevenue: acc.totalRevenue + row.totalRevenue,
+                innerRevenue: acc.innerRevenue + row.innerRevenue,
+                innerNonMidRevenue: acc.innerNonMidRevenue + row.innerNonMidRevenue,
+                midNonZyunRevenue: acc.midNonZyunRevenue + row.midNonZyunRevenue,
+                zyunNonUnitRevenue: acc.zyunNonUnitRevenue + row.zyunNonUnitRevenue,
+                unitRevenue: acc.unitRevenue + row.unitRevenue,
+                outerGroupRevenue: acc.outerGroupRevenue + row.outerGroupRevenue,
+                outerPortalRevenue: acc.outerPortalRevenue + row.outerPortalRevenue,
+                outerInnerPriceRevenue: acc.outerInnerPriceRevenue + row.outerInnerPriceRevenue,
+                innerTotalRevenue: acc.innerTotalRevenue + row.innerTotalRevenue,
+                productCost: acc.productCost + row.productCost,
+                innerProfit: acc.innerProfit + row.innerProfit,
+                outerProfit: acc.outerProfit + row.outerProfit,
+                balance: acc.balance + row.balance,
+            }),
+            {
+                totalRevenue: 0, innerRevenue: 0, innerNonMidRevenue: 0, midNonZyunRevenue: 0,
+                zyunNonUnitRevenue: 0, unitRevenue: 0, outerGroupRevenue: 0, outerPortalRevenue: 0,
+                outerInnerPriceRevenue: 0, innerTotalRevenue: 0, productCost: 0,
+                innerProfit: 0, outerProfit: 0, balance: 0,
+            }
+        );
+    }, [filteredAnalysisRows]);
+
+    // ===== 经营分析 - 部门分析 =====
+    // 数据来源：企业配置中所选「经营部门」（组织架构部门）下，已关联结算单元的部门
+    // 一个部门可关联 N 个结算单元，部门的收入/成本 = 其关联结算单元对应值之和
+    const [deptScopeEntId, setDeptScopeEntId] = useState<number | null>(null); // 选中的经营部门（对应企业配置项）
+    const [deptBillType, setDeptBillType] = useState("month");               // 账单类型
+    const [deptPeriod, setDeptPeriod] = useState("2026-09");                 // 账期
+    const [deptUnitTags, setDeptUnitTags] = useState<string[]>([]);          // 结算单元多选标签
+    const [deptPickerOpen, setDeptPickerOpen] = useState(false);             // 结算单元下拉是否展开
+    const [deptPage, setDeptPage] = useState(1);                             // 当前页
+    const [deptPageSize, setDeptPageSize] = useState(10);                    // 每页条数
+
+    // 部门分析 - 展开/收起结算单元明细
+    const [expandedDeptRows, setExpandedDeptRows] = useState<string[]>([]);
+    const toggleDeptRowExpand = (key: string) =>
+        setExpandedDeptRows((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+
+    // 部门分析 - 结算单元收支明细弹窗
+    const [deptDetailUnit, setDeptDetailUnit] = useState<DepartmentAnalysisRow | null>(null);
+    const [deptDetailTab, setDeptDetailTab] = useState<"revenue" | "cost">("cost");
+    const openDeptDetail = (unit: DepartmentAnalysisRow, tab: "revenue" | "cost") => {
+        setDeptDetailUnit(unit);
+        setDeptDetailTab(tab);
+    };
+    // 说明：部门分析的数据聚合依赖「企业配置」中的经营部门，见下方 enterpriseConfigs 之后的 deptAggregatedRows
+
+
+    // ===== 平台配置 - 地域可用区 =====
+    type RegionZone = {
+        id: number;
+        innerName: string;      // 内网(qihoo.net)可用区名称
+        innerCode: string;      // 内网(qihoo.net)可用区标识
+        outerName: string;      // 外网(360.cn)可用区名称
+        outerCode: string;      // 外网(360.cn)可用区标识
+        region: string;         // 地域
+        publicNet: boolean;     // 公网是否启用
+        cloudServer: string;    // 云服务器名称
+        createTime: string;
+        updateTime: string;
+    };
+    const [regionZones, setRegionZones] = useState<RegionZone[]>([
+        { id: 1, innerName: '北京电信', innerCode: 'bjwdt', outerName: '北京1区', outerCode: 'beijing1', region: '北京', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
+        { id: 2, innerName: '北京电信', innerCode: 'bjzdt', outerName: '北京2区', outerCode: 'beijing2', region: '北京', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:32:11', updateTime: '2025-12-22 18:32:11' },
+        { id: 3, innerName: '北京联通', innerCode: 'bjpdc', outerName: '北京3区', outerCode: 'beijing3', region: '北京', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03' },
+        { id: 4, innerName: '北京移动', innerCode: 'bjcm', outerName: '北京4区', outerCode: 'beijing4', region: '北京', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:32:29', updateTime: '2025-12-22 18:32:29' },
+        { id: 5, innerName: '北京联通', innerCode: 'bjmd', outerName: '北京5区', outerCode: 'beijing5', region: '北京', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:32:33', updateTime: '2025-12-22 18:32:33' },
+        { id: 6, innerName: '阿里1区', innerCode: 'alibj1', outerName: '阿里1区', outerCode: 'alibj1', region: '北京', publicNet: false, cloudServer: '阿里云', createTime: '2026-07-08 17:40:25', updateTime: '2026-07-08 17:40:25' },
+        { id: 7, innerName: '上海电信', innerCode: 'shbt', outerName: '上海1区', outerCode: 'shanghai1', region: '上海', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06' },
+        { id: 8, innerName: '上海联通', innerCode: 'shyc2', outerName: '上海2区', outerCode: 'shanghai2', region: '上海', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06' },
+        { id: 9, innerName: '郑州电信', innerCode: 'zzdt', outerName: '郑州1区', outerCode: 'zhengzhou1', region: '郑州', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:33:15', updateTime: '2025-12-22 18:33:15' },
+        { id: 10, innerName: '郑州联通', innerCode: 'zzzc', outerName: '郑州2区', outerCode: 'zhengzhou2', region: '郑州', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:33:20', updateTime: '2025-12-22 18:33:20' },
+        { id: 11, innerName: '广州电信', innerCode: 'gzdt', outerName: '广州1区', outerCode: 'guangzhou1', region: '广州', publicNet: true, cloudServer: '奇虎360', createTime: '2025-12-22 18:33:41', updateTime: '2025-12-22 18:33:41' },
+        { id: 12, innerName: '香港', innerCode: 'hk', outerName: '香港1区', outerCode: 'hongkong1', region: '香港', publicNet: true, cloudServer: '奇虎360', createTime: '2025-12-22 18:34:02', updateTime: '2025-12-22 18:34:02' },
+    ]);
+    const [regionZoneSearch, setRegionZoneSearch] = useState('');
+    const [regionZoneDialogOpen, setRegionZoneDialogOpen] = useState(false);
+    const [editingRegionZoneId, setEditingRegionZoneId] = useState<number | null>(null);
+    const emptyRegionZoneForm = {
+        innerName: '', innerCode: '', outerName: '', outerCode: '',
+        region: '', publicNet: true, cloudServer: '',
+    };
+    const [regionZoneForm, setRegionZoneForm] = useState(emptyRegionZoneForm);
+
+    // 云服务器 / 地域 下拉选项
+    const cloudServerOptions = ['奇虎360', '阿里云', '腾讯云', '华为云', 'AWS'];
+    const regionOptions = ['北京', '上海', '广州', '郑州', '香港'];
+
+    const filteredRegionZones = regionZones.filter(z => {
+        const kw = regionZoneSearch.trim().toLowerCase();
+        if (!kw) return true;
+        return [z.innerName, z.innerCode, z.outerName, z.outerCode, z.region, z.cloudServer]
+            .some(v => v.toLowerCase().includes(kw));
+    });
+
+    const formatNow = () => {
+        const d = new Date();
+        const p = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    };
+
+    const handleOpenCreateRegionZone = () => {
+        setEditingRegionZoneId(null);
+        setRegionZoneForm(emptyRegionZoneForm);
+        setRegionZoneDialogOpen(true);
+    };
+
+    const handleOpenEditRegionZone = (zone: RegionZone) => {
+        setEditingRegionZoneId(zone.id);
+        setRegionZoneForm({
+            innerName: zone.innerName,
+            innerCode: zone.innerCode,
+            outerName: zone.outerName,
+            outerCode: zone.outerCode,
+            region: zone.region,
+            publicNet: zone.publicNet,
+            cloudServer: zone.cloudServer,
+        });
+        setRegionZoneDialogOpen(true);
+    };
+
+    const handleSaveRegionZone = () => {
+        if (!regionZoneForm.cloudServer.trim() || !regionZoneForm.region.trim()
+            || !regionZoneForm.innerName.trim() || !regionZoneForm.innerCode.trim()) {
+            return;
+        }
+        if (regionZoneForm.publicNet && (!regionZoneForm.outerName.trim() || !regionZoneForm.outerCode.trim())) {
+            return;
+        }
+        const now = formatNow();
+        if (editingRegionZoneId != null) {
+            setRegionZones(prev => prev.map(z => z.id === editingRegionZoneId
+                ? { ...z, ...regionZoneForm, updateTime: now }
+                : z));
+        } else {
+            const nextId = regionZones.length ? Math.max(...regionZones.map(z => z.id)) + 1 : 1;
+            setRegionZones(prev => [...prev, { id: nextId, ...regionZoneForm, createTime: now, updateTime: now }]);
+        }
+        setRegionZoneDialogOpen(false);
+    };
+
+    // ===== 平台配置 - 企业配置 =====
+    type EnterpriseConfig = {
+        id: number;
+        name: string;          // 企业名称
+        internal: boolean;     // 是否是内部企业
+        enablePortal: boolean; // 是否开启独立Portal
+        tenantId: string;      // 所属租户ID（内部企业必填）
+        tenantName: string;    // 所属租户名称
+        bizDeptId: string;     // 经营部门ID（非必填）
+        bizDeptName: string;   // 经营部门名称
+        portalName: string;    // Portal名称（开启独立Portal时必填）
+        portalDomain: string;  // Portal域名（开启独立Portal时必填）
+        remark: string;        // 备注说明
+        createTime: string;
+        updateTime: string;
+    };
+    const [enterpriseConfigs, setEnterpriseConfigs] = useState<EnterpriseConfig[]>([
+        { id: 1, name: '奇虎360', internal: true, enablePortal: true, tenantId: '100000001', tenantName: '奇虎360', bizDeptId: 'd-1', bizDeptName: '技术中台', portalName: '智汇云内网门户', portalDomain: 'zyun.qihoo.net', remark: '公司内部员工访问入口', createTime: '2024-08-10 13:09:22', updateTime: '2025-12-18 16:40:12' },
+        { id: 2, name: '360智汇云', internal: false, enablePortal: true, tenantId: '100000002', tenantName: '360智汇云', bizDeptId: 'z-1', bizDeptName: '智汇云', portalName: '智汇云官网', portalDomain: 'zyun.360.cn', remark: '对外公有云门户', createTime: '2024-08-10 13:07:01', updateTime: '2025-11-02 10:21:36' },
+        { id: 3, name: '360人工智能部', internal: false, enablePortal: true, tenantId: '100000003', tenantName: '360人工智能部', bizDeptId: 'a-1', bizDeptName: '人工智能研究院', portalName: 'AI开发平台门户', portalDomain: 'tai.360.cn', remark: 'TAI 独立门户', createTime: '2025-03-12 14:22:08', updateTime: '2026-02-11 09:33:27' },
+        { id: 4, name: '360政企安全', internal: false, enablePortal: true, tenantId: '100000004', tenantName: '360政企安全', bizDeptId: '', bizDeptName: '', portalName: '安全大脑专属门户', portalDomain: 'sec.360.cn', remark: '专属租户定制门户', createTime: '2025-09-08 10:30:45', updateTime: '2026-03-02 15:12:09' },
+        { id: 5, name: '360数科', internal: false, enablePortal: false, tenantId: '', tenantName: '', bizDeptId: '', bizDeptName: '', portalName: '', portalDomain: '', remark: '暂未开启独立门户', createTime: '2025-06-20 17:45:20', updateTime: '2026-03-25 18:07:13' },
+    ]);
+    const [enterpriseSearch, setEnterpriseSearch] = useState('');
+    const [enterpriseDialogOpen, setEnterpriseDialogOpen] = useState(false);
+    const [editingEnterpriseId, setEditingEnterpriseId] = useState<number | null>(null);
+    const emptyEnterpriseForm = {
+        name: '', internal: false, enablePortal: false,
+        tenantId: '', tenantName: '',
+        bizDeptId: '', bizDeptName: '',
+        portalName: '', portalDomain: '', remark: '',
+    };
+    const [enterpriseForm, setEnterpriseForm] = useState(emptyEnterpriseForm);
+    const [enterpriseFormError, setEnterpriseFormError] = useState('');
+    // 所属租户：输入租户ID后展示下拉候选
+    const [tenantKeyword, setTenantKeyword] = useState('');
+    const [tenantDropdownOpen, setTenantDropdownOpen] = useState(false);
+    // 经营部门：部门树选择器
+    const [bizDeptPickerOpen, setBizDeptPickerOpen] = useState(false);
+    const [expandedOrgNodes, setExpandedOrgNodes] = useState<string[]>([]);
+    // 删除确认
+    const [enterpriseDeleteTarget, setEnterpriseDeleteTarget] = useState<EnterpriseConfig | null>(null);
+
+    // ===== 部门分析 - 基于经营部门的数据聚合 =====
+    // 经营部门候选：企业配置中已选择了经营部门（组织架构部门）的企业
+    const bizDeptOptions = useMemo(
+        () => enterpriseConfigs.filter((e) => e.bizDeptId && e.tenantId),
+        [enterpriseConfigs]
+    );
+
+    // 当前选中的经营部门（默认取第一个可用项）
+    const currentBizDeptEnt = useMemo(() => {
+        if (bizDeptOptions.length === 0) return null;
+        return bizDeptOptions.find((e) => e.id === deptScopeEntId) || bizDeptOptions[0];
+    }, [bizDeptOptions, deptScopeEntId]);
+
+    // 经营部门下「已关联结算单元」的部门列表（不再需要单独创建部门/关联结算单元）
+    const deptAggregatedRows = useMemo(() => {
+        if (!currentBizDeptEnt) return [];
+        const root = findOrgNode(getTenantOrgTree(currentBizDeptEnt.tenantId), currentBizDeptEnt.bizDeptId);
+        if (!root) return [];
+        const unitMap = new Map(departmentAnalysisData.map((r) => [r.opsUnit, r]));
+        return collectLinkedDepts(root).map((d) => {
+            const members = d.units
+                .map((u) => unitMap.get(u))
+                .filter((r): r is DepartmentAnalysisRow => Boolean(r));
+            return {
+                key: d.id,
+                name: d.name,
+                path: d.path,
+                members,
+                totalRevenue: members.reduce((s, m) => s + m.totalRevenue, 0),
+                totalCost: members.reduce((s, m) => s + m.totalCost, 0),
+            };
+        });
+    }, [currentBizDeptEnt]);
+
+    // 该经营部门下涉及的全部结算单元（用于筛选下拉）
+    const deptScopeUnits = useMemo(() => {
+        const set = new Set<string>();
+        deptAggregatedRows.forEach((row) => row.members.forEach((m) => set.add(m.opsUnit)));
+        return departmentAnalysisData.filter((r) => set.has(r.opsUnit));
+    }, [deptAggregatedRows]);
+
+    // 部门分析 - 结算单元筛选：命中任一关联结算单元的部门才展示（未选则展示全部）
+    const filteredDeptRows = useMemo(() => {
+        if (deptUnitTags.length === 0) return deptAggregatedRows;
+        return deptAggregatedRows.filter((row) => row.members.some((m) => deptUnitTags.includes(m.opsUnit)));
+    }, [deptAggregatedRows, deptUnitTags]);
+
+    // 部门分析 - 当前页数据
+    const deptTotalPages = Math.max(1, Math.ceil(filteredDeptRows.length / deptPageSize));
+    const pagedDeptRows = useMemo(() => {
+        const start = (deptPage - 1) * deptPageSize;
+        return filteredDeptRows.slice(start, start + deptPageSize);
+    }, [filteredDeptRows, deptPage, deptPageSize]);
+
+    const tenantSuggestions = enterpriseTenantOptions.filter(t => {
+        const kw = tenantKeyword.trim().toLowerCase();
+        if (!kw) return true;
+        return t.id.includes(kw) || t.name.toLowerCase().includes(kw);
+    });
+
+    const filteredEnterpriseConfigs = enterpriseConfigs.filter(e => {
+        const kw = enterpriseSearch.trim().toLowerCase();
+        if (!kw) return true;
+        return [e.name, e.tenantId, e.tenantName, e.bizDeptName, e.portalName, e.portalDomain, e.remark]
+            .some(v => (v || '').toLowerCase().includes(kw));
+    });
+
+    // 内部企业全局唯一：除当前编辑项外，已存在的内部企业（存在时禁止再将企业设置为内部企业）
+    const existedInternalEnterprise = enterpriseConfigs.find(
+        e => e.internal && e.id !== editingEnterpriseId
+    ) || null;
+
+    const handleOpenCreateEnterprise = () => {
+        setEditingEnterpriseId(null);
+        setEnterpriseForm(emptyEnterpriseForm);
+        setEnterpriseFormError('');
+        setTenantKeyword('');
+        setTenantDropdownOpen(false);
+        setBizDeptPickerOpen(false);
+        setEnterpriseDialogOpen(true);
+    };
+
+    const handleOpenEditEnterprise = (enterprise: EnterpriseConfig) => {
+        setEditingEnterpriseId(enterprise.id);
+        setEnterpriseForm({
+            name: enterprise.name,
+            internal: enterprise.internal,
+            enablePortal: enterprise.enablePortal,
+            tenantId: enterprise.tenantId,
+            tenantName: enterprise.tenantName,
+            bizDeptId: enterprise.bizDeptId,
+            bizDeptName: enterprise.bizDeptName,
+            portalName: enterprise.portalName,
+            portalDomain: enterprise.portalDomain,
+            remark: enterprise.remark,
+        });
+        setEnterpriseFormError('');
+        setTenantKeyword(enterprise.tenantId ? `${enterprise.tenantId}（${enterprise.tenantName}）` : '');
+        setTenantDropdownOpen(false);
+        setBizDeptPickerOpen(false);
+        setEnterpriseDialogOpen(true);
+    };
+
+    // 选择租户：切换租户时清空已选经营部门
+    const handleSelectEnterpriseTenant = (t: EnterpriseTenantOption) => {
+        setEnterpriseForm(prev => ({
+            ...prev,
+            tenantId: t.id,
+            tenantName: t.name,
+            bizDeptId: prev.tenantId === t.id ? prev.bizDeptId : '',
+            bizDeptName: prev.tenantId === t.id ? prev.bizDeptName : '',
+        }));
+        setTenantKeyword(`${t.id}（${t.name}）`);
+        setTenantDropdownOpen(false);
+    };
+
+    const handleSaveEnterprise = () => {
+        if (!enterpriseForm.name.trim()) {
+            setEnterpriseFormError('请输入企业名称');
+            return;
+        }
+        // 内部企业全局唯一：已存在内部企业时不可再创建/设置第二个
+        if (enterpriseForm.internal && existedInternalEnterprise) {
+            setEnterpriseFormError(`已存在内部企业「${existedInternalEnterprise.name}」，内部企业只能有一个`);
+            return;
+        }
+        // 内部企业时，所属租户必填
+        if (enterpriseForm.internal && !enterpriseForm.tenantId) {
+            setEnterpriseFormError('内部企业必须选择所属租户');
+            return;
+        }
+        // 开启独立Portal时，Portal名称与域名必填
+        if (enterpriseForm.enablePortal && (!enterpriseForm.portalName.trim() || !enterpriseForm.portalDomain.trim())) {
+            setEnterpriseFormError('开启独立Portal时，Portal名称与Portal域名必填');
+            return;
+        }
+        setEnterpriseFormError('');
+        const now = formatNow();
+        if (editingEnterpriseId != null) {
+            setEnterpriseConfigs(prev => prev.map(e => e.id === editingEnterpriseId
+                ? { ...e, ...enterpriseForm, updateTime: now }
+                : e));
+        } else {
+            const nextId = enterpriseConfigs.length ? Math.max(...enterpriseConfigs.map(e => e.id)) + 1 : 1;
+            setEnterpriseConfigs(prev => [...prev, { id: nextId, ...enterpriseForm, createTime: now, updateTime: now }]);
+        }
+        setEnterpriseDialogOpen(false);
+    };
+
+    // 删除企业：内部企业不可删除
+    const handleDeleteEnterprise = () => {
+        if (!enterpriseDeleteTarget || enterpriseDeleteTarget.internal) return;
+        setEnterpriseConfigs(prev => prev.filter(e => e.id !== enterpriseDeleteTarget.id));
+        setEnterpriseDeleteTarget(null);
+    };
+
     const [activeTab, setActiveTab] = useState("packages");
     
-    // 账单概览页面tab状态
-    const [billOverviewTab, setBillOverviewTab] = useState<"all" | "zhihui" | "zhiqi">("all");
-    
-    // 客户账单页面tab状态
-    const [billCustomerTab, setBillCustomerTab] = useState<"all" | "zhihui" | "zhiqi">("all");
-    
-    // 产品账单页面tab状态
-    const [billProductTab, setBillProductTab] = useState<"zhihui" | "zhiqi">("zhihui");
-    
-    // 内网账单页面tab状态
-    const [intranetBillTab, setIntranetBillTab] = useState<"zhihui" | "zhiqi">("zhihui");
     // 内网账单二级tab状态：部门账单/产品账单
     const [intranetBillTypeTab, setIntranetBillTypeTab] = useState<"department" | "product">("department");
     
     // 产品定义相关状态
-    const [productTab, setProductTab] = useState<"zhihui" | "zhiqi">("zhihui"); // 产品tab：智汇云产品/智企产品
     const [productSearchKeyword, setProductSearchKeyword] = useState("");
     const [productCategoryFilter, setProductCategoryFilter] = useState("all");
     const [productStatusFilter, setProductStatusFilter] = useState("all");
     const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false);
     
     // 产品计费项相关状态
-    const [billingProductTab, setBillingProductTab] = useState<"zhihui" | "zhiqi">("zhihui"); // 智汇云/智企产品tab
     const [billingItemSearch, setBillingItemSearch] = useState("");
     const [billingProductFilter, setBillingProductFilter] = useState("");
     const [billingStartDate, setBillingStartDate] = useState("");
@@ -769,11 +2292,7 @@ export default function AdminPage() {
     const [billingPageSize, setBillingPageSize] = useState(10);
     const billingTotalCount = 2160; // 总数据量
     
-    // 产品计费策略相关状态
-    const [billingStrategyProductTab, setBillingStrategyProductTab] = useState<"zhihui" | "zhiqi">("zhihui");
-    
     // 产品套餐相关状态
-    const [resourcePackageProductTab, setResourcePackageProductTab] = useState<"zhihui" | "zhiqi">("zhihui"); // 智汇云/智企产品tab
     const [resourcePackageTab, setResourcePackageTab] = useState<"packages" | "tasks">("packages"); // 套餐/发放任务tab
     const [resourcePackageSearch, setResourcePackageSearch] = useState("");
     const [resourcePackageProductFilter, setResourcePackageProductFilter] = useState("");
@@ -785,27 +2304,86 @@ export default function AdminPage() {
     const [resourcePackagePageSize, setResourcePackagePageSize] = useState(10);
     const resourcePackageTotalCount = 63; // 总数据量
     
-    // 创建产品表单状态
-    const [newProduct, setNewProduct] = useState({
+    // 产品抽屉模式：create-创建产品 / edit-编辑产品
+    const [productDrawerMode, setProductDrawerMode] = useState<'create' | 'edit'>('create');
+    const [callbackDialogOpen, setCallbackDialogOpen] = useState(false); // 回调设置弹窗
+
+    // 产品表单默认值（创建/编辑共用）
+    const emptyProductForm = {
         name: '',           // 产品名称
-        shortName: '',      // 产品简称
-        category: '',       // 产品分类
+        shortName: '',      // 产品简介
+        // 加入推荐
+        hotOfficial: false, // 官网热门产品
+        hotConsole: false,  // 控制台热门产品
+        promoTag: 'none',   // 推广标签：hot / new / none
+        categories: [] as string[], // 产品分类（可多选，形如 计算 / 奇云计算）
+        categoryInput: '',  // 分类选择器临时值
         productLine: '其他', // 所属产线
-        identifier: 'zqi_',     // 产品标识符，预填zqi_，前缀不可删除
+        identifier: '',     // 产品标识符
         description: '',    // 产品描述
         tags: [] as string[], // 产品标签
         tagInput: '',       // 标签输入
+        icon: null as File | null, // 产品图标
         url: '',            // URL地址
         introUrl: '',       // 介绍页地址
-        networkType: 'intranet', // 内外网属性：intranet-内网, public-公网, both-既是内网又是公网
-        visibility: 'all',  // 展示范围
-        icon: null as File | null, // 产品图标
-        auditType: '',      // 产品审核开通
+        networkType: 'external', // 展示Portal：external-外部(360.cn), qihoo-360集团/内部(qihoo.net), both-所有Portal(一个产品)
+        linkedInternalProduct: '', // 关联的内部(qihoo.net)产品标识符，仅"外部(360.cn)"时可配置
+        visibility: 'all',  // 展示范围：all / specified / excluded
+        visibilityEnterprises: [{ id: '', name: '' }] as { id: string; name: string }[], // 指定企业列表
+        auditType: 'default',     // 产品审核开通：default / manual / auto / none
         workOrderSchedule: false, // 工单排班表管理
         billingEnabled: true,     // 计费开通
         docEnabled: false,        // 产品文档
+        docType: 'apicloud',      // 产品文档类型
+        docUrl: '',               // 产品文档链接
+        apiDocEnabled: false,     // API文档
+        showInConsole: true,      // 是否在控制台展示
+        showInWebsite: true,      // 是否在官网展示
+        resourceGroupAuth: false, // 资源组授权
+        resourceReport: false,    // 资源上报
+        onlyInWorkOrder: false,   // 仅在工单展示
         reserveAmount: 0,         // 预留金额
-    });
+        callbackUrl: '',          // 回调设置-回调地址
+        callbackSecret: '',       // 回调设置-回调密钥
+        adminBackend: 'none',     // 管理后台：none-无 / has-有
+        adminBackendUrl: '',      // 管理后台地址
+        regionEnabled: false,     // 地域可用区
+    };
+
+    // 创建/编辑产品表单状态
+    const [newProduct, setNewProduct] = useState(emptyProductForm);
+    // 产品简介说明气泡
+    const [descTipOpen, setDescTipOpen] = useState(false);
+
+    // 打开创建产品抽屉
+    const openCreateProduct = () => {
+        setProductDrawerMode('create');
+        setNewProduct(emptyProductForm);
+        setCreateProductDialogOpen(true);
+    };
+
+    // 打开编辑产品抽屉（用已有产品数据回填）
+    const openEditProduct = (product: typeof zhihuiProductsData[0]) => {
+        setProductDrawerMode('edit');
+        setNewProduct({
+            ...emptyProductForm,
+            name: product.name,
+            shortName: product.identifier,
+            categories: [product.category.replace('/', ' / ')],
+            identifier: product.identifier,
+            description: `${product.name}相关能力，提供稳定可靠的云服务`,
+            tags: ['标签', 'New'],
+            url: `/${product.identifier}`,
+            hotConsole: true,
+            visibility: product.visibility === '所有企业可见' ? 'all' : 'specified',
+            auditType: 'auto',
+            networkType: 'external',
+            linkedInternalProduct: zhihuiProductsData.find(p => p.identifier !== product.identifier)?.identifier ?? '',
+            docEnabled: true,
+            docUrl: 'https://apicloud.360.cn/user/apistore',
+        });
+        setCreateProductDialogOpen(true);
+    };
     
     const [dateRange, setDateRange] = useState("today");
     const [isCumulative, setIsCumulative] = useState(false);
@@ -850,6 +2428,7 @@ export default function AdminPage() {
     const [packageNameSearch, setPackageNameSearch] = useState(""); // 套餐名称搜索
     const [packageTypeFilter, setPackageTypeFilter] = useState("all"); // 所属产品筛选
     const [expandedPackageIds, setExpandedPackageIds] = useState<number[]>([]); // 展开的套餐ID列表
+    const [expandedBillRowIds, setExpandedBillRowIds] = useState<string[]>([]); // 产品账单-已展开的内外Portal合并行ID列表
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // 二级菜单收起状态
     const [packageSubTab, setPackageSubTab] = useState("packages"); // 套餐页面二级tab: packages | analysis
     const [modelSubTab, setModelSubTab] = useState("config"); // AI计划管理页面二级tab: config | stats
@@ -1660,13 +3239,14 @@ export default function AdminPage() {
                             <div className="mt-0.5 space-y-0.5">
                                 <div
                                     onClick={() => setCurrentMenu('product-define')}
-                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] ${
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
                                         currentMenu === 'product-define'
                                             ? 'bg-[#3d3d3d] text-white'
                                             : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
                                     }`}
                                 >
-                                    产品定义
+                                    <span>产品定义</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('product-addon')}
@@ -1706,14 +3286,14 @@ export default function AdminPage() {
                     <div className="mt-0.5">
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['zhiqi-bill-overview', 'zhiqi-bill-customer', 'zhiqi-bill-product', 'zhiqi-bill-intranet'].includes(currentMenu)
+                                ['zhiqi-bill-customer', 'zhiqi-bill-product', 'zhiqi-bill-intranet'].includes(currentMenu)
                                     ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
                             onClick={() => {
                                 setZhiqiBillMenuExpanded(!zhiqiBillMenuExpanded);
                                 if (!zhiqiBillMenuExpanded) {
-                                    setCurrentMenu('zhiqi-bill-overview');
+                                    setCurrentMenu('zhiqi-bill-customer');
                                 }
                             }}
                         >
@@ -1726,16 +3306,6 @@ export default function AdminPage() {
                         {zhiqiBillMenuExpanded && (
                             <div className="mt-0.5 space-y-0.5">
                                 <div
-                                    onClick={() => setCurrentMenu('zhiqi-bill-overview')}
-                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] ${
-                                        currentMenu === 'zhiqi-bill-overview'
-                                            ? 'bg-[#3d3d3d] text-white'
-                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
-                                    }`}
-                                >
-                                    账单概览
-                                </div>
-                                <div
                                     onClick={() => setCurrentMenu('zhiqi-bill-customer')}
                                     className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] ${
                                         currentMenu === 'zhiqi-bill-customer'
@@ -1747,13 +3317,14 @@ export default function AdminPage() {
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('zhiqi-bill-product')}
-                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] ${
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
                                         currentMenu === 'zhiqi-bill-product'
                                             ? 'bg-[#3d3d3d] text-white'
                                             : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
                                     }`}
                                 >
-                                    产品账单
+                                    <span>产品账单</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('zhiqi-bill-intranet')}
@@ -1769,7 +3340,67 @@ export default function AdminPage() {
                         )}
                     </div>
 
-                    {/* 一级菜单：平台配置 */}
+                    {/* 一级菜单：经营分析 */}
+                    <div className="mt-0.5">
+                        <div
+                            className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
+                                ['analysis-overall', 'analysis-product', 'analysis-department'].includes(currentMenu)
+                                    ? 'bg-[#0f73f6] text-white'
+                                    : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
+                            }`}
+                            onClick={() => {
+                                setBizAnalysisMenuExpanded(!bizAnalysisMenuExpanded);
+                                if (!bizAnalysisMenuExpanded) {
+                                    setCurrentMenu('analysis-overall');
+                                }
+                            }}
+                        >
+                            <span className="text-[13px]">经营分析</span>
+                            <svg className={`w-3.5 h-3.5 transition-transform duration-[160ms] ${bizAnalysisMenuExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                        {/* 二级菜单 */}
+                        {bizAnalysisMenuExpanded && (
+                            <div className="mt-0.5 space-y-0.5">
+                                <div
+                                    onClick={() => setCurrentMenu('analysis-overall')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'analysis-overall'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>整体分析</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
+                                <div
+                                    onClick={() => setCurrentMenu('analysis-product')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'analysis-product'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>产品分析</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
+                                <div
+                                    onClick={() => setCurrentMenu('analysis-department')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'analysis-department'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>部门分析</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 一级菜单：密钥管理 */}
                     <div className="mt-0.5">
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
@@ -1784,7 +3415,7 @@ export default function AdminPage() {
                                 }
                             }}
                         >
-                            <span className="text-[13px]">平台配置</span>
+                            <span className="text-[13px]">密钥管理</span>
                             <svg className={`w-3.5 h-3.5 transition-transform duration-[160ms] ${platformConfigMenuExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -1811,6 +3442,55 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     系统间对接API接口
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 一级菜单：平台配置 */}
+                    <div className="mt-0.5">
+                        <div
+                            className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
+                                ['platform-portal', 'platform-region'].includes(currentMenu)
+                                    ? 'bg-[#0f73f6] text-white'
+                                    : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
+                            }`}
+                            onClick={() => {
+                                setPlatformSettingMenuExpanded(!platformSettingMenuExpanded);
+                                if (!platformSettingMenuExpanded) {
+                                    setCurrentMenu('platform-portal');
+                                }
+                            }}
+                        >
+                            <span className="text-[13px]">平台配置</span>
+                            <svg className={`w-3.5 h-3.5 transition-transform duration-[160ms] ${platformSettingMenuExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                        {/* 二级菜单 */}
+                        {platformSettingMenuExpanded && (
+                            <div className="mt-0.5 space-y-0.5">
+                                <div
+                                    onClick={() => setCurrentMenu('platform-portal')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'platform-portal'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>企业配置</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
+                                <div
+                                    onClick={() => setCurrentMenu('platform-region')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'platform-region'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>地域可用区</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                             </div>
                         )}
@@ -1868,36 +3548,6 @@ export default function AdminPage() {
                     {/* 产品定义页面 */}
                     {currentMenu === 'product-define' && (
                         <div className="flex-1 bg-gray-50 p-6 overflow-auto">
-                            {/* 产品Tab切换 */}
-                            <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
-                                <button
-                                    onClick={() => setProductTab("zhihui")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        productTab === "zhihui"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智汇云产品
-                                    {productTab === "zhihui" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setProductTab("zhiqi")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        productTab === "zhiqi"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智企产品
-                                    {productTab === "zhiqi" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                            </div>
-                            
                             {/* 搜索筛选区域 */}
                             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
                                 <div className="flex flex-wrap items-center gap-3">
@@ -1942,8 +3592,8 @@ export default function AdminPage() {
                                         <button className="text-sm text-blue-600 hover:text-blue-700">
                                             导出数据
                                         </button>
-                                        <button 
-                                            onClick={() => setCreateProductDialogOpen(true)}
+                                        <button
+                                            onClick={openCreateProduct}
                                             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                                         >
                                             创建产品
@@ -1954,7 +3604,7 @@ export default function AdminPage() {
                             
                             {/* 产品卡片网格 */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {(productTab === "zhihui" ? zhihuiProductsData : zhiqiProductsData)
+                                {zhihuiProductsData
                                     .filter(product => {
                                         const matchSearch = product.name.toLowerCase().includes(productSearchKeyword.toLowerCase()) ||
                                             product.identifier.toLowerCase().includes(productSearchKeyword.toLowerCase());
@@ -2010,7 +3660,11 @@ export default function AdminPage() {
                                             }`}>
                                                 {product.status === 'online' ? '下线' : '上线'}
                                             </button>
-                                            <button className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors">
+                                            <button
+                                                onClick={() => openEditProduct(product)}
+                                                title="编辑产品"
+                                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors"
+                                            >
                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                 </svg>
@@ -2025,36 +3679,6 @@ export default function AdminPage() {
                     {/* 产品计费项页面 */}
                     {currentMenu === 'product-addon' && (
                         <div className="flex-1 bg-gray-50 p-6 overflow-auto">
-                            {/* 产品Tab切换 */}
-                            <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
-                                <button
-                                    onClick={() => setBillingProductTab("zhihui")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        billingProductTab === "zhihui"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智汇云产品
-                                    {billingProductTab === "zhihui" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setBillingProductTab("zhiqi")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        billingProductTab === "zhiqi"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智企产品
-                                    {billingProductTab === "zhiqi" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                            </div>
-                            
                             {/* 搜索筛选区域 */}
                             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
                                 <div className="flex flex-wrap items-center gap-4">
@@ -2079,20 +3703,9 @@ export default function AdminPage() {
                                         className="h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                                     >
                                         <option value="">所属产品</option>
-                                        {billingProductTab === "zhihui" ? (
-                                            <>
-                                                <option value="apimarket">API市场 APIMKT</option>
-                                                <option value="oss">对象存储 OSS</option>
-                                                <option value="mysql">云数据库 MySQL</option>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <option value="smart-cs">智能客服</option>
-                                                <option value="enterprise-mail">企业邮箱</option>
-                                                <option value="online-doc">在线文档</option>
-                                                <option value="project-mgmt">项目管理</option>
-                                            </>
-                                        )}
+                                        <option value="apimarket">API市场 APIMKT</option>
+                                        <option value="oss">对象存储 OSS</option>
+                                        <option value="mysql">云数据库 MySQL</option>
                                     </select>
                                     
                                     {/* 创建日期筛选 */}
@@ -2140,7 +3753,7 @@ export default function AdminPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(billingProductTab === "zhihui" ? billingItemsData : zhiqiBillingItemsData)
+                                        {billingItemsData
                                             .filter(item => {
                                                 const matchSearch = billingItemSearch === "" || item.name.toLowerCase().includes(billingItemSearch.toLowerCase());
                                                 const matchProduct = billingProductFilter === "" || item.product.toLowerCase().includes(billingProductFilter.toLowerCase());
@@ -2247,36 +3860,6 @@ export default function AdminPage() {
                     {/* 产品套餐页面 */}
                     {currentMenu === 'product-package' && (
                         <div className="flex-1 bg-gray-50 p-6 overflow-auto">
-                            {/* 产品Tab切换 */}
-                            <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
-                                <button
-                                    onClick={() => setResourcePackageProductTab("zhihui")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        resourcePackageProductTab === "zhihui"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智汇云产品
-                                    {resourcePackageProductTab === "zhihui" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setResourcePackageProductTab("zhiqi")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        resourcePackageProductTab === "zhiqi"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智企产品
-                                    {resourcePackageProductTab === "zhiqi" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                            </div>
-                            
                             {/* 二级Tab切换 */}
                             <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
                                 <button
@@ -2406,7 +3989,7 @@ export default function AdminPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {(resourcePackageProductTab === "zhihui" ? resourcePackagesData : zhiqiResourcePackagesData)
+                                                {resourcePackagesData
                                                     .filter(item => {
                                                         const matchSearch = resourcePackageSearch === "" || item.name.toLowerCase().includes(resourcePackageSearch.toLowerCase());
                                                         const matchProduct = resourcePackageProductFilter === "" || item.product.toLowerCase().includes(resourcePackageProductFilter.toLowerCase());
@@ -2532,36 +4115,6 @@ export default function AdminPage() {
                     {/* 产品计费策略页面 */}
                     {currentMenu === 'product-billing' && (
                         <div className="flex-1 bg-gray-50 p-6 overflow-auto">
-                            {/* 产品Tab切换 */}
-                            <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
-                                <button
-                                    onClick={() => setBillingStrategyProductTab("zhihui")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        billingStrategyProductTab === "zhihui"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智汇云产品
-                                    {billingStrategyProductTab === "zhihui" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setBillingStrategyProductTab("zhiqi")}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${
-                                        billingStrategyProductTab === "zhiqi"
-                                            ? "text-[#006bff]"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                                >
-                                    智企产品
-                                    {billingStrategyProductTab === "zhiqi" && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                    )}
-                                </button>
-                            </div>
-                            
                             {/* 功能开发中提示 */}
                             <div className="bg-white rounded-lg border border-gray-200 p-12">
                                 <div className="text-center">
@@ -2571,7 +4124,7 @@ export default function AdminPage() {
                                         </svg>
                                     </div>
                                     <h3 className="text-lg font-medium text-gray-900 mb-1">
-                                        {billingStrategyProductTab === "zhihui" ? "智汇云产品计费策略" : "智企产品计费策略"}
+                                        智汇云产品计费策略
                                     </h3>
                                     <p className="text-gray-500">功能开发中...</p>
                                 </div>
@@ -2579,307 +4132,9 @@ export default function AdminPage() {
                         </div>
                     )}
                     
-                    {/* 账单管理概览页面 */}
-                    {currentMenu === 'zhiqi-bill-overview' && (
-                        <div className="flex-1 bg-gray-50 overflow-auto flex flex-col">
-                            {/* 页面顶部Tab */}
-                            <div className="bg-white border-b border-gray-200">
-                                <div className="flex items-center px-6">
-                                    <button
-                                        onClick={() => setBillOverviewTab("all")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billOverviewTab === "all"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        全部账单
-                                    </button>
-                                    <button
-                                        onClick={() => setBillOverviewTab("zhihui")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billOverviewTab === "zhihui"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智汇云账单
-                                    </button>
-                                    <button
-                                        onClick={() => setBillOverviewTab("zhiqi")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billOverviewTab === "zhiqi"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智企账单
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="p-6 overflow-auto flex-1">
-                            {/* 顶部操作栏 */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-4">
-                                    {/* 账单类型选择 */}
-                                    <select className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                                        <option value="monthly">月账单</option>
-                                        <option value="daily">日账单</option>
-                                        <option value="hourly">小时账单</option>
-                                    </select>
-                                    {/* 时间范围 */}
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="month"
-                                            defaultValue="2025-03"
-                                            className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                        />
-                                        <span className="text-gray-500">至</span>
-                                        <input
-                                            type="month"
-                                            defaultValue="2026-03"
-                                            className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                        />
-                                    </div>
-                                </div>
-                                <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-                                    导出数据
-                                </button>
-                            </div>
-
-                            {/* 数据趋势图 */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-                                <h3 className="text-base font-medium text-gray-900 mb-4">账单金额趋势</h3>
-                                <div className="h-64 relative">
-                                    {/* Y轴 */}
-                                    <div className="absolute left-0 top-0 bottom-8 w-16 flex flex-col justify-between text-xs text-gray-500 text-right pr-2">
-                                        <span>200,000,000</span>
-                                        <span>150,000,000</span>
-                                        <span>100,000,000</span>
-                                        <span>50,000,000</span>
-                                        <span>0</span>
-                                    </div>
-                                    {/* 图表区域 */}
-                                    <div className="ml-16 h-56 border-l border-b border-gray-200 relative">
-                                        {/* 网格线 */}
-                                        <div className="absolute inset-0">
-                                            <div className="border-b border-gray-100 absolute w-full" style={{top: '0%'}}></div>
-                                            <div className="border-b border-gray-100 absolute w-full" style={{top: '25%'}}></div>
-                                            <div className="border-b border-gray-100 absolute w-full" style={{top: '50%'}}></div>
-                                            <div className="border-b border-gray-100 absolute w-full" style={{top: '75%'}}></div>
-                                        </div>
-                                        {/* 折线SVG */}
-                                        <svg className="w-full h-full" viewBox="0 0 1000 224" preserveAspectRatio="none">
-                                            <polyline
-                                                fill="none"
-                                                stroke="#22c55e"
-                                                strokeWidth="2"
-                                                points="0,80 77,70 154,75 231,65 308,10 385,180 462,200 539,30 616,40 693,45 770,50 847,90 924,100 1000,120"
-                                            />
-                                            {/* 数据点 */}
-                                            <circle cx="0" cy="80" r="4" fill="#22c55e" />
-                                            <circle cx="77" cy="70" r="4" fill="#22c55e" />
-                                            <circle cx="154" cy="75" r="4" fill="#22c55e" />
-                                            <circle cx="231" cy="65" r="4" fill="#22c55e" />
-                                            <circle cx="308" cy="10" r="4" fill="#22c55e" />
-                                            <circle cx="385" cy="180" r="4" fill="#22c55e" />
-                                            <circle cx="462" cy="200" r="4" fill="#22c55e" />
-                                            <circle cx="539" cy="30" r="4" fill="#22c55e" />
-                                            <circle cx="616" cy="40" r="4" fill="#22c55e" />
-                                            <circle cx="693" cy="45" r="4" fill="#22c55e" />
-                                            <circle cx="770" cy="50" r="4" fill="#22c55e" />
-                                            <circle cx="847" cy="90" r="4" fill="#22c55e" />
-                                            <circle cx="924" cy="100" r="4" fill="#22c55e" />
-                                            <circle cx="1000" cy="120" r="4" fill="#22c55e" />
-                                        </svg>
-                                    </div>
-                                    {/* X轴标签 */}
-                                    <div className="ml-16 flex justify-between text-xs text-gray-500 mt-2">
-                                        <span>202503</span>
-                                        <span>202504</span>
-                                        <span>202505</span>
-                                        <span>202506</span>
-                                        <span>202507</span>
-                                        <span>202508</span>
-                                        <span>202509</span>
-                                        <span>202510</span>
-                                        <span>202511</span>
-                                        <span>202512</span>
-                                        <span>202601</span>
-                                        <span>202602</span>
-                                        <span>202603</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 账单数据表格 */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left">
-                                                <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">账期年月</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">官方标准价金额（¥）</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">客户应付总金额（¥）/环比上月</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">客户欠费总金额（¥）</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4 rounded border-gray-300" /></td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202603</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">156,687,940.34</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <span className="font-mono">84,778,920.62</span>
-                                                <span className="ml-2 text-green-600">↓ 38.24%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(137,276,172.08)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">0.00</td>
-                                            <td className="px-4 py-3">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户详情</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">产品详情</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4 rounded border-gray-300" /></td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202602</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">214,379,216.74</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <span className="font-mono">137,276,172.08</span>
-                                                <span className="ml-2 text-green-600">↓ 9.59%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(151,830,471.09)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">0.00</td>
-                                            <td className="px-4 py-3">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户详情</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">产品详情</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4 rounded border-gray-300" /></td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202601</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">243,348,034.43</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <span className="font-mono">151,830,471.09</span>
-                                                <span className="ml-2 text-red-600">↑ 2.43%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(148,232,492.88)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">0.00</td>
-                                            <td className="px-4 py-3">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户详情</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">产品详情</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4 rounded border-gray-300" /></td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202512</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">61,917,499.57</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <span className="font-mono">148,232,492.88</span>
-                                                <span className="ml-2 text-red-600">↑ 272.54%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(39,790,170.97)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">0.00</td>
-                                            <td className="px-4 py-3">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户详情</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">产品详情</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4 rounded border-gray-300" /></td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202511</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">12,627,664.65</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <span className="font-mono">39,790,170.97</span>
-                                                <span className="ml-2 text-green-600">↓ 70.25%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(133,751,437.28)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">0.00</td>
-                                            <td className="px-4 py-3">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户详情</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">产品详情</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4 rounded border-gray-300" /></td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202510</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">1,642,237.38</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <span className="font-mono">133,751,437.28</span>
-                                                <span className="ml-2 text-green-600">↓ 2.29%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(136,886,628.73)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">0.00</td>
-                                            <td className="px-4 py-3">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户详情</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">产品详情</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3"><input type="checkbox" className="w-4 h-4 rounded border-gray-300" /></td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202509</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">2,004,984.43</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <span className="font-mono">136,886,628.73</span>
-                                                <span className="ml-2 text-green-600">↓ 32.59%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(203,071,610.82)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-mono">0.00</td>
-                                            <td className="px-4 py-3">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户详情</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">产品详情</button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* 智企客户账单页面 */}
+                    {/* 客户账单页面 */}
                     {currentMenu === 'zhiqi-bill-customer' && (
                         <div className="flex-1 bg-gray-50 overflow-auto flex flex-col">
-                            {/* 页面顶部Tab */}
-                            <div className="bg-white border-b border-gray-200">
-                                <div className="flex items-center px-6">
-                                    <button
-                                        onClick={() => setBillCustomerTab("all")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billCustomerTab === "all"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        全部客户
-                                    </button>
-                                    <button
-                                        onClick={() => setBillCustomerTab("zhihui")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billCustomerTab === "zhihui"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智汇云客户
-                                    </button>
-                                    <button
-                                        onClick={() => setBillCustomerTab("zhiqi")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billCustomerTab === "zhiqi"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智企客户
-                                    </button>
-                                </div>
-                            </div>
-
                             <div className="p-6 overflow-auto flex-1">
                             {/* 顶部筛选栏 */}
                             <div className="flex items-center justify-between mb-6">
@@ -3134,35 +4389,9 @@ export default function AdminPage() {
                         </div>
                     )}
                     
-                    {/* 智企产品账单页面 */}
+                    {/* 智汇云产品账单页面 */}
                     {currentMenu === 'zhiqi-bill-product' && (
                         <div className="flex-1 bg-gray-50 overflow-auto flex flex-col">
-                            {/* 页面顶部Tab */}
-                            <div className="bg-white border-b border-gray-200">
-                                <div className="flex items-center px-6">
-                                    <button
-                                        onClick={() => setBillProductTab("zhihui")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billProductTab === "zhihui"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智汇云产品
-                                    </button>
-                                    <button
-                                        onClick={() => setBillProductTab("zhiqi")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            billProductTab === "zhiqi"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智企产品
-                                    </button>
-                                </div>
-                            </div>
-
                             <div className="p-6 overflow-auto flex-1">
                             {/* 顶部筛选栏 */}
                             <div className="flex items-center justify-between mb-6">
@@ -3203,7 +4432,6 @@ export default function AdminPage() {
                                     <thead className="bg-gray-50 border-b border-gray-200">
                                         <tr>
                                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">产品名称</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">产品标识</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">账期年月</th>
                                             <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">官方标准价金额（¥）</th>
                                             <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">客户应付总金额（¥）/环比上月</th>
@@ -3212,176 +4440,105 @@ export default function AdminPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">大模型</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">llm</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202603</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">45,678,234.56</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">28,456,123.78</span>
-                                                <span className="ml-2 text-green-600">↓ 8.32%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(31,042,567.89)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">结算中</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">龙虾</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">lobster</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202603</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">32,189,567.89</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">19,234,567.45</span>
-                                                <span className="ml-2 text-red-600">↑ 12.56%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(17,089,234.56)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">结算中</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">APICloud</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">apicloud</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202603</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">18,456,789.23</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">11,567,890.34</span>
-                                                <span className="ml-2 text-green-600">↓ 5.67%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(12,263,456.78)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">结算中</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">大模型</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">llm</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202602</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">52,345,678.90</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">31,042,567.89</span>
-                                                <span className="ml-2 text-red-600">↑ 6.78%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(29,075,234.56)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono">0.00</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">龙虾</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">lobster</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202602</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">28,567,890.12</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">17,089,234.56</span>
-                                                <span className="ml-2 text-green-600">↓ 3.45%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(17,698,567.89)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono">0.00</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">APICloud</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">apicloud</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202602</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">21,234,567.89</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">12,263,456.78</span>
-                                                <span className="ml-2 text-red-600">↑ 9.23%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(11,228,567.90)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono">0.00</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">大模型</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">llm</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202601</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">48,901,234.56</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">29,075,234.56</span>
-                                                <span className="ml-2 text-green-600">↓ 2.15%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(29,714,567.89)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono">0.00</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">龙虾</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">lobster</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202601</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">26,789,012.34</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">17,698,567.89</span>
-                                                <span className="ml-2 text-red-600">↑ 4.56%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(16,926,234.56)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono">0.00</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">APICloud</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">apicloud</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202601</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">19,567,890.12</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">11,228,567.90</span>
-                                                <span className="ml-2 text-green-600">↓ 1.89%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(11,445,234.56)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono">0.00</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">大模型</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600 font-mono">llm</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">202512</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">50,123,456.78</td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <span className="font-mono">29,714,567.89</span>
-                                                <span className="ml-2 text-red-600">↑ 15.34%</span>
-                                                <span className="ml-1 text-gray-400 text-xs">(25,761,234.56)</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono">0.00</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                            </td>
-                                        </tr>
+                                        {productBillData.map((row) => {
+                                            const agg = aggregateProductBillRow(row);
+                                            const isMerged = row.portals.length > 1;
+                                            const isExpanded = expandedBillRowIds.includes(row.id);
+                                            const mom = getBillMomChange(agg.payableAmount, agg.payableLastPeriod);
+                                            return (
+                                                <React.Fragment key={row.id}>
+                                                    <tr className="hover:bg-gray-50">
+                                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                                            <div className="flex items-center">
+                                                                {isMerged ? (
+                                                                    <button
+                                                                        onClick={() => setExpandedBillRowIds((prev) => prev.includes(row.id) ? prev.filter((id) => id !== row.id) : [...prev, row.id])}
+                                                                        className="mr-1.5 p-0.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                                                                        title={isExpanded ? "收起" : "展开查看各Portal数据"}
+                                                                    >
+                                                                        <svg className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                        </svg>
+                                                                    </button>
+                                                                ) : (
+                                                                    <span className="w-6 flex-shrink-0"></span>
+                                                                )}
+                                                                <span>{row.productName}</span>
+                                                                {/* 内外Portal已关联的合并行：外层仅展示产品名称，产品标识在展开的各Portal子行中查看 */}
+                                                                {!isMerged && (
+                                                                    <span className="ml-2 text-xs text-gray-500 font-mono">
+                                                                        {row.portals[0].productIdentifier}
+                                                                    </span>
+                                                                )}
+                                                                {isMerged && (
+                                                                    <span className="ml-2 px-1.5 py-0.5 text-[10px] leading-none rounded bg-blue-50 text-blue-600 border border-blue-100 flex-shrink-0">内外Portal关联</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">{row.period}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">{agg.standardAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</td>
+                                                        <td className="px-4 py-3 text-sm text-right">
+                                                            <span className="font-mono">{agg.payableAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</span>
+                                                            <span className={`ml-2 ${mom.up ? 'text-red-600' : 'text-green-600'}`}>{mom.up ? '↑' : '↓'} {mom.pct.toFixed(2)}%</span>
+                                                            <span className="ml-1 text-gray-400 text-xs">({agg.payableLastPeriod.toLocaleString('zh-CN', { minimumFractionDigits: 2 })})</span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">
+                                                            {agg.settling ? '结算中' : agg.arrearsAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
+                                                            <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
+                                                            <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
+                                                        </td>
+                                                    </tr>
+                                                    {isExpanded && (
+                                                        <>
+                                                            <tr className="bg-blue-50/40 border-b border-blue-50">
+                                                                <td colSpan={6} className="px-6 py-2">
+                                                                    <div className="text-xs text-gray-500">
+                                                                        该产品在 <span className="font-medium text-gray-700">{row.portals.length}</span> 个Portal下关联，下列为各Portal独立数据（合计行 = 各Portal对应列相加）：
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                            {row.portals.map((portal, idx) => {
+                                                                const pMom = getBillMomChange(portal.payableAmount, portal.payableLastPeriod);
+                                                                return (
+                                                                    <tr key={idx} className="bg-gray-50/70 hover:bg-gray-100">
+                                                                        <td className="px-4 py-3 text-sm text-gray-500">
+                                                                            <div className="flex items-center pl-6">
+                                                                                <svg className="w-4 h-4 text-gray-400 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                                                                </svg>
+                                                                                <span>{portal.portalName}</span>
+                                                                                <span className="ml-1.5 text-xs text-gray-400 font-mono">{portal.productIdentifier}</span>
+                                                                                <span className={`ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded flex-shrink-0 ${portal.internal ? 'bg-purple-50 text-purple-600 border border-purple-100' : 'bg-teal-50 text-teal-600 border border-teal-100'}`}>
+                                                                                    {portal.internal ? '内部Portal' : '外部Portal'}
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-500">{row.period}</td>
+                                                                        <td className="px-4 py-3 text-sm text-gray-600 text-right font-mono">{portal.standardAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</td>
+                                                                        <td className="px-4 py-3 text-sm text-right">
+                                                                            <span className="font-mono text-gray-600">{portal.payableAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</span>
+                                                                            <span className={`ml-2 ${pMom.up ? 'text-red-600' : 'text-green-600'}`}>{pMom.up ? '↑' : '↓'} {pMom.pct.toFixed(2)}%</span>
+                                                                            <span className="ml-1 text-gray-400 text-xs">({portal.payableLastPeriod.toLocaleString('zh-CN', { minimumFractionDigits: 2 })})</span>
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm text-right font-mono text-gray-500">
+                                                                            {portal.settling ? '结算中' : portal.arrearsAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-center">
+                                                                            <button className="text-blue-500 hover:text-blue-600 text-sm mr-3">客户账单</button>
+                                                                            <button className="text-blue-500 hover:text-blue-600 text-sm mr-3">计费明细</button>
+                                                                            <button className="text-blue-500 hover:text-blue-600 text-sm">变化趋势</button>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -3408,35 +4565,9 @@ export default function AdminPage() {
                         </div>
                     )}
 
-                    {/* 智企内网账单页面 */}
+                    {/* 内网账单页面 */}
                     {currentMenu === 'zhiqi-bill-intranet' && (
                         <div className="flex-1 bg-white overflow-auto flex flex-col">
-                            {/* 页面顶部Tab */}
-                            <div className="bg-white border-b border-gray-200">
-                                <div className="flex items-center px-6">
-                                    <button
-                                        onClick={() => setIntranetBillTab("zhihui")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            intranetBillTab === "zhihui"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智汇云
-                                    </button>
-                                    <button
-                                        onClick={() => setIntranetBillTab("zhiqi")}
-                                        className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            intranetBillTab === "zhiqi"
-                                                ? "text-blue-600 border-blue-600"
-                                                : "text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        智企
-                                    </button>
-                                </div>
-                            </div>
-
                             <div className="p-6 overflow-auto flex-1">
                             {/* 二级Tab：部门账单/产品账单 */}
                             <div className="flex items-center gap-6 mb-4 border-b border-gray-200">
@@ -3858,6 +4989,1939 @@ export default function AdminPage() {
                         </div>
                     )}
                     
+                    {/* 经营分析 - 整体分析页面 */}
+                    {currentMenu === 'analysis-overall' && (
+                        <div className="flex-1 bg-gray-50 p-6 overflow-auto">
+                            {/* 顶部说明提示 */}
+                            <div className="mb-4 rounded-lg border border-red-100 bg-red-50/60 px-4 py-3">
+                                <p className="text-[13px] leading-[1.9] text-red-500">
+                                    1、月账单：次月第3个工作日8点后为准确数据；2、天账单：次日14点后为准确数据；3、小时账单：今天12点后，昨天的小时帐为准确数据。整体分析展示平台侧全部产品的收入与成本合计，各列取值为「产品分析」对应列的求和。
+                                </p>
+                            </div>
+
+                            {/* 筛选工具栏 */}
+                            <div className="mb-4 flex flex-wrap items-center gap-3">
+                                {/* 账单类型（按月/天/小时切换） */}
+                                <div className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white p-0.5">
+                                    {analysisBillTypes.map((t) => (
+                                        <button
+                                            key={t.value}
+                                            onClick={() => { setOverallBillType(t.value); setOverallPage(1); }}
+                                            className={`h-8 rounded-md px-4 text-sm transition-colors ${
+                                                overallBillType === t.value
+                                                    ? "bg-blue-600 text-white"
+                                                    : "text-gray-600 hover:bg-gray-50"
+                                            }`}
+                                        >
+                                            {t.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* 账期选择：月 / 天 */}
+                                {overallBillType === "month" ? (
+                                    <input
+                                        type="month"
+                                        value={overallMonth}
+                                        onChange={(e) => { setOverallMonth(e.target.value); setOverallPage(1); }}
+                                        className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    />
+                                ) : (
+                                    <input
+                                        type="date"
+                                        value={overallDate}
+                                        onChange={(e) => { setOverallDate(e.target.value); setOverallPage(1); }}
+                                        className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    />
+                                )}
+
+                                {/* 导出数据 */}
+                                <button className="ml-auto h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
+                                    导出数据
+                                </button>
+                            </div>
+
+                            {/* 汇总卡片：hover 展示精确金额，交互与列表金额单元格一致 */}
+                            <div className="mb-4 grid grid-cols-3 gap-4">
+                                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                    <div className="mb-2 text-sm text-gray-500">总收入</div>
+                                    <span className="group/amt relative inline-block text-2xl font-bold text-blue-600">
+                                        {formatWan(overallSummary.totalRevenue)}
+                                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                            {formatExactAmount(overallSummary.totalRevenue)}
+                                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                                        </span>
+                                    </span>
+                                </div>
+                                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                    <div className="mb-2 text-sm text-gray-500">总成本</div>
+                                    <span className="group/amt relative inline-block text-2xl font-bold text-orange-500">
+                                        {formatWan(overallSummary.productCost)}
+                                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                            {formatExactAmount(overallSummary.productCost)}
+                                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                                        </span>
+                                    </span>
+                                </div>
+                                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                    <div className="mb-2 text-sm text-gray-500">收支差额</div>
+                                    <span className={`group/amt relative inline-block text-2xl font-bold ${overallSummary.balance >= 0 ? "text-green-600" : "text-red-500"}`}>
+                                        {formatWan(overallSummary.balance)}
+                                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                            {formatExactAmount(overallSummary.balance)}
+                                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* 第一部分：变化曲线图（双坐标：金额 + 毛利率） */}
+                            <div className="mb-4 rounded-lg border border-gray-200 bg-white p-5">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <div className="text-sm font-medium text-gray-900">收入 / 成本变化趋势</div>
+                                    <div className="text-[12px] text-gray-400">{overallChartRangeTip}</div>
+                                </div>
+                                <OverallTrendChart rows={overallChartRows} billType={overallBillType} />
+                            </div>
+
+                            {/* 第二部分：数据列表（字段为产品分析各列之和） */}
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[1900px]">
+                                        <thead>
+                                            <tr className="border-b border-gray-200 bg-gray-50">
+                                                <AnalysisTh label="账期" align="left" width="120px" />
+                                                <AnalysisTh label="总收入(元)" tip="平台侧全部产品在本账期内的收入合计。" width="110px" />
+                                                <AnalysisTh label="公司内收入(元)" tip="来自公司内部各部门与中台的收入合计。" width="110px" />
+                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" />
+                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" />
+                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" />
+                                                <AnalysisTh label="本结算单元收入(元)" width="110px" />
+                                                <AnalysisTh label="公司外收入(元)" tip="来自公司外部客户的收入合计。" width="110px" />
+                                                <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" />
+                                                <AnalysisTh label="内结算总收入(元)" width="110px" />
+                                                <AnalysisTh label="产品成本(元)" tip="平台侧全部产品在本账期内分摊的资源成本合计。" width="110px" />
+                                                <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" />
+                                                <AnalysisTh label="外部利润(元)" tip="公司外收入 - 外部收入对应的内结算价收入。" width="105px" />
+                                                <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" highlight />
+                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 公司外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" highlight />
+                                                <AnalysisTh label="收支差额(元)" width="110px" />
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {pagedOverallRows.map((row) => (
+                                                <tr key={row.id} className="hover:bg-gray-50">
+                                                    <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{row.period}</td>
+                                                    <AnalysisAmountCell value={row.totalRevenue} link />
+                                                    <AnalysisAmountCell value={row.innerRevenue} link />
+                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} link />
+                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} link />
+                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} />
+                                                    <AnalysisAmountCell value={row.unitRevenue} />
+                                                    <AnalysisAmountCell value={row.outerRevenue} link />
+                                                    <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
+                                                    <AnalysisAmountCell value={row.innerTotalRevenue} />
+                                                    <AnalysisAmountCell value={row.productCost} link />
+                                                    <AnalysisAmountCell value={row.innerProfit} />
+                                                    <AnalysisAmountCell value={row.outerProfit} />
+                                                    <td className="bg-orange-50/70 px-3 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
+                                                        {row.innerMargin.toFixed(2)}%
+                                                    </td>
+                                                    <td className="bg-orange-50/70 px-3 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
+                                                        {row.outerMargin.toFixed(2)}%
+                                                    </td>
+                                                    <AnalysisAmountCell value={row.balance} />
+                                                </tr>
+                                            ))}
+                                            {pagedOverallRows.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={16} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                        暂无符合条件的数据
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* 分页 */}
+                            <div className="mt-4 flex items-center justify-between rounded-b-lg border-t border-gray-200 bg-white px-4 py-3">
+                                <div className="text-sm text-gray-500">
+                                    共 <span className="font-medium">{overallListRows.length}</span> 条
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        value={overallPageSize}
+                                        onChange={(e) => { setOverallPageSize(Number(e.target.value)); setOverallPage(1); }}
+                                        className="h-8 rounded border border-gray-300 px-2 text-sm"
+                                    >
+                                        <option value={10}>10条/页</option>
+                                        <option value={20}>20条/页</option>
+                                        <option value={50}>50条/页</option>
+                                    </select>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setOverallPage(Math.max(1, overallPage - 1))}
+                                            disabled={overallPage === 1}
+                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            ‹
+                                        </button>
+                                        {Array.from({ length: overallTotalPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setOverallPage(p)}
+                                                className={`flex h-8 w-8 items-center justify-center rounded text-sm ${
+                                                    p === overallPage
+                                                        ? "bg-blue-600 text-white"
+                                                        : "border border-gray-300 hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                        <button
+                                            onClick={() => setOverallPage(Math.min(overallTotalPages, overallPage + 1))}
+                                            disabled={overallPage === overallTotalPages}
+                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            ›
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 经营分析 - 产品分析页面 */}
+                    {currentMenu === 'analysis-product' && (
+                        <div className="flex-1 bg-gray-50 p-6 overflow-auto">
+                            {/* 顶部说明提示 */}
+                            <div className="mb-4 rounded-lg border border-red-100 bg-red-50/60 px-4 py-3">
+                                <p className="text-[13px] leading-[1.9] text-red-500">
+                                    1、月账单：次月第3个工作日8点后为准确数据；2、天账单：次日14点后为准确数据；3、小时账单：今天12点后，昨天的小时帐为准确数据。特殊说明：短信每个月28号用户中心的账单会拆分到其他部门，裸金属GPU（整机）、裸金属CPU（整机）、CDN、PCDN、音视频通话RTC 每个月第二个工作日12点ops锁账后上报外部成本
+                                </p>
+                            </div>
+
+                            {/* 筛选工具栏 */}
+                            <div className="mb-4 flex flex-wrap items-start gap-3">
+                                {/* 账单类型 */}
+                                <select
+                                    value={analysisBillType}
+                                    onChange={(e) => { setAnalysisBillType(e.target.value); setAnalysisPage(1); }}
+                                    className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                >
+                                    {analysisBillTypes.map((t) => (
+                                        <option key={t.value} value={t.value}>{t.label}</option>
+                                    ))}
+                                </select>
+
+                                {/* 账期 */}
+                                <input
+                                    type="month"
+                                    value={analysisPeriod}
+                                    onChange={(e) => { setAnalysisPeriod(e.target.value); setAnalysisPage(1); }}
+                                    className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                />
+
+                                {/* 所属产线 */}
+                                <select
+                                    value={analysisProductLine}
+                                    onChange={(e) => { setAnalysisProductLine(e.target.value); setAnalysisPage(1); }}
+                                    className={`h-9 w-[190px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${analysisProductLine ? "text-gray-900" : "text-gray-400"}`}
+                                >
+                                    <option value="">所属产线</option>
+                                    {analysisProductLines.map((l) => (
+                                        <option key={l} value={l}>{l}</option>
+                                    ))}
+                                </select>
+
+                                {/* 产品名称（多选标签） */}
+                                <div className="relative w-[200px]">
+                                    {/* 点击外部关闭下拉 */}
+                                    {analysisProductPickerOpen && (
+                                        <div className="fixed inset-0 z-10" onClick={() => setAnalysisProductPickerOpen(false)} />
+                                    )}
+                                    <div
+                                        onClick={() => setAnalysisProductPickerOpen(!analysisProductPickerOpen)}
+                                        className="min-h-[36px] w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-2 py-1.5 pr-7 text-sm focus:outline-none"
+                                    >
+                                        {analysisProductTags.length === 0 ? (
+                                            <span className="leading-[24px] text-gray-400">产品名称</span>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-1">
+                                                {analysisProductTags.map((tag) => (
+                                                    <span key={tag} className="inline-flex max-w-full items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[12px] text-gray-700">
+                                                        <span className="truncate">{tag}</span>
+                                                        <svg
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setAnalysisProductTags(analysisProductTags.filter((t) => t !== tag));
+                                                            }}
+                                                            className="h-3 w-3 flex-shrink-0 text-gray-400 hover:text-gray-600"
+                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </span>
+                                                ))}
+                                                <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[12px] text-gray-700">+ 188</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <svg className="pointer-events-none absolute right-2.5 top-3 h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+
+                                    {/* 产品下拉选择面板 */}
+                                    {analysisProductPickerOpen && (
+                                        <div className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[260px] w-[280px] overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                            {productAnalysisData.map((row) => {
+                                                const short = row.productName.length > 22 ? `${row.productName.slice(0, 22)}...` : row.productName;
+                                                const checked = analysisProductTags.includes(short);
+                                                return (
+                                                    <label key={row.id} className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() =>
+                                                                setAnalysisProductTags(
+                                                                    checked
+                                                                        ? analysisProductTags.filter((t) => t !== short)
+                                                                        : [...analysisProductTags, short]
+                                                                )
+                                                            }
+                                                            className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-0"
+                                                        />
+                                                        <span className="truncate">{row.productName}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 结算单元 */}
+                                <select
+                                    value={analysisSettlementUnit}
+                                    onChange={(e) => { setAnalysisSettlementUnit(e.target.value); setAnalysisPage(1); }}
+                                    className={`h-9 w-[190px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${analysisSettlementUnit ? "text-gray-900" : "text-gray-400"}`}
+                                >
+                                    <option value="">结算单元</option>
+                                    {analysisSettlementUnits.map((u) => (
+                                        <option key={u} value={u}>{u}</option>
+                                    ))}
+                                </select>
+
+                                {/* 搜索 */}
+                                <button
+                                    onClick={() => setAnalysisPage(1)}
+                                    className="h-9 rounded-lg bg-blue-600 px-5 text-sm text-white transition-colors hover:bg-blue-700"
+                                >
+                                    搜索
+                                </button>
+
+                                {/* 导出数据 */}
+                                <button className="ml-auto h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
+                                    导出数据
+                                </button>
+                            </div>
+
+                            {/* 数据表格 */}
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[2260px]">
+                                        <thead>
+                                            {/* 第一行表头：橙色底，「公司外收入」跨两列 */}
+                                            <tr className="border-b border-orange-300 bg-orange-100">
+                                                <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
+                                                <AnalysisTh label="所属产线" align="left" width="90px" rowSpan={2} />
+                                                <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" rowSpan={2} />
+                                                <AnalysisTh
+                                                    label="产品名称"
+                                                    align="left"
+                                                    width="150px"
+                                                    rowSpan={2}
+                                                    highlight
+                                                    tip="基于产品创建时「内部portal」与「外部portal」的关联关系，同一产品合并为一行展示；点击展开可分别查看内、外Portal产品各列数据，外层产品行为各Portal对应列之和（「内结算毛利率」「外部毛利率」两列除外）。"
+                                                />
+                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含公司内收入与公司外收入。" width="110px" rowSpan={2} highlight />
+                                                <AnalysisTh label="公司内收入(元)" tip="来自公司内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="110px" rowSpan={2} highlight />
+                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" rowSpan={2} />
+                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" rowSpan={2} />
+                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" rowSpan={2} />
+                                                <AnalysisTh label="本结算单元收入(元)" width="110px" rowSpan={2} />
+                                                <AnalysisTh
+                                                    label="公司外收入(元)"
+                                                    align="center"
+                                                    colSpan={2}
+                                                    highlight
+                                                    tip="来自公司外部客户的收入合计，拆分为「集团内的外部事业部」（内部portal下标记为外部的客户）与「外部(360.cn)」（非内部portal的收入）两部分分开统计。"
+                                                />
+                                                <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" rowSpan={2} />
+                                                <AnalysisTh label="内结算总收入(元)" width="110px" rowSpan={2} />
+                                                <AnalysisTh label="产品成本(元)" tip="该产品在本账期内分摊的资源成本合计。" width="110px" rowSpan={2} />
+                                                <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" rowSpan={2} />
+                                                <AnalysisTh label="外部利润(元)" tip="公司外收入 - 外部收入对应的内结算价收入。" width="105px" rowSpan={2} />
+                                                <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" rowSpan={2} />
+                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 公司外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" rowSpan={2} />
+                                                <AnalysisTh label="收支差额(元)" width="110px" rowSpan={2} />
+                                            </tr>
+                                            {/* 第二行表头：公司外收入的两个子列 */}
+                                            <tr className="border-b border-orange-300 bg-orange-100">
+                                                <AnalysisTh
+                                                    label="集团内的外部事业部"
+                                                    width="120px"
+                                                    highlight
+                                                    tip="内部portal下、客户属性标记为「外部」的客户所产生的收入。"
+                                                />
+                                                <AnalysisTh
+                                                    label="外部(360.cn)"
+                                                    width="120px"
+                                                    highlight
+                                                    tip="非内部portal（即外部portal / 360.cn 官网）产生的收入。"
+                                                />
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {pagedAnalysisRows.map((row) => {
+                                                const portalRows = getAnalysisPortalRows(row);
+                                                const isMerged = portalRows.length > 1;
+                                                const isExpanded = expandedAnalysisRowIds.includes(row.id);
+                                                return (
+                                                <React.Fragment key={row.id}>
+                                                <tr className="hover:bg-gray-50">
+                                                    <td className="px-3 py-3 text-sm text-gray-900">{row.period}</td>
+                                                    <td className="px-3 py-3 text-sm text-gray-900">{row.productLine}</td>
+                                                    <td className="px-3 py-3 text-sm text-gray-900">{row.settlementUnit}</td>
+                                                    <td className="px-3 py-3 text-sm bg-orange-50/70">
+                                                        <div className="flex items-center">
+                                                            {isMerged ? (
+                                                                <button
+                                                                    onClick={() => setExpandedAnalysisRowIds((prev) => prev.includes(row.id) ? prev.filter((id) => id !== row.id) : [...prev, row.id])}
+                                                                    className="mr-1 p-0.5 hover:bg-orange-100 rounded transition-colors flex-shrink-0"
+                                                                    title={isExpanded ? "收起" : "展开查看内外Portal数据"}
+                                                                >
+                                                                    <svg className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                    </svg>
+                                                                </button>
+                                                            ) : (
+                                                                <span className="w-[22px] flex-shrink-0"></span>
+                                                            )}
+                                                            <span className="text-blue-600 hover:text-blue-700 cursor-pointer">{cleanProductName(row.productName)}</span>
+                                                            {isMerged && (
+                                                                <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-blue-50 text-blue-600 border border-blue-100 flex-shrink-0 whitespace-nowrap">内外Portal关联</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <AnalysisAmountCell value={row.totalRevenue} link highlight onClick={() => { setRevenueDetailRow(row); setRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.innerRevenue} link highlight onClick={() => setInnerRevenueDetailRow(row)} />
+                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} link onClick={() => setUnitBillDetail({ row, title: "公司内非中台收入", amount: row.innerNonMidRevenue })} />
+                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} link onClick={() => setUnitBillDetail({ row, title: "中台内非智汇云收入", amount: row.midNonZyunRevenue })} />
+                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue })} />
+                                                    <AnalysisAmountCell value={row.unitRevenue} link onClick={() => setUnitBillDetail({ row, title: "本结算单元收入", amount: row.unitRevenue })} />
+                                                    <AnalysisAmountCell value={row.outerGroupRevenue} link highlight onClick={() => setOuterGroupDetailRow(row)} />
+                                                    <AnalysisAmountCell value={row.outerPortalRevenue} link highlight onClick={() => setOuterPortalDetailRow(row)} />
+                                                    <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
+                                                    <AnalysisAmountCell value={row.innerTotalRevenue} />
+                                                    <AnalysisAmountCell value={row.productCost} link />
+                                                    <AnalysisAmountCell value={row.innerProfit} />
+                                                    <AnalysisAmountCell value={row.outerProfit} />
+                                                    <td className="px-3 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
+                                                        {row.innerMargin.toFixed(2)}%
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
+                                                        {row.outerMargin.toFixed(2)}%
+                                                    </td>
+                                                    <AnalysisAmountCell value={row.balance} />
+                                                </tr>
+                                                {isExpanded && (
+                                                    <>
+                                                        <tr className="bg-blue-50/40">
+                                                            <td colSpan={20} className="px-6 py-2">
+                                                                <div className="text-xs text-gray-500">
+                                                                    该产品在 <span className="font-medium text-gray-700">{portalRows.length}</span> 个Portal下关联，下列为各Portal独立数据（上方产品行 = 各Portal对应列相加，「内结算毛利率」「外部毛利率」两列除外，按各自口径单独计算）：
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        {portalRows.map((portal, idx) => (
+                                                            <tr key={idx} className="bg-gray-50/70 hover:bg-gray-100">
+                                                                <td className="px-3 py-3 text-sm text-gray-500">{row.period}</td>
+                                                                <td className="px-3 py-3 text-sm text-gray-500">{row.productLine}</td>
+                                                                <td className="px-3 py-3 text-sm text-gray-500">{row.settlementUnit}</td>
+                                                                <td className="px-3 py-3 text-sm bg-orange-50/40">
+                                                                    <div className="flex items-center pl-5">
+                                                                        <svg className="w-3.5 h-3.5 text-gray-400 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                                                        </svg>
+                                                                        <span className="text-gray-600">{portal.portalName}</span>
+                                                                        <span className="ml-1 text-xs text-gray-400 font-mono">{portal.productIdentifier}</span>
+                                                                        <span className={`ml-1 px-1 py-0.5 text-[10px] leading-none rounded flex-shrink-0 whitespace-nowrap ${portal.internal ? "bg-purple-50 text-purple-600 border border-purple-100" : "bg-teal-50 text-teal-600 border border-teal-100"}`}>
+                                                                            {portal.internal ? "内部Portal" : "外部Portal"}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <AnalysisAmountCell value={portal.totalRevenue} highlight />
+                                                                <AnalysisAmountCell value={portal.innerRevenue} highlight />
+                                                                <AnalysisAmountCell value={portal.innerNonMidRevenue} />
+                                                                <AnalysisAmountCell value={portal.midNonZyunRevenue} />
+                                                                <AnalysisAmountCell value={portal.zyunNonUnitRevenue} />
+                                                                <AnalysisAmountCell value={portal.unitRevenue} />
+                                                                <AnalysisAmountCell value={portal.outerGroupRevenue} highlight />
+                                                                <AnalysisAmountCell value={portal.outerPortalRevenue} highlight />
+                                                                <AnalysisAmountCell value={portal.outerInnerPriceRevenue} />
+                                                                <AnalysisAmountCell value={portal.innerTotalRevenue} />
+                                                                <AnalysisAmountCell value={portal.productCost} />
+                                                                <AnalysisAmountCell value={portal.innerProfit} />
+                                                                <AnalysisAmountCell value={portal.outerProfit} />
+                                                                <td className="px-3 py-3 text-right text-sm text-gray-500 whitespace-nowrap">
+                                                                    {portal.innerMargin.toFixed(2)}%
+                                                                </td>
+                                                                <td className="px-3 py-3 text-right text-sm text-gray-500 whitespace-nowrap">
+                                                                    {portal.outerMargin.toFixed(2)}%
+                                                                </td>
+                                                                <AnalysisAmountCell value={portal.balance} />
+                                                            </tr>
+                                                        ))}
+                                                    </>
+                                                )}
+                                                </React.Fragment>
+                                                );
+                                            })}
+                                            {/* 合计行：公司外收入两个子项分开统计 */}
+                                            {pagedAnalysisRows.length > 0 && (
+                                                <tr className="bg-gray-50 font-medium">
+                                                    <td className="px-3 py-3 text-sm text-gray-900" colSpan={4}>合计</td>
+                                                    <AnalysisAmountCell value={analysisTotals.totalRevenue} highlight />
+                                                    <AnalysisAmountCell value={analysisTotals.innerRevenue} highlight />
+                                                    <AnalysisAmountCell value={analysisTotals.innerNonMidRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.midNonZyunRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.zyunNonUnitRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.unitRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.outerGroupRevenue} highlight />
+                                                    <AnalysisAmountCell value={analysisTotals.outerPortalRevenue} highlight />
+                                                    <AnalysisAmountCell value={analysisTotals.outerInnerPriceRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.innerTotalRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.productCost} />
+                                                    <AnalysisAmountCell value={analysisTotals.innerProfit} />
+                                                    <AnalysisAmountCell value={analysisTotals.outerProfit} />
+                                                    <td className="px-3 py-3 text-right text-sm text-gray-400 whitespace-nowrap">-</td>
+                                                    <td className="px-3 py-3 text-right text-sm text-gray-400 whitespace-nowrap">-</td>
+                                                    <AnalysisAmountCell value={analysisTotals.balance} />
+                                                </tr>
+                                            )}
+                                            {pagedAnalysisRows.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={20} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                        暂无符合条件的数据
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* 分页 */}
+                            <div className="mt-4 flex items-center justify-between rounded-b-lg border-t border-gray-200 bg-white px-4 py-3">
+                                <div className="text-sm text-gray-500">
+                                    共 <span className="font-medium">{filteredAnalysisRows.length}</span> 条
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        value={analysisPageSize}
+                                        onChange={(e) => { setAnalysisPageSize(Number(e.target.value)); setAnalysisPage(1); }}
+                                        className="h-8 rounded border border-gray-300 px-2 text-sm"
+                                    >
+                                        <option value={10}>10条/页</option>
+                                        <option value={20}>20条/页</option>
+                                        <option value={50}>50条/页</option>
+                                    </select>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setAnalysisPage(Math.max(1, analysisPage - 1))}
+                                            disabled={analysisPage === 1}
+                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            ‹
+                                        </button>
+                                        {Array.from({ length: analysisTotalPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setAnalysisPage(p)}
+                                                className={`flex h-8 w-8 items-center justify-center rounded text-sm ${
+                                                    p === analysisPage
+                                                        ? "bg-blue-600 text-white"
+                                                        : "border border-gray-300 hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                        <button
+                                            onClick={() => setAnalysisPage(Math.min(analysisTotalPages, analysisPage + 1))}
+                                            disabled={analysisPage === analysisTotalPages}
+                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            ›
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 总收入明细抽屉 */}
+                            {revenueDetailRow && (
+                                <div className="fixed inset-0 z-[100]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setRevenueDetailRow(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[900px] bg-white shadow-xl flex flex-col">
+                                        {/* 抽屉头部 */}
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                经营分析 <span className="font-normal text-gray-600">{cleanProductName(revenueDetailRow.productName)}</span>
+                                            </h3>
+                                            <button onClick={() => setRevenueDetailRow(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        {/* 趋势 / 收入明细 / 成本明细 切换 */}
+                                        <div className="flex items-center gap-6 border-b border-gray-200 px-6">
+                                            {[
+                                                { key: "trend" as const, label: "趋势" },
+                                                { key: "revenue" as const, label: "收入明细" },
+                                                { key: "cost" as const, label: "成本明细" },
+                                            ].map((t) => (
+                                                <button
+                                                    key={t.key}
+                                                    onClick={() => setRevenueDetailTab(t.key)}
+                                                    className={`-mb-px border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
+                                                        revenueDetailTab === t.key
+                                                            ? "border-blue-600 text-blue-600"
+                                                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                                                    }`}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            {revenueDetailTab === "revenue" && (
+                                                <table className="w-full">
+                                                    <thead>
+                                                        <tr className="border-b border-gray-200">
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入类型</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">金额(元)</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">说明</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {getProductRevenueDetailRows(revenueDetailRow).map((r, i) => (
+                                                            <tr key={i} className="border-b border-gray-100">
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.type}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                                <td className="py-3 px-4">
+                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">账单详情</button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            )}
+                                            {revenueDetailTab === "cost" && (
+                                                <div className="flex h-64 items-center justify-center text-sm text-gray-400">暂无成本明细数据</div>
+                                            )}
+                                            {revenueDetailTab === "trend" && (
+                                                <div className="flex h-64 items-center justify-center text-sm text-gray-400">暂无趋势数据</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 公司内收入明细抽屉（来源一：集团内部结算单元账单 / 来源二：内部结算单元账号在外部portal使用费用） */}
+                            {innerRevenueDetailRow && (
+                                <div className="fixed inset-0 z-[100]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setInnerRevenueDetailRow(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[850px] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                公司内收入明细 <span className="font-normal text-gray-600">{cleanProductName(innerRevenueDetailRow.productName)}</span>
+                                            </h3>
+                                            <button onClick={() => setInnerRevenueDetailRow(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            {/* 来源一：集团内部结算单元账单 */}
+                                            <div className="mb-4">
+                                                <div className="mb-2 flex items-center gap-1">
+                                                    <span className="text-sm font-semibold text-gray-900">集团内部结算单元账单</span>
+                                                    <span className="group/tip relative inline-flex flex-shrink-0">
+                                                        <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                            集团内各结算单元之间通过内网结算产生的账单金额。
+                                                            <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                                <table className="w-full">
+                                                    <thead>
+                                                        <tr className="border-b border-gray-200">
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {getInnerRevenueUnitBillRows(innerRevenueDetailRow).map((r, i) => (
+                                                            <tr key={i} className="border-b border-gray-100">
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                                <td className="py-3 px-4">
+                                                                    <span className="group/tip relative inline-flex">
+                                                                        <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                        <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                            点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 &gt; 结算单元概览，并选中对应的结算单元。
+                                                                            <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                        </span>
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                        {getInnerRevenueUnitBillRows(innerRevenueDetailRow).length === 0 && (
+                                                            <tr>
+                                                                <td colSpan={4} className="py-6 text-center text-sm text-gray-400">暂无结算单元账单数据</td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* 来源二：内部结算单元账号在外部portal上使用产生的费用 */}
+                                            <div>
+                                                <div className="mb-2 flex items-center gap-1">
+                                                    <span className="text-sm font-semibold text-gray-900">内部结算单元账号在外部portal使用费用</span>
+                                                    <span className="group/tip relative inline-flex flex-shrink-0">
+                                                        <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                            集团内结算单元的账号在外部portal上使用产生的费用，关联回对应结算单元，计入公司内收入。
+                                                            <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                                <table className="w-full">
+                                                    <thead>
+                                                        <tr className="border-b border-gray-200">
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">外部portal账号</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">费用金额(元)</th>
+                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {getInnerRevenuePortalUsageRows(innerRevenueDetailRow).map((r, i) => (
+                                                            <tr key={i} className="border-b border-gray-100">
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.portalAccount}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                                <td className="py-3 px-4">
+                                                                    <span className="group/tip relative inline-flex">
+                                                                        <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                        <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                            点击带账期、结算单元和账号，新开页到【产品账单】，定位到 产品账单 &gt; 客户概览，并选中对应的账号。
+                                                                            <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                        </span>
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                        {getInnerRevenuePortalUsageRows(innerRevenueDetailRow).length === 0 && (
+                                                            <tr>
+                                                                <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂未关联外部portal使用费用</td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 集团内的外部事业部 收入明细抽屉 */}
+                            {outerGroupDetailRow && (
+                                <div className="fixed inset-0 z-[100]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setOuterGroupDetailRow(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[760px] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                集团内的外部事业部收入明细 <span className="font-normal text-gray-600">{cleanProductName(outerGroupDetailRow.productName)}</span>
+                                            </h3>
+                                            <button onClick={() => setOuterGroupDetailRow(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">内外属性</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {getOuterGroupDetailRows(outerGroupDetailRow).map((r, i) => (
+                                                        <tr key={i} className="border-b border-gray-100">
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.attribute}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                            <td className="py-3 px-4">
+                                                                <span className="group/tip relative inline-flex">
+                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                        点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 &gt; 结算单元概览，并选中对应的结算单元。
+                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                    </span>
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 结算单元账单金额明细抽屉（公司内非中台收入 / 中台内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入） */}
+                            {unitBillDetail && (
+                                <div className="fixed inset-0 z-[100]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setUnitBillDetail(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[760px] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                {unitBillDetail.title}账单金额明细 <span className="font-normal text-gray-600">{cleanProductName(unitBillDetail.row.productName)}</span>
+                                            </h3>
+                                            <button onClick={() => setUnitBillDetail(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {getUnitBillDetailRows(unitBillDetail.row, unitBillDetail.amount).map((r, i) => (
+                                                        <tr key={i} className="border-b border-gray-100">
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                            <td className="py-3 px-4">
+                                                                <span className="group/tip relative inline-flex">
+                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                        点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 &gt; 结算单元概览，并选中对应的结算单元。
+                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                    </span>
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 外部(360.cn) 收入明细抽屉 */}
+                            {outerPortalDetailRow && (
+                                <div className="fixed inset-0 z-[100]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setOuterPortalDetailRow(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[760px] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                外部(360.cn)收入明细 <span className="font-normal text-gray-600">{cleanProductName(outerPortalDetailRow.productName)}</span>
+                                            </h3>
+                                            <button onClick={() => setOuterPortalDetailRow(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">租户名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {getOuterPortalDetailRows(outerPortalDetailRow).map((r, i) => (
+                                                        <tr key={i} className="border-b border-gray-100">
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.tenantName}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                            <td className="py-3 px-4">
+                                                                <span className="group/tip relative inline-flex">
+                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                        点击带账期和客户，新开页到【产品账单】，定位到 产品账单 &gt; 客户概览，并选中对应的客户。
+                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                    </span>
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 经营分析 - 部门分析页面 */}
+                    {currentMenu === 'analysis-department' && (
+                        <div className="flex-1 bg-gray-50 p-6 overflow-auto">
+                            {/* 数据口径说明 */}
+                            <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
+                                <p className="text-[13px] leading-[1.9] text-blue-600">
+                                    部门数据取自「企业配置」中所选<span className="font-medium">经营部门</span>（组织架构部门）下已关联结算单元的部门；一个部门可关联多个 ops 结算单元，部门的总收入、总成本、收支差额为其关联结算单元对应值之和，无需在此创建部门或关联结算单元。
+                                </p>
+                            </div>
+
+                            {/* 顶部说明提示 */}
+                            <div className="mb-4 rounded-lg border border-red-100 bg-red-50/60 px-4 py-3">
+                                <p className="text-[13px] leading-[1.9] text-red-500">
+                                    1、月账单：次月第3个工作日8点后为准确数据；2、天账单：次日14点后为准确数据；3、小时账单：今天12点后，昨天的小时帐为准确数据。特殊说明：短信每个月28号用户中心的账单会拆分到其他部门，裸金属GPU（整机）、裸金属CPU（整机）、CDN、PCDN、音视频通话RTC 每个月第二个工作日12点ops锁账后上报外部成本
+                                </p>
+                            </div>
+
+                            {/* 筛选工具栏 */}
+                            <div className="mb-4 flex flex-wrap items-start gap-3">
+                                {/* 经营部门（来源：企业配置） */}
+                                <select
+                                    value={currentBizDeptEnt?.id ?? ''}
+                                    onChange={(e) => {
+                                        setDeptScopeEntId(Number(e.target.value));
+                                        setDeptUnitTags([]);
+                                        setExpandedDeptRows([]);
+                                        setDeptPage(1);
+                                    }}
+                                    className="h-9 w-[240px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                >
+                                    {bizDeptOptions.length === 0 ? (
+                                        <option value="">暂无已配置经营部门的企业</option>
+                                    ) : (
+                                        bizDeptOptions.map((e) => (
+                                            <option key={e.id} value={e.id}>经营部门：{e.bizDeptName}（{e.name}）</option>
+                                        ))
+                                    )}
+                                </select>
+
+                                {/* 账单类型 */}
+                                <select
+                                    value={deptBillType}
+                                    onChange={(e) => { setDeptBillType(e.target.value); setDeptPage(1); }}
+                                    className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                >
+                                    {analysisBillTypes.map((t) => (
+                                        <option key={t.value} value={t.value}>{t.label}</option>
+                                    ))}
+                                </select>
+
+                                {/* 账期 */}
+                                <input
+                                    type="month"
+                                    value={deptPeriod}
+                                    onChange={(e) => { setDeptPeriod(e.target.value); setDeptPage(1); }}
+                                    className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                />
+
+                                {/* 结算单元（多选标签） */}
+                                <div className="relative w-[200px]">
+                                    {/* 点击外部关闭下拉 */}
+                                    {deptPickerOpen && (
+                                        <div className="fixed inset-0 z-10" onClick={() => setDeptPickerOpen(false)} />
+                                    )}
+                                    <div
+                                        onClick={() => setDeptPickerOpen(!deptPickerOpen)}
+                                        className="min-h-[36px] w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-2 py-1.5 pr-7 text-sm focus:outline-none"
+                                    >
+                                        {deptUnitTags.length === 0 ? (
+                                            <span className="leading-[24px] text-gray-400">结算单元</span>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-1">
+                                                {deptUnitTags.map((tag) => (
+                                                    <span key={tag} className="inline-flex max-w-full items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[12px] text-gray-700">
+                                                        <span className="truncate">{tag}</span>
+                                                        <svg
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setDeptUnitTags(deptUnitTags.filter((t) => t !== tag));
+                                                            }}
+                                                            className="h-3 w-3 flex-shrink-0 text-gray-400 hover:text-gray-600"
+                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <svg className="pointer-events-none absolute right-2.5 top-3 h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+
+                                    {/* 结算单元下拉选择面板：仅展示当前经营部门下已关联的结算单元 */}
+                                    {deptPickerOpen && (
+                                        <div className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[260px] w-[240px] overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                            {deptScopeUnits.length === 0 ? (
+                                                <div className="px-3 py-6 text-center text-[13px] text-gray-400">当前经营部门下暂无已关联结算单元</div>
+                                            ) : (
+                                                deptScopeUnits.map((row) => {
+                                                    const checked = deptUnitTags.includes(row.opsUnit);
+                                                    return (
+                                                        <label key={row.id} className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                onChange={() =>
+                                                                    setDeptUnitTags(
+                                                                        checked
+                                                                            ? deptUnitTags.filter((t) => t !== row.opsUnit)
+                                                                            : [...deptUnitTags, row.opsUnit]
+                                                                    )
+                                                                }
+                                                                className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-0"
+                                                            />
+                                                            <span className="truncate">{row.opsUnit}</span>
+                                                        </label>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 搜索 */}
+                                <button
+                                    onClick={() => setDeptPage(1)}
+                                    className="h-9 rounded-lg bg-blue-600 px-5 text-sm text-white transition-colors hover:bg-blue-700"
+                                >
+                                    搜索
+                                </button>
+                            </div>
+
+                            {/* 数据表格 */}
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[900px]">
+                                        <thead>
+                                            <tr className="border-b border-gray-200 bg-gray-50">
+                                                <AnalysisTh label="部门名称" tip="所选经营部门下已关联结算单元的部门（含经营部门自身）。" align="left" width="300px" />
+                                                <AnalysisTh label="关联结算单元" tip="该部门在组织架构中已关联的 ops 结算单元数量，展开可查看明细。" align="left" width="220px" />
+                                                <AnalysisTh label="总收入(元)" tip="该部门关联的全部结算单元在本账期内的收入之和。" align="left" width="180px" />
+                                                <AnalysisTh label="总成本(元)" tip="该部门关联的全部结算单元在本账期内分摊资源成本之和。" align="left" width="180px" />
+                                                <AnalysisTh label="收支差额(元)" tip="总收入 - 总成本。" align="left" width="160px" />
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {pagedDeptRows.map((row) => {
+                                                const expanded = expandedDeptRows.includes(row.key);
+                                                return (
+                                                    <Fragment key={row.key}>
+                                                        <tr className="hover:bg-gray-50">
+                                                            <td className="px-4 py-4 text-sm text-gray-900">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <button
+                                                                        onClick={() => toggleDeptRowExpand(row.key)}
+                                                                        disabled={row.members.length === 0}
+                                                                        className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-gray-400 hover:text-gray-600 disabled:opacity-0"
+                                                                    >
+                                                                        <svg className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <span className="text-gray-900">{row.name}</span>
+                                                                    <span className="truncate text-[12px] text-gray-400" title={row.path}>{row.path}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-4 text-sm text-gray-600">{row.members.length} 个</td>
+                                                            <DeptAmountCell value={row.totalRevenue} />
+                                                            <DeptAmountCell value={row.totalCost} />
+                                                            <DeptAmountCell value={row.totalRevenue - row.totalCost} />
+                                                        </tr>
+                                                        {expanded && row.members.map((m) => (
+                                                            <tr key={`${row.key}-${m.id}`} className="bg-gray-50/60">
+                                                                <td className="px-4 py-3 pl-11 text-[13px] text-gray-400">结算单元</td>
+                                                                <td className="px-4 py-3 text-[13px] text-gray-600">{m.opsUnit}</td>
+                                                                <DeptAmountCell value={m.totalRevenue} link onClick={() => openDeptDetail(m, "revenue")} />
+                                                                <DeptAmountCell value={m.totalCost} link onClick={() => openDeptDetail(m, "cost")} />
+                                                                <DeptAmountCell value={m.totalRevenue - m.totalCost} />
+                                                            </tr>
+                                                        ))}
+                                                    </Fragment>
+                                                );
+                                            })}
+                                            {pagedDeptRows.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                        暂无符合条件的数据
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* 分页 */}
+                            <div className="mt-4 flex items-center justify-between rounded-b-lg border-t border-gray-200 bg-white px-4 py-3">
+                                <div className="text-sm text-gray-500">
+                                    共 <span className="font-medium">{filteredDeptRows.length}</span> 条
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        value={deptPageSize}
+                                        onChange={(e) => { setDeptPageSize(Number(e.target.value)); setDeptPage(1); }}
+                                        className="h-8 rounded border border-gray-300 px-2 text-sm"
+                                    >
+                                        <option value={10}>10条/页</option>
+                                        <option value={20}>20条/页</option>
+                                        <option value={50}>50条/页</option>
+                                    </select>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setDeptPage(Math.max(1, deptPage - 1))}
+                                            disabled={deptPage === 1}
+                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            ‹
+                                        </button>
+                                        {Array.from({ length: deptTotalPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setDeptPage(p)}
+                                                className={`flex h-8 w-8 items-center justify-center rounded text-sm ${
+                                                    p === deptPage
+                                                        ? "bg-blue-600 text-white"
+                                                        : "border border-gray-300 hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                        <button
+                                            onClick={() => setDeptPage(Math.min(deptTotalPages, deptPage + 1))}
+                                            disabled={deptPage === deptTotalPages}
+                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            ›
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 结算单元收支明细抽屉 */}
+                            {deptDetailUnit && (
+                                <div className="fixed inset-0 z-[100]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setDeptDetailUnit(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[860px] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                {deptDetailTab === "cost" ? "总支出/成本(元)" : "总收入(元)"} {deptDetailUnit.opsUnit}
+                                            </h3>
+                                            <button onClick={() => setDeptDetailUnit(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        {/* 收入明细 / 成本明细 切换 */}
+                                        <div className="flex items-center gap-6 border-b border-gray-200 px-6">
+                                            <button
+                                                onClick={() => setDeptDetailTab("revenue")}
+                                                className={`-mb-px border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
+                                                    deptDetailTab === "revenue"
+                                                        ? "border-blue-600 text-blue-600"
+                                                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                                                }`}
+                                            >
+                                                收入明细
+                                            </button>
+                                            <button
+                                                onClick={() => setDeptDetailTab("cost")}
+                                                className={`-mb-px border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
+                                                    deptDetailTab === "cost"
+                                                        ? "border-blue-600 text-blue-600"
+                                                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                                                }`}
+                                            >
+                                                成本明细
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-auto px-6 py-4">
+                                            <table className="w-full min-w-[760px]">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200 bg-gray-50">
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">账期</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">{deptDetailTab === "cost" ? "成本类型" : "收入类型"}</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">{deptDetailTab === "cost" ? "成本来源" : "收入来源"}</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">金额(元)</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">说明</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {getDeptDetailRows(deptDetailUnit, deptDetailTab, deptPeriod).map((r, i) => (
+                                                        <tr key={i} className="hover:bg-gray-50">
+                                                            <td className="px-3 py-3 text-sm text-gray-600 whitespace-nowrap">{r.period}</td>
+                                                            <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">{r.type}</td>
+                                                            <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">{r.source}</td>
+                                                            <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{formatExactAmount(r.amount)}</td>
+                                                            <td className="px-3 py-3">
+                                                                <button className="text-sm text-blue-600 hover:text-blue-700">账单详情</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
+                                            <button
+                                                onClick={() => setDeptDetailUnit(null)}
+                                                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                                            >
+                                                关闭
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    )}
+
+                    {currentMenu === 'platform-portal' && (
+                        <div className="flex-1 bg-gray-50 overflow-auto">
+                            {/* 页面标题 */}
+                            <div className="px-6 py-4 bg-white border-b border-gray-200">
+                                <h2 className="text-base font-medium text-gray-900">企业配置</h2>
+                            </div>
+
+                            <div className="p-6">
+                                <div className="bg-white rounded-lg border border-gray-200">
+                                    {/* 操作栏 */}
+                                    <div className="flex items-center justify-between px-5 py-4">
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={enterpriseSearch}
+                                                onChange={(e) => setEnterpriseSearch(e.target.value)}
+                                                placeholder="企业名称/租户ID/经营部门/Portal名称"
+                                                className="w-72 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleOpenCreateEnterprise}
+                                            className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                        >
+                                            + 新建企业
+                                        </button>
+                                    </div>
+
+                                    {/* 列表 */}
+                                    <div className="overflow-x-auto">
+                                            <table className="w-full min-w-[1300px]">
+                                            <thead>
+                                                <tr className="bg-gray-50 border-y border-gray-200">
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">企业名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-28">是否是内部企业</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-32">是否开启独立Portal</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属租户</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">经营部门</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Portal名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Portal域名</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">备注说明</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-28">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredEnterpriseConfigs.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={12} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                    </tr>
+                                                ) : (
+                                                    filteredEnterpriseConfigs.map((ent, idx) => (
+                                                        <tr key={ent.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.name}</td>
+                                                            <td className="py-3 px-4">
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.internal ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                                    {ent.internal ? '是' : '否'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3 px-4">
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.enablePortal ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                                    {ent.enablePortal ? '是' : '否'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">
+                                                                {ent.tenantId ? (
+                                                                    <div className="leading-tight">
+                                                                        <div>{ent.tenantName}</div>
+                                                                        <div className="text-xs text-gray-400">ID：{ent.tenantId}</div>
+                                                                    </div>
+                                                                ) : '--'}
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.bizDeptName || '--'}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.enablePortal ? (ent.portalName || '--') : '--'}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.enablePortal ? (ent.portalDomain || '--') : '--'}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{ent.remark || '--'}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{ent.createTime}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{ent.updateTime}</td>
+                                                            <td className="py-3 px-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <button
+                                                                        onClick={() => handleOpenEditEnterprise(ent)}
+                                                                        className="text-blue-600 hover:text-blue-700 text-sm"
+                                                                    >
+                                                                        编辑
+                                                                    </button>
+                                                                    {ent.internal ? (
+                                                                        <span
+                                                                            className="group relative text-sm text-gray-300 cursor-not-allowed"
+                                                                            title="内部企业不支持删除"
+                                                                        >
+                                                                            删除
+                                                                        </span>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => setEnterpriseDeleteTarget(ent)}
+                                                                            className="text-red-500 hover:text-red-600 text-sm"
+                                                                        >
+                                                                            删除
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 新建/编辑企业抽屉（右侧滑出） */}
+                            {enterpriseDialogOpen && (
+                                <div className="fixed inset-0 z-50">
+                                    <div className="absolute inset-0 bg-black/40" onClick={() => setEnterpriseDialogOpen(false)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[880px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                {editingEnterpriseId != null ? '编辑企业' : '新建企业'}
+                                            </h3>
+                                            <button
+                                                onClick={() => setEnterpriseDialogOpen(false)}
+                                                className="text-gray-400 hover:text-gray-600"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    企业名称 <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={enterpriseForm.name}
+                                                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, name: e.target.value })}
+                                                    placeholder="请输入企业名称，如：奇虎360"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+
+                                            {/* 1. 是否是内部企业（全局唯一，只能有一个） */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    是否是内部企业 <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="flex items-center gap-6">
+                                                    {[{ v: true, l: '是' }, { v: false, l: '否' }].map(opt => {
+                                                        // 已存在其他内部企业时，「是」不可选
+                                                        const disabled = opt.v === true && !!existedInternalEnterprise;
+                                                        return (
+                                                            <label
+                                                                key={String(opt.v)}
+                                                                className={`flex items-center gap-1.5 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                title={disabled ? `已存在内部企业「${existedInternalEnterprise!.name}」，内部企业只能有一个` : undefined}
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    name="enterpriseInternal"
+                                                                    disabled={disabled}
+                                                                    checked={enterpriseForm.internal === opt.v}
+                                                                    onChange={() => {
+                                                                        if (disabled) return;
+                                                                        setEnterpriseForm({ ...enterpriseForm, internal: opt.v });
+                                                                        setEnterpriseFormError('');
+                                                                    }}
+                                                                    className="w-4 h-4 text-blue-600"
+                                                                />
+                                                                <span className={`text-sm ${disabled ? 'text-gray-300' : enterpriseForm.internal === opt.v ? 'text-blue-600' : 'text-gray-700'}`}>{opt.l}</span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <p className="mt-1.5 text-xs text-gray-400">
+                                                    {existedInternalEnterprise
+                                                        ? `内部企业全局只能有一个，当前内部企业为「${existedInternalEnterprise.name}」，不可再创建。`
+                                                        : '选择「是」时，所属租户为必填项；内部企业创建后不支持删除，且全局只能有一个。'}
+                                                </p>
+                                            </div>
+
+                                            {/* 2. 所属租户 + 经营部门（同一行） */}
+                                            <div className="grid grid-cols-2 gap-4 items-start">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    所属租户 {enterpriseForm.internal && <span className="text-red-500">*</span>}
+                                                </label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        value={tenantKeyword}
+                                                        onChange={(e) => {
+                                                            setTenantKeyword(e.target.value);
+                                                            setTenantDropdownOpen(true);
+                                                            if (!e.target.value.trim()) {
+                                                                setEnterpriseForm(prev => ({ ...prev, tenantId: '', tenantName: '', bizDeptId: '', bizDeptName: '' }));
+                                                            }
+                                                        }}
+                                                        onFocus={() => setTenantDropdownOpen(true)}
+                                                        placeholder="请输入租户ID搜索，如：100000001"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    {tenantDropdownOpen && (
+                                                        <>
+                                                            <div className="fixed inset-0 z-10" onClick={() => setTenantDropdownOpen(false)} />
+                                                            <div className="absolute z-20 mt-1 w-full max-h-52 overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                                                                {tenantSuggestions.length === 0 ? (
+                                                                    <div className="px-3 py-3 text-sm text-gray-400">未匹配到租户</div>
+                                                                ) : (
+                                                                    tenantSuggestions.map(t => (
+                                                                        <button
+                                                                            key={t.id}
+                                                                            type="button"
+                                                                            onClick={() => handleSelectEnterpriseTenant(t)}
+                                                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-blue-50 ${enterpriseForm.tenantId === t.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+                                                                        >
+                                                                            <span>{t.name}</span>
+                                                                            <span className="text-xs text-gray-400">{t.id}</span>
+                                                                        </button>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                {enterpriseForm.tenantId ? (
+                                                    <p className="mt-1.5 text-xs text-gray-500">已选择：{enterpriseForm.tenantName}（租户ID：{enterpriseForm.tenantId}）</p>
+                                                ) : (
+                                                    <p className="mt-1.5 text-xs text-gray-400">
+                                                        {enterpriseForm.internal ? '内部企业必须选择所属租户' : '非内部企业可不选择所属租户'}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* 经营部门 */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">经营部门</label>
+                                                <div className="relative">
+                                                    <button
+                                                        type="button"
+                                                        disabled={!enterpriseForm.tenantId}
+                                                        onClick={() => setBizDeptPickerOpen(v => !v)}
+                                                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm focus:outline-none ${enterpriseForm.tenantId ? 'border-gray-300 bg-white hover:border-blue-500' : 'border-gray-200 bg-gray-50 cursor-not-allowed'}`}
+                                                    >
+                                                        <span className={enterpriseForm.bizDeptName ? 'text-gray-700' : 'text-gray-400'}>
+                                                            {enterpriseForm.bizDeptName || (enterpriseForm.tenantId ? '请选择经营部门' : '请先选择所属租户')}
+                                                        </span>
+                                                        <span className="flex items-center gap-2">
+                                                            {enterpriseForm.bizDeptName && (
+                                                                <span
+                                                                    role="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEnterpriseForm({ ...enterpriseForm, bizDeptId: '', bizDeptName: '' });
+                                                                    }}
+                                                                    className="text-xs text-gray-400 hover:text-gray-600"
+                                                                >
+                                                                    清空
+                                                                </span>
+                                                            )}
+                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                            </svg>
+                                                        </span>
+                                                    </button>
+                                                    {bizDeptPickerOpen && enterpriseForm.tenantId && (
+                                                        <>
+                                                            <div className="fixed inset-0 z-10" onClick={() => setBizDeptPickerOpen(false)} />
+                                                            <div className="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                                                {(() => {
+                                                                    const renderNodes = (nodes: OrgDeptNode[], depth: number): React.ReactNode[] =>
+                                                                        nodes.flatMap((node) => {
+                                                                            const hasChildren = !!node.children?.length;
+                                                                            const expanded = expandedOrgNodes.includes(node.id);
+                                                                            const rows: React.ReactNode[] = [
+                                                                                <div
+                                                                                    key={node.id}
+                                                                                    className={`flex items-center gap-1.5 px-2 py-1.5 text-sm hover:bg-blue-50 ${enterpriseForm.bizDeptId === node.id ? 'bg-blue-50' : ''}`}
+                                                                                    style={{ paddingLeft: 8 + depth * 16 }}
+                                                                                >
+                                                                                    {hasChildren ? (
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => setExpandedOrgNodes(prev => prev.includes(node.id) ? prev.filter(i => i !== node.id) : [...prev, node.id])}
+                                                                                            className="flex h-4 w-4 items-center justify-center text-gray-400 hover:text-gray-600"
+                                                                                        >
+                                                                                            <svg className={`h-3 w-3 transition-transform ${expanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                                            </svg>
+                                                                                        </button>
+                                                                                    ) : (
+                                                                                        <span className="h-4 w-4" />
+                                                                                    )}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            setEnterpriseForm({ ...enterpriseForm, bizDeptId: node.id, bizDeptName: node.name });
+                                                                                            setBizDeptPickerOpen(false);
+                                                                                        }}
+                                                                                        className={`flex flex-1 items-center gap-2 text-left ${enterpriseForm.bizDeptId === node.id ? 'text-blue-600' : 'text-gray-700'}`}
+                                                                                    >
+                                                                                        <span>{node.name}</span>
+                                                                                        {!!node.units?.length && (
+                                                                                            <span className="rounded bg-green-50 px-1 py-0.5 text-[10px] leading-none text-green-600">已关联 {node.units.length} 个结算单元</span>
+                                                                                        )}
+                                                                                    </button>
+                                                                                </div>
+                                                                            ];
+                                                                            if (hasChildren && expanded) {
+                                                                                rows.push(...renderNodes(node.children!, depth + 1));
+                                                                            }
+                                                                            return rows;
+                                                                        });
+                                                                    return renderNodes(getTenantOrgTree(enterpriseForm.tenantId), 0);
+                                                                })()}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">
+                                                    经营部门用于经营分析&gt;部门分析，取的是选中经营部门下已关联结算单元的部门；组织架构部门可关联多个结算单元，无需另行创建部门或关联结算单元。
+                                                </p>
+                                            </div>
+                                            </div>
+
+                                            {/* 3. 是否开启独立Portal */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">是否开启独立Portal</label>
+                                                <div className="flex items-center gap-6">
+                                                    {[{ v: true, l: '是' }, { v: false, l: '否' }].map(opt => (
+                                                        <label key={String(opt.v)} className="flex items-center gap-1.5 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="enterpriseEnablePortal"
+                                                                checked={enterpriseForm.enablePortal === opt.v}
+                                                                onChange={() => setEnterpriseForm({ ...enterpriseForm, enablePortal: opt.v })}
+                                                                className="w-4 h-4 text-blue-600"
+                                                            />
+                                                            <span className={`text-sm ${enterpriseForm.enablePortal === opt.v ? 'text-blue-600' : 'text-gray-700'}`}>{opt.l}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* 4. Portal名称 + Portal域名（同一行） */}
+                                            {enterpriseForm.enablePortal && (
+                                                <div className="grid grid-cols-2 gap-4 items-start">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                            Portal名称 <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={enterpriseForm.portalName}
+                                                            onChange={(e) => setEnterpriseForm({ ...enterpriseForm, portalName: e.target.value })}
+                                                            placeholder="如：智汇云官网"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                            Portal域名 <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={enterpriseForm.portalDomain}
+                                                            onChange={(e) => setEnterpriseForm({ ...enterpriseForm, portalDomain: e.target.value })}
+                                                            placeholder="如：zyun.360.cn"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* 5. 备注说明 */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">备注说明</label>
+                                                <textarea
+                                                    value={enterpriseForm.remark}
+                                                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, remark: e.target.value })}
+                                                    rows={3}
+                                                    maxLength={200}
+                                                    placeholder="请输入备注说明，200字以内"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
+                                                />
+                                                <div className="mt-1 text-right text-xs text-gray-400">{enterpriseForm.remark.length}/200</div>
+                                            </div>
+
+                                            {enterpriseFormError && (
+                                                <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{enterpriseFormError}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                                            <button
+                                                onClick={() => setEnterpriseDialogOpen(false)}
+                                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                            >
+                                                取消
+                                            </button>
+                                            <button
+                                                onClick={handleSaveEnterprise}
+                                                className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                                            >
+                                                确定
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 删除企业确认弹窗（仅非内部企业可删除） */}
+                            {enterpriseDeleteTarget && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[420px]">
+                                        <div className="px-6 py-5">
+                                            <h3 className="text-base font-semibold text-gray-900">删除企业</h3>
+                                            <p className="mt-2 text-sm text-gray-600 leading-[1.8]">
+                                                确认删除企业「{enterpriseDeleteTarget.name}」吗？删除后其独立Portal配置与经营部门配置将一并移除，此操作不可撤销。
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                                            <button
+                                                onClick={() => setEnterpriseDeleteTarget(null)}
+                                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                            >
+                                                取消
+                                            </button>
+                                            <button
+                                                onClick={handleDeleteEnterprise}
+                                                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+                                            >
+                                                确认删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 平台配置 - 地域可用区页面 */}
+                    {currentMenu === 'platform-region' && (
+                        <div className="flex-1 bg-gray-50 overflow-auto">
+                            {/* 页面标题 */}
+                            <div className="px-6 py-4 bg-white border-b border-gray-200">
+                                <h2 className="text-base font-medium text-gray-900">地域可用区</h2>
+                            </div>
+
+                            <div className="p-6">
+                                <div className="bg-white rounded-lg border border-gray-200">
+                                    {/* 操作栏 */}
+                                    <div className="flex items-center justify-between px-5 py-4">
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={regionZoneSearch}
+                                                onChange={(e) => setRegionZoneSearch(e.target.value)}
+                                                placeholder="关键词搜索"
+                                                className="w-52 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleOpenCreateRegionZone}
+                                            className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                        >
+                                            + 新建可用区
+                                        </button>
+                                    </div>
+
+                                    {/* 列表 */}
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full min-w-[1280px]">
+                                            <thead>
+                                                <tr className="bg-gray-50 border-y border-gray-200">
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">云服务器名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">内网(qihoo.net)可用区名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">内网(qihoo.net)可用区标识</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">外网(360.cn)可用区名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">外网(360.cn)可用区标识</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">公网是否启用</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-20">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredRegionZones.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={11} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                    </tr>
+                                                ) : (
+                                                    filteredRegionZones.map((zone, idx) => (
+                                                        <tr key={zone.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.cloudServer}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.region}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.innerName}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.innerCode}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.outerName}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.outerCode}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.publicNet ? '是' : '否'}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{zone.createTime}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{zone.updateTime}</td>
+                                                            <td className="py-3 px-4">
+                                                                <button
+                                                                    onClick={() => handleOpenEditRegionZone(zone)}
+                                                                    className="text-blue-600 hover:text-blue-700 text-sm"
+                                                                >
+                                                                    编辑
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 新建/编辑可用区弹窗 */}
+                            {regionZoneDialogOpen && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[640px] max-h-[85vh] flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                {editingRegionZoneId != null ? '编辑可用区' : '新建可用区'}
+                                            </h3>
+                                            <button
+                                                onClick={() => setRegionZoneDialogOpen(false)}
+                                                className="text-gray-400 hover:text-gray-600"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-auto px-6 py-6 space-y-5">
+                                            {/* 云服务器 */}
+                                            <div className="flex items-center gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                    <span className="text-red-500 mr-0.5">*</span>云服务器:
+                                                </label>
+                                                <select
+                                                    value={regionZoneForm.cloudServer}
+                                                    onChange={(e) => setRegionZoneForm({ ...regionZoneForm, cloudServer: e.target.value })}
+                                                    className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${regionZoneForm.cloudServer ? 'text-gray-700' : 'text-gray-400'}`}
+                                                >
+                                                    <option value="">请选择云服务器</option>
+                                                    {cloudServerOptions.map(opt => (
+                                                        <option key={opt} value={opt}>{opt}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* 地域 */}
+                                            <div className="flex items-center gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                    <span className="text-red-500 mr-0.5">*</span>地域:
+                                                </label>
+                                                <select
+                                                    value={regionZoneForm.region}
+                                                    onChange={(e) => setRegionZoneForm({ ...regionZoneForm, region: e.target.value })}
+                                                    className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${regionZoneForm.region ? 'text-gray-700' : 'text-gray-400'}`}
+                                                >
+                                                    <option value="">请选择地域</option>
+                                                    {regionOptions.map(opt => (
+                                                        <option key={opt} value={opt}>{opt}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* 内网（qihoo.net） */}
+                                            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+                                                <div className="text-sm font-medium text-[#006bff]">内网（qihoo.net）</div>
+                                                <div className="flex items-center gap-3">
+                                                    <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                        <span className="text-red-500 mr-0.5">*</span>可用区名称:
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={regionZoneForm.innerName}
+                                                        onChange={(e) => setRegionZoneForm({ ...regionZoneForm, innerName: e.target.value })}
+                                                        placeholder="支持中英文、数字(20个字符以内)"
+                                                        maxLength={20}
+                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                        <span className="text-red-500 mr-0.5">*</span>可用区标识:
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={regionZoneForm.innerCode}
+                                                        onChange={(e) => setRegionZoneForm({ ...regionZoneForm, innerCode: e.target.value })}
+                                                        placeholder="支持英文、数字、_、-(20个字符以内)"
+                                                        maxLength={20}
+                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* 公网（360.cn） */}
+                                            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+                                                <div className="text-sm font-medium text-[#006bff]">公网（360.cn）</div>
+                                                <div className="flex items-center gap-3">
+                                                    <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">是否启用:</label>
+                                                    <button
+                                                        onClick={() => setRegionZoneForm({ ...regionZoneForm, publicNet: !regionZoneForm.publicNet })}
+                                                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${regionZoneForm.publicNet ? 'bg-[#006bff]' : 'bg-gray-300'}`}
+                                                    >
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${regionZoneForm.publicNet ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                </div>
+                                                {regionZoneForm.publicNet && (
+                                                    <>
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                                <span className="text-red-500 mr-0.5">*</span>可用区名称:
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={regionZoneForm.outerName}
+                                                                onChange={(e) => setRegionZoneForm({ ...regionZoneForm, outerName: e.target.value })}
+                                                                placeholder="支持中英文、数字(20个字符以内)"
+                                                                maxLength={20}
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                                <span className="text-red-500 mr-0.5">*</span>可用区标识:
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={regionZoneForm.outerCode}
+                                                                onChange={(e) => setRegionZoneForm({ ...regionZoneForm, outerCode: e.target.value })}
+                                                                placeholder="支持英文、数字、_、-(20个字符以内)"
+                                                                maxLength={20}
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+                                            <button
+                                                onClick={() => setRegionZoneDialogOpen(false)}
+                                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                            >
+                                                取消
+                                            </button>
+                                            <button
+                                                onClick={handleSaveRegionZone}
+                                                className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                                            >
+                                                确定
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* 平台配置 - 密钥管理页面 */}
                     {currentMenu === 'platform-key' && (
                         <div className="flex-1 overflow-auto bg-gray-50">
@@ -6825,7 +9889,7 @@ export default function AdminPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                 </button>
-                                <h3 className="text-lg font-semibold text-gray-900">创建产品</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">{productDrawerMode === 'edit' ? '编辑产品' : '创建产品'}</h3>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
@@ -6839,9 +9903,9 @@ export default function AdminPage() {
                                         // TODO: 保存产品
                                         setCreateProductDialogOpen(false);
                                     }}
-                                    disabled={!newProduct.name || !newProduct.shortName || !newProduct.category || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url}
+                                    disabled={!newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url}
                                     className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${
-                                        !newProduct.name || !newProduct.shortName || !newProduct.category || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url
+                                        !newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                             : 'bg-blue-600 text-white hover:bg-blue-700'
                                     }`}
@@ -6853,35 +9917,120 @@ export default function AdminPage() {
                         
                         {/* 表单内容 */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                            {/* 产品名称 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品名称 <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    maxLength={20}
-                                    value={newProduct.name}
-                                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                                    placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                />
-                                <div className="text-xs text-gray-400 mt-1 text-right">{newProduct.name.length}/20</div>
+                            {/* 产品名称 & 产品简介 */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        产品名称 <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        maxLength={20}
+                                        value={newProduct.name}
+                                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                                        placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        产品简介 <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={newProduct.shortName}
+                                            onChange={(e) => setNewProduct({ ...newProduct, shortName: e.target.value })}
+                                            placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
+                                            className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                        />
+                                        {/* 说明提示 icon */}
+                                        <div className="relative flex-shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => setDescTipOpen(!descTipOpen)}
+                                                onBlur={() => setTimeout(() => setDescTipOpen(false), 150)}
+                                                className={`p-1 rounded-full transition-colors ${descTipOpen ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-blue-600'}`}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                            {descTipOpen && (
+                                                <div className="absolute right-0 top-7 z-20 w-64 bg-gray-800 text-white text-xs leading-relaxed rounded-lg px-3 py-2 shadow-lg">
+                                                    注：收藏产品后，在导航收藏列表里展示产品的简介，建议和产品的英文名称保持一致
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            {/* 产品简称 */}
+
+                            {/* 产品标识符 */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品简称 <span className="text-red-500">*</span>
+                                    产品标识符 <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
-                                    value={newProduct.shortName}
-                                    onChange={(e) => setNewProduct({ ...newProduct, shortName: e.target.value })}
-                                    placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                    value={newProduct.identifier}
+                                    onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })}
+                                    placeholder="请输入产品标识符"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono"
                                 />
-                                <p className="text-xs text-gray-400 mt-1">收藏产品后，在导航收藏列表里展示产品的简称，建议和产品的英文名称保持一致</p>
+                            </div>
+
+                            {/* 加入推荐 */}
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                                <div className="text-sm font-medium text-gray-900">加入推荐</div>
+
+                                {/* 官网热门产品 */}
+                                <div className="flex items-center gap-3">
+                                    <span className="w-28 text-sm text-gray-700 text-right">官网热门产品：</span>
+                                    <button
+                                        onClick={() => setNewProduct({ ...newProduct, hotOfficial: !newProduct.hotOfficial })}
+                                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotOfficial ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                    >
+                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotOfficial ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                    <span className="text-xs text-gray-500">开启后，该产品展示在 官网&gt;产品列表&gt;热门产品 模块</span>
+                                </div>
+
+                                {/* 控制台热门产品 */}
+                                <div className="flex items-center gap-3">
+                                    <span className="w-28 text-sm text-gray-700 text-right">控制台热门产品：</span>
+                                    <button
+                                        onClick={() => setNewProduct({ ...newProduct, hotConsole: !newProduct.hotConsole })}
+                                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotConsole ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                    >
+                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotConsole ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                    <span className="text-xs text-gray-500">开启后，该产品展示在 控制台&gt;产品管理&gt;热门产品 模块</span>
+                                </div>
+
+                                {/* 推广标签 */}
+                                <div className="flex items-center gap-3">
+                                    <span className="w-28 text-sm text-gray-700 text-right">推广标签：</span>
+                                    <div className="flex items-center gap-6">
+                                        {[
+                                            { value: 'hot', label: 'Hot' },
+                                            { value: 'new', label: 'New' },
+                                            { value: 'none', label: '不设置' },
+                                        ].map(option => (
+                                            <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="promoTag"
+                                                    value={option.value}
+                                                    checked={newProduct.promoTag === option.value}
+                                                    onChange={(e) => setNewProduct({ ...newProduct, promoTag: e.target.value })}
+                                                    className="w-4 h-4 text-blue-600"
+                                                />
+                                                <span className={`text-sm ${newProduct.promoTag === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                             
                             {/* 产品分类 & 所属产线 */}
@@ -6890,22 +10039,44 @@ export default function AdminPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                         产品分类 <span className="text-red-500">*</span>
                                     </label>
-                                    <select
-                                        value={newProduct.category}
-                                        onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                    >
-                                        <option value="">请选择</option>
-                                        <option value="大数据">大数据</option>
-                                        <option value="存储">存储</option>
-                                        <option value="数据库">数据库</option>
-                                        <option value="容器">容器</option>
-                                        <option value="中间件">中间件</option>
-                                        <option value="计算">计算</option>
-                                        <option value="网络">网络</option>
-                                        <option value="安全">安全</option>
-                                        <option value="AI">AI</option>
-                                    </select>
+                                    {/* 已选分类标签 */}
+                                    <div className="min-h-[38px] w-full px-2 py-1.5 border border-gray-300 rounded-lg flex flex-wrap items-center gap-1.5">
+                                        {newProduct.categories.map((cat, index) => (
+                                            <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                                                {cat}
+                                                <button
+                                                    onClick={() => setNewProduct({ ...newProduct, categories: newProduct.categories.filter((_, i) => i !== index) })}
+                                                    className="text-gray-400 hover:text-gray-600"
+                                                >
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </span>
+                                        ))}
+                                        <select
+                                            value=""
+                                            onChange={(e) => {
+                                                if (e.target.value && !newProduct.categories.includes(e.target.value)) {
+                                                    setNewProduct({ ...newProduct, categories: [...newProduct.categories, e.target.value] });
+                                                }
+                                            }}
+                                            className="flex-1 min-w-[90px] bg-transparent text-sm text-gray-500 focus:outline-none"
+                                        >
+                                            <option value="">请选择</option>
+                                            <option value="计算 / 奇云计算">计算 / 奇云计算</option>
+                                            <option value="计算 / 弹性计算">计算 / 弹性计算</option>
+                                            <option value="存储 / 对象存储">存储 / 对象存储</option>
+                                            <option value="存储 / 文件存储">存储 / 文件存储</option>
+                                            <option value="数据库 / 关系型数据库">数据库 / 关系型数据库</option>
+                                            <option value="容器 / 容器服务">容器 / 容器服务</option>
+                                            <option value="中间件 / 消息队列">中间件 / 消息队列</option>
+                                            <option value="大数据 / 数据计算">大数据 / 数据计算</option>
+                                            <option value="网络 / 负载均衡">网络 / 负载均衡</option>
+                                            <option value="安全 / 主机安全">安全 / 主机安全</option>
+                                            <option value="AI / 智能应用">AI / 智能应用</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -6924,24 +10095,6 @@ export default function AdminPage() {
                                         <option value="AI平台">AI平台</option>
                                     </select>
                                 </div>
-                            </div>
-                            
-                            {/* 产品标识符 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品标识符 <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex items-center">
-                                    <span className="px-3 py-2 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg text-sm text-gray-600 font-mono">zqi_</span>
-                                    <input
-                                        type="text"
-                                        value={newProduct.identifier.replace('zqi_', '')}
-                                        onChange={(e) => setNewProduct({ ...newProduct, identifier: 'zqi_' + e.target.value })}
-                                        placeholder="请输入标识符后缀"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:border-blue-500 font-mono"
-                                    />
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1">产品标识符以 zqi_ 开头，不可修改</p>
                             </div>
                             
                             {/* 产品描述 */}
@@ -6965,7 +10118,7 @@ export default function AdminPage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                     产品标签 <span className="text-red-500">*</span>
                                 </label>
-                                <div className="flex flex-wrap gap-2 mb-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     {newProduct.tags.map((tag, index) => (
                                         <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">
                                             {tag}
@@ -7014,8 +10167,48 @@ export default function AdminPage() {
                                             </button>
                                         </div>
                                     )}
+                                    {/* 提示与操作同行 */}
+                                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        支持中英文、数字。5个字符以内，最多添加3个标签
+                                    </span>
                                 </div>
-                                <p className="text-xs text-gray-400">支持中英文、数字，单个标签5个字符以内，最多添加3个标签</p>
+                            </div>
+
+                            {/* 产品图标 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    产品图标 <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center bg-white flex-shrink-0">
+                                        {newProduct.icon ? (
+                                            <div className="text-xs text-gray-500">已上传</div>
+                                        ) : (
+                                            <svg className="w-8 h-8 text-[#626F84]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8a2 2 0 100-4 2 2 0 000 4zM12 20a2 2 0 100-4 2 2 0 000 4zM6 14a2 2 0 100-4 2 2 0 000 4zM18 14a2 2 0 100-4 2 2 0 000 4zM12 8v8M8 12h8" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <label className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer flex-shrink-0">
+                                        上传图标
+                                        <input
+                                            type="file"
+                                            accept=".svg"
+                                            className="hidden"
+                                            onChange={(e) => setNewProduct({ ...newProduct, icon: e.target.files?.[0] ?? null })}
+                                        />
+                                    </label>
+                                    {/* 提示与操作同行 */}
+                                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        SVG 格式且背景色透明，图标颜色为 #626F84
+                                    </span>
+                                </div>
                             </div>
                             
                             {/* URL地址 */}
@@ -7046,16 +10239,16 @@ export default function AdminPage() {
                                 />
                             </div>
                             
-                            {/* 内外网属性 */}
+                            {/* 展示Portal */}
                             <div>
-                                <label className="block text-sm font-medium text-red-500 mb-1.5">
-                                    内外网属性
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    展示Portal <span className="text-red-500">*</span>
                                 </label>
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-6">
                                     {[
-                                        { value: 'intranet', label: '内网(qih00.net)' },
-                                        { value: 'public', label: '公网(360.cn)' },
-                                        { value: 'both', label: '既是内网又是公网(即，内外是一个产品)' },
+                                        { value: 'qihoo', label: '360集团/内部(qihoo.net)' },
+                                        { value: 'external', label: '外部(360.cn)' },
+                                        { value: 'both', label: '所有Portal(一个产品)' },
                                     ].map(option => (
                                         <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
                                             <input
@@ -7063,13 +10256,46 @@ export default function AdminPage() {
                                                 name="networkType"
                                                 value={option.value}
                                                 checked={newProduct.networkType === option.value}
-                                                onChange={(e) => setNewProduct({ ...newProduct, networkType: e.target.value })}
+                                                onChange={(e) => setNewProduct({ ...newProduct, networkType: e.target.value, linkedInternalProduct: e.target.value === 'external' ? newProduct.linkedInternalProduct : '' })}
                                                 className="w-4 h-4 text-blue-600"
                                             />
                                             <span className={`text-sm ${newProduct.networkType === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
                                         </label>
                                     ))}
                                 </div>
+
+                                {/* 外部(360.cn) 时可关联一个内部产品 */}
+                                {newProduct.networkType === 'external' && (
+                                    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm text-gray-700 flex-shrink-0">关联内部产品：</span>
+                                            <select
+                                                value={newProduct.linkedInternalProduct}
+                                                onChange={(e) => setNewProduct({ ...newProduct, linkedInternalProduct: e.target.value })}
+                                                className="w-72 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                            >
+                                                <option value="">请选择内部(qihoo.net)产品</option>
+                                                {zhihuiProductsData.map(p => (
+                                                    <option key={p.id} value={p.identifier}>{p.name}（{p.identifier}）</option>
+                                                ))}
+                                            </select>
+                                            {newProduct.linkedInternalProduct && (
+                                                <button
+                                                    onClick={() => setNewProduct({ ...newProduct, linkedInternalProduct: '' })}
+                                                    className="text-xs text-gray-400 hover:text-red-500"
+                                                >
+                                                    清除
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
+                                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            选填，最多关联一个内部(qihoo.net)产品，关联后两侧产品的资源与计费数据可打通
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             
                             {/* 展示范围 */}
@@ -7077,47 +10303,73 @@ export default function AdminPage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                     展示范围
                                 </label>
-                                <div className="flex items-center gap-2">
+                                <div className="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden">
                                     {[
                                         { value: 'all', label: '所有企业可见' },
                                         { value: 'specified', label: '指定企业可见' },
                                         { value: 'excluded', label: '指定企业不可见' },
-                                    ].map(option => (
+                                    ].map((option, idx) => (
                                         <button
                                             key={option.value}
                                             onClick={() => setNewProduct({ ...newProduct, visibility: option.value })}
-                                            className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                                            className={`px-4 py-1.5 text-sm transition-colors ${idx > 0 ? 'border-l border-gray-300' : ''} ${
                                                 newProduct.visibility === option.value
-                                                    ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                                    ? 'bg-blue-50 text-blue-600'
+                                                    : 'bg-white text-gray-600 hover:bg-gray-50'
                                             }`}
                                         >
                                             {option.label}
                                         </button>
                                     ))}
                                 </div>
-                            </div>
-                            
-                            {/* 产品图标 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品图标 <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                                        {newProduct.icon ? (
-                                            <div className="text-xs text-gray-500">已上传</div>
-                                        ) : (
-                                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                            </svg>
-                                        )}
+
+                                {/* 指定企业列表 */}
+                                {newProduct.visibility !== 'all' && (
+                                    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+                                        {newProduct.visibilityEnterprises.map((ent, index) => (
+                                            <div key={index} className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={ent.id}
+                                                    onChange={(e) => {
+                                                        const list = [...newProduct.visibilityEnterprises];
+                                                        list[index] = { ...list[index], id: e.target.value };
+                                                        setNewProduct({ ...newProduct, visibilityEnterprises: list });
+                                                    }}
+                                                    placeholder="请输入企业ID"
+                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={ent.name}
+                                                    onChange={(e) => {
+                                                        const list = [...newProduct.visibilityEnterprises];
+                                                        list[index] = { ...list[index], name: e.target.value };
+                                                        setNewProduct({ ...newProduct, visibilityEnterprises: list });
+                                                    }}
+                                                    placeholder="企业名称"
+                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                                {newProduct.visibilityEnterprises.length > 1 && (
+                                                    <button
+                                                        onClick={() => setNewProduct({ ...newProduct, visibilityEnterprises: newProduct.visibilityEnterprises.filter((_, i) => i !== index) })}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, visibilityEnterprises: [...newProduct.visibilityEnterprises, { id: '', name: '' }] })}
+                                            className="w-full py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                                        >
+                                            添加企业
+                                        </button>
                                     </div>
-                                    <button className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
-                                        上传图标
-                                    </button>
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1">SVG格式且背景色透明，图标颜色为#626F84</p>
+                                )}
                             </div>
                             
                             {/* 分隔线 */}
@@ -7157,60 +10409,264 @@ export default function AdminPage() {
                                 {/* 开关类设置 */}
                                 <div className="space-y-4">
                                     {/* 工单排班表管理 */}
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-700">工单排班表管理</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">工单排班表管理：</span>
                                         <button
                                             onClick={() => setNewProduct({ ...newProduct, workOrderSchedule: !newProduct.workOrderSchedule })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors ${newProduct.workOrderSchedule ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.workOrderSchedule ? 'bg-blue-600' : 'bg-gray-300'}`}
                                         >
                                             <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.workOrderSchedule ? 'translate-x-5' : ''}`} />
                                         </button>
                                     </div>
                                     
                                     {/* 计费开通 */}
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <span className="text-sm text-gray-700">计费开通</span>
-                                            <p className="text-xs text-gray-400 mt-0.5">开启后，该产品在计费相关页面的产品列表里展示</p>
-                                        </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">计费开通：</span>
                                         <button
                                             onClick={() => setNewProduct({ ...newProduct, billingEnabled: !newProduct.billingEnabled })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors ${newProduct.billingEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.billingEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
                                         >
                                             <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.billingEnabled ? 'translate-x-5' : ''}`} />
                                         </button>
+                                        <span className="text-xs text-gray-500">开启后，该产品在计费相关页面的产品列表里展示</span>
                                     </div>
                                     
                                     {/* 产品文档 */}
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-700">产品文档</span>
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">产品文档：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, docEnabled: !newProduct.docEnabled })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.docEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.docEnabled ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                        </div>
+                                        {newProduct.docEnabled && (
+                                            <div className="ml-[140px] mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                                <label className="flex items-center gap-1.5 cursor-pointer mb-2">
+                                                    <input
+                                                        type="radio"
+                                                        name="docType"
+                                                        value="apicloud"
+                                                        checked={newProduct.docType === 'apicloud'}
+                                                        onChange={(e) => setNewProduct({ ...newProduct, docType: e.target.value })}
+                                                        className="w-4 h-4 text-blue-600"
+                                                    />
+                                                    <span className="text-sm font-medium text-blue-600">APIcloud文档链接</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={newProduct.docUrl}
+                                                    onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })}
+                                                    placeholder="https://apicloud.360.cn/user/apistore"
+                                                    className="w-72 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* API文档 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">API文档：</span>
                                         <button
-                                            onClick={() => setNewProduct({ ...newProduct, docEnabled: !newProduct.docEnabled })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors ${newProduct.docEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            onClick={() => setNewProduct({ ...newProduct, apiDocEnabled: !newProduct.apiDocEnabled })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.apiDocEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
                                         >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.docEnabled ? 'translate-x-5' : ''}`} />
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.apiDocEnabled ? 'translate-x-5' : ''}`} />
                                         </button>
+                                    </div>
+
+                                    {/* 是否在控制台展示 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在控制台展示：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, showInConsole: !newProduct.showInConsole })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInConsole ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInConsole ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">关闭后，该产品不在控制台及导航产品列表里展示</span>
+                                    </div>
+
+                                    {/* 是否在官网展示 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在官网展示：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, showInWebsite: !newProduct.showInWebsite })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInWebsite ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInWebsite ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">关闭后，该产品不在官网列表里展示</span>
+                                    </div>
+
+                                    {/* 资源组授权 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源组授权：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, resourceGroupAuth: !newProduct.resourceGroupAuth })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceGroupAuth ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceGroupAuth ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，该产品在资源组授权的产品列表里展示</span>
+                                    </div>
+
+                                    {/* 资源上报 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源上报：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, resourceReport: !newProduct.resourceReport })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceReport ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceReport ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，表示该产品已上报资源，控制台首页会展示当前产品已创建资源及具体数量</span>
+                                    </div>
+
+                                    {/* 仅在工单展示 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">仅在工单展示：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, onlyInWorkOrder: !newProduct.onlyInWorkOrder })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.onlyInWorkOrder ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.onlyInWorkOrder ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，该产品仅在工单产品列表里展示</span>
                                     </div>
                                     
                                     {/* 预留金额 */}
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <span className="text-sm text-gray-700">预留金额</span>
-                                            <p className="text-xs text-gray-400 mt-0.5">设置金额，业务产品在用户使用产品时校验对应企业下的余额</p>
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">预留金额：</span>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={newProduct.reserveAmount}
+                                            onChange={(e) => setNewProduct({ ...newProduct, reserveAmount: Number(e.target.value) })}
+                                            className="w-64 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                        />
+                                        <span className="text-sm text-gray-500">元</span>
+                                        <span className="text-xs text-gray-500">设置金额，业务产品在用户使用产品时校验对应企业下的余额</span>
+                                    </div>
+
+                                    {/* 回调设置 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">回调设置：</span>
+                                        <button
+                                            onClick={() => setCallbackDialogOpen(true)}
+                                            className="text-sm text-blue-600 hover:text-blue-700"
+                                        >
+                                            点击设置
+                                        </button>
+                                        {newProduct.callbackUrl && (
+                                            <span className="text-xs text-gray-500 truncate max-w-md">已配置：{newProduct.callbackUrl}</span>
+                                        )}
+                                    </div>
+
+                                    {/* 管理后台 */}
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">管理后台：</span>
+                                            <div className="flex items-center gap-6">
+                                                {[
+                                                    { value: 'none', label: '无' },
+                                                    { value: 'has', label: '有' },
+                                                ].map(option => (
+                                                    <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="adminBackend"
+                                                            value={option.value}
+                                                            checked={newProduct.adminBackend === option.value}
+                                                            onChange={(e) => setNewProduct({ ...newProduct, adminBackend: e.target.value })}
+                                                            className="w-4 h-4 text-blue-600"
+                                                        />
+                                                        <span className={`text-sm ${newProduct.adminBackend === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                value={newProduct.reserveAmount}
-                                                onChange={(e) => setNewProduct({ ...newProduct, reserveAmount: Number(e.target.value) })}
-                                                className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:outline-none focus:border-blue-500"
-                                            />
-                                            <span className="text-sm text-gray-500">元</span>
-                                        </div>
+                                        {newProduct.adminBackend === 'has' && (
+                                            <div className="ml-[140px] mt-2">
+                                                <input
+                                                    type="text"
+                                                    value={newProduct.adminBackendUrl}
+                                                    onChange={(e) => setNewProduct({ ...newProduct, adminBackendUrl: e.target.value })}
+                                                    placeholder="请输入管理后台地址"
+                                                    className="w-72 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 地域可用区 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">地域可用区：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, regionEnabled: !newProduct.regionEnabled })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.regionEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.regionEnabled ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，当前产品需区分可用区信息，智汇云提供查询接口</span>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 回调设置弹窗 */}
+            {callbackDialogOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => setCallbackDialogOpen(false)} />
+                    <div className="relative bg-white rounded-lg shadow-xl w-[480px]">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                            <h3 className="text-base font-semibold text-gray-900">回调设置</h3>
+                            <button onClick={() => setCallbackDialogOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">回调地址</label>
+                                <input
+                                    type="text"
+                                    value={newProduct.callbackUrl}
+                                    onChange={(e) => setNewProduct({ ...newProduct, callbackUrl: e.target.value })}
+                                    placeholder="请输入回调地址，如 https://example.com/callback"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">回调密钥</label>
+                                <input
+                                    type="text"
+                                    value={newProduct.callbackSecret}
+                                    onChange={(e) => setNewProduct({ ...newProduct, callbackSecret: e.target.value })}
+                                    placeholder="请输入回调密钥"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200">
+                            <button
+                                onClick={() => setCallbackDialogOpen(false)}
+                                className="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={() => setCallbackDialogOpen(false)}
+                                className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                确定
+                            </button>
                         </div>
                     </div>
                 </div>
