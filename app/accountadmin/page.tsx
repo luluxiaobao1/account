@@ -8,66 +8,154 @@ import {
 } from "@/lib/packages-api";
 
 // 智汇云产品数据
+// portal：上架Portal，值为 Portal 名称（即企业名称，对应「平台配置-企业配置」中已开启独立Portal的企业：360集团 / 外部/公共(360.cn)）
+//         或 '__all__'（所有portal，一个产品）
+// linkedProductId：关联的另一个Portal下的同一产品ID。当前所有产品均为「内部Portal产品 ⇄ 外部/公共Portal产品」一一关联，
+//                  内部产品标识统一以 _in 结尾，外部产品沿用原始标识
 const zhihuiProductsData = [
     {
         id: 1,
         name: "离线数仓 Hive",
         category: "大数据/数据仓库",
-        identifier: "hive",
+        identifier: "hive_in",
         visibility: "指定企业可见",
         status: "online",
         onlineTime: "2026-03-25 11:03:51",
         icon: "database",
+        portal: "360集团",
+        linkedProductId: 7 as number | null,
     },
     {
         id: 2,
         name: "对象存储 OSS",
         category: "存储/对象存储",
-        identifier: "oss",
-        visibility: "所有企业可见",
+        identifier: "oss_in",
+        visibility: "指定企业可见",
         status: "online",
         onlineTime: "2026-03-20 09:15:32",
         icon: "storage",
+        portal: "360集团",
+        linkedProductId: 8 as number | null,
     },
     {
         id: 3,
         name: "云数据库 MySQL",
         category: "数据库/关系型数据库",
-        identifier: "mysql",
-        visibility: "所有企业可见",
+        identifier: "mysql_in",
+        visibility: "指定企业可见",
         status: "online",
         onlineTime: "2026-03-18 14:22:08",
         icon: "db",
+        portal: "360集团",
+        linkedProductId: 9 as number | null,
     },
     {
         id: 4,
         name: "容器服务 K8s",
         category: "容器/容器编排",
-        identifier: "k8s",
+        identifier: "k8s_in",
         visibility: "指定企业可见",
         status: "offline",
         onlineTime: "2026-03-10 16:45:20",
         icon: "container",
+        portal: "360集团",
+        linkedProductId: 10 as number | null,
     },
     {
         id: 5,
         name: "实时计算 Flink",
         category: "大数据/流计算",
-        identifier: "flink",
-        visibility: "所有企业可见",
+        identifier: "flink_in",
+        visibility: "指定企业可见",
         status: "offline",
         onlineTime: "2026-03-08 10:30:45",
         icon: "compute",
+        portal: "360集团",
+        linkedProductId: 11 as number | null,
     },
     {
         id: 6,
         name: "消息队列 Kafka",
         category: "中间件/消息队列",
-        identifier: "kafka",
-        visibility: "所有企业可见",
+        identifier: "kafka_in",
+        visibility: "指定企业可见",
         status: "online",
         onlineTime: "2026-03-05 08:12:33",
         icon: "queue",
+        portal: "360集团",
+        linkedProductId: 12 as number | null,
+    },
+    {
+        id: 7,
+        name: "离线数仓 Hive",
+        category: "大数据/数据仓库",
+        identifier: "hive",
+        visibility: "指定企业不可见",
+        status: "online",
+        onlineTime: "2026-03-25 11:05:20",
+        icon: "database",
+        portal: "外部/公共(360.cn)",
+        linkedProductId: 1 as number | null,
+    },
+    {
+        id: 8,
+        name: "对象存储 OSS",
+        category: "存储/对象存储",
+        identifier: "oss",
+        visibility: "指定企业不可见",
+        status: "online",
+        onlineTime: "2026-03-20 09:18:04",
+        icon: "storage",
+        portal: "外部/公共(360.cn)",
+        linkedProductId: 2 as number | null,
+    },
+    {
+        id: 9,
+        name: "云数据库 MySQL",
+        category: "数据库/关系型数据库",
+        identifier: "mysql",
+        visibility: "指定企业不可见",
+        status: "online",
+        onlineTime: "2026-03-18 14:25:37",
+        icon: "db",
+        portal: "外部/公共(360.cn)",
+        linkedProductId: 3 as number | null,
+    },
+    {
+        id: 10,
+        name: "容器服务 K8s",
+        category: "容器/容器编排",
+        identifier: "k8s",
+        visibility: "指定企业不可见",
+        status: "offline",
+        onlineTime: "2026-03-10 16:48:12",
+        icon: "container",
+        portal: "外部/公共(360.cn)",
+        linkedProductId: 4 as number | null,
+    },
+    {
+        id: 11,
+        name: "实时计算 Flink",
+        category: "大数据/流计算",
+        identifier: "flink",
+        visibility: "指定企业不可见",
+        status: "offline",
+        onlineTime: "2026-03-08 10:32:11",
+        icon: "compute",
+        portal: "外部/公共(360.cn)",
+        linkedProductId: 5 as number | null,
+    },
+    {
+        id: 12,
+        name: "消息队列 Kafka",
+        category: "中间件/消息队列",
+        identifier: "kafka",
+        visibility: "指定企业不可见",
+        status: "online",
+        onlineTime: "2026-03-05 08:15:49",
+        icon: "queue",
+        portal: "外部/公共(360.cn)",
+        linkedProductId: 6 as number | null,
     },
 ];
 
@@ -276,7 +364,7 @@ const getAnalysisPortalRows = (row: ProductAnalysisRow): ProductAnalysisPortalRo
     const innerProfit = innerInnerTotal - innerCost;
     const innerOuterProfit = row.outerGroupRevenue - innerOuterInnerPrice;
     const inner: ProductAnalysisPortalRow = {
-        portalName: "智汇云内网门户",
+        portalName: "360集团",
         internal: true,
         productIdentifier: base ? `${base}_in` : "-",
         totalRevenue: row.innerRevenue + row.outerGroupRevenue,
@@ -302,7 +390,7 @@ const getAnalysisPortalRows = (row: ProductAnalysisRow): ProductAnalysisPortalRo
     const outerProfitVal = row.outerProfit - inner.outerProfit;
     const outerInnerProfit = row.innerProfit - inner.innerProfit;
     const outer: ProductAnalysisPortalRow = {
-        portalName: "智汇云官网(360.cn)",
+        portalName: "外部/公共(360.cn)",
         internal: false,
         productIdentifier: base ? `${base}_out` : "-",
         totalRevenue: row.totalRevenue - inner.totalRevenue,
@@ -1365,7 +1453,7 @@ const getTabIcon = (icon: string, className: string = "w-5 h-5") => {
 // ===== 平台配置 - 企业配置：可选租户（输入租户ID检索） =====
 type EnterpriseTenantOption = { id: string; name: string };
 const enterpriseTenantOptions: EnterpriseTenantOption[] = [
-    { id: '100000001', name: '奇虎360' },
+    { id: '100000001', name: '360集团' },
     { id: '100000002', name: '360智汇云' },
     { id: '100000003', name: '360人工智能部' },
     { id: '100000004', name: '360政企安全' },
@@ -1465,6 +1553,89 @@ const collectLinkedDepts = (root: OrgDeptNode): LinkedDept[] => {
     walk(root, []);
     return result;
 };
+
+// ===== 平台配置 - 内部折扣设置 =====
+// 结算单元由 ops 侧同步：即「当前租户」下的全部结算单元
+// 约束：一个组织部门可关联多个结算单元，一个结算单元只能关联一个组织部门（故按组织树首次出现处归属）
+type TenantSettlementUnit = { unit: string; deptId: string; deptName: string; deptPath: string };
+
+// 租户下尚未在组织架构中关联组织部门的结算单元（ops 已同步，但未挂载到部门）
+const tenantUnlinkedUnits: Record<string, string[]> = {
+    '100000001': ['智汇云-智能工程部', '智汇云-数据平台部', '智汇云-交付服务部', '智汇云-研发效能部'],
+    '100000002': ['智汇云-商业化产品部'],
+};
+
+// 汇总某租户下的全部结算单元（组织树中已关联的 + 未关联部门的）
+const collectTenantSettlementUnits = (tenantId: string): TenantSettlementUnit[] => {
+    const result: TenantSettlementUnit[] = [];
+    const walk = (node: OrgDeptNode, ancestors: string[]) => {
+        node.units?.forEach((u) => {
+            // 一个结算单元只能关联一个组织部门：已归属则忽略后续出现
+            if (result.some((r) => r.unit === u)) return;
+            result.push({
+                unit: u,
+                deptId: node.id,
+                deptName: node.name,
+                deptPath: [...ancestors, node.name].join(' / '),
+            });
+        });
+        node.children?.forEach((child) => walk(child, [...ancestors, node.name]));
+    };
+    getTenantOrgTree(tenantId).forEach((n) => walk(n, []));
+    (tenantUnlinkedUnits[tenantId] || []).forEach((u) => {
+        if (result.some((r) => r.unit === u)) return;
+        result.push({ unit: u, deptId: '', deptName: '', deptPath: '' });
+    });
+    return result;
+};
+
+// 内部折扣设置 - 默认属性标签（由内部企业自行定义，可增删改）
+const defaultUnitAttrTags = ['集团外', '集团内非中台', '中台内', '中台内非智汇云', '智汇云'];
+
+// 内部折扣设置 - 折扣类型（单选，仅以下三种）
+// 结算单元命中哪种折扣类型，计费时即取产品定义中对应的折扣值
+type UnitDiscountType = 'internal' | 'svip' | 'vip';
+const unitDiscountTypeOptions: { value: UnitDiscountType; label: string }[] = [
+    { value: 'internal', label: '内部折扣' },
+    { value: 'svip', label: 'SVIP折扣' },
+    { value: 'vip', label: 'VIP折扣' },
+];
+
+// 内部折扣设置 - 结算单元的属性标签与折扣配置
+// 规则：一个结算单元只能设置一个折扣类型，设置后该结算单元计费时按该折扣类型取值
+type UnitDiscountConfig = {
+    tag: string;                        // 属性标签，空字符串代表未配置
+    discount: UnitDiscountType | null;  // 唯一折扣类型，null 代表未设置
+    updateTime: string;
+};
+const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
+    '智汇云-应用平台部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-18 16:40:12' },
+    '智汇云-商业化产品部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-18 16:40:12' },
+    '智汇云-云平台部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-20 09:12:45' },
+    '智汇云-系统运维部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-20 09:14:02' },
+    '智汇云-基础架构部': { tag: '中台内非智汇云', discount: 'svip', updateTime: '2025-11-28 15:02:31' },
+    '智汇云-安全技术部': { tag: '中台内非智汇云', discount: 'svip', updateTime: '2025-11-28 15:03:47' },
+    '智汇云-系统部': { tag: '中台内', discount: 'svip', updateTime: '2025-10-16 11:22:08' },
+    '智汇云-数据平台部': { tag: '中台内', discount: 'svip', updateTime: '2025-10-16 11:23:56' },
+    '360人工智能研究院': { tag: '集团内非中台', discount: 'vip', updateTime: '2025-09-30 17:45:19' },
+    '智汇云-交付服务部': { tag: '集团内非中台', discount: 'vip', updateTime: '2025-09-30 17:46:03' },
+    '智汇云-智能工程部': { tag: '集团外', discount: 'vip', updateTime: '2025-09-12 10:08:37' },
+    // 未配置示例：新同步的结算单元，属性标签与折扣均待配置
+    '智汇云-研发效能部': { tag: '', discount: null, updateTime: '--' },
+};
+
+// 内部折扣设置 - 折扣类型展示格式化
+const formatDiscount = (v: UnitDiscountType | null) =>
+    v == null ? '--' : (unitDiscountTypeOptions.find(o => o.value === v)?.label || '--');
+
+// 内部折扣设置 - 属性标签配色（按标签在标签列表中的顺序循环取色）
+const unitTagColors = [
+    'bg-gray-100 text-gray-600',
+    'bg-amber-50 text-amber-600',
+    'bg-purple-50 text-purple-600',
+    'bg-cyan-50 text-cyan-600',
+    'bg-blue-50 text-blue-600',
+];
 
 // 租户数据
 const tenantsData = [
@@ -1755,61 +1926,61 @@ const productBillData: ProductBillRow[] = [
     {
         id: "llm-202603", productName: "大模型", productIdentifier: "llm", period: "202603",
         portals: [
-            { portalName: "智汇云内网门户", internal: true, productIdentifier: "llm_in", standardAmount: 28456789.12, payableAmount: 17234567.89, payableLastPeriod: 16789234.56, arrearsAmount: 0, settling: true },
-            { portalName: "智汇云官网", internal: false, productIdentifier: "llm_out", standardAmount: 17221445.44, payableAmount: 11221555.89, payableLastPeriod: 14253333.33, arrearsAmount: 0, settling: true },
+            { portalName: "360集团", internal: true, productIdentifier: "llm_in", standardAmount: 28456789.12, payableAmount: 17234567.89, payableLastPeriod: 16789234.56, arrearsAmount: 0, settling: true },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "llm_out", standardAmount: 17221445.44, payableAmount: 11221555.89, payableLastPeriod: 14253333.33, arrearsAmount: 0, settling: true },
         ],
     },
     {
         id: "lobster-202603", productName: "龙虾", productIdentifier: "lobster", period: "202603",
         portals: [
-            { portalName: "智汇云内网门户", internal: true, productIdentifier: "lobster_in", standardAmount: 19234567.89, payableAmount: 11234567.45, payableLastPeriod: 10089234.56, arrearsAmount: 0, settling: true },
-            { portalName: "智汇云官网", internal: false, productIdentifier: "lobster_out", standardAmount: 12955000.00, payableAmount: 8000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: true },
+            { portalName: "360集团", internal: true, productIdentifier: "lobster_in", standardAmount: 19234567.89, payableAmount: 11234567.45, payableLastPeriod: 10089234.56, arrearsAmount: 0, settling: true },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "lobster_out", standardAmount: 12955000.00, payableAmount: 8000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: true },
         ],
     },
     {
         id: "apicloud-202603", productName: "APICloud", productIdentifier: "apicloud", period: "202603",
         portals: [
-            { portalName: "API市场门户", internal: false, productIdentifier: "apicloud", standardAmount: 18456789.23, payableAmount: 11567890.34, payableLastPeriod: 12263456.78, arrearsAmount: 0, settling: true },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "apicloud", standardAmount: 18456789.23, payableAmount: 11567890.34, payableLastPeriod: 12263456.78, arrearsAmount: 0, settling: true },
         ],
     },
     {
         id: "llm-202602", productName: "大模型", productIdentifier: "llm", period: "202602",
         portals: [
-            { portalName: "智汇云内网门户", internal: true, productIdentifier: "llm_in", standardAmount: 32345678.90, payableAmount: 19042567.89, payableLastPeriod: 18075234.56, arrearsAmount: 0, settling: false },
-            { portalName: "智汇云官网", internal: false, productIdentifier: "llm_out", standardAmount: 20000000.00, payableAmount: 12000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
+            { portalName: "360集团", internal: true, productIdentifier: "llm_in", standardAmount: 32345678.90, payableAmount: 19042567.89, payableLastPeriod: 18075234.56, arrearsAmount: 0, settling: false },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "llm_out", standardAmount: 20000000.00, payableAmount: 12000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
         ],
     },
     {
         id: "lobster-202602", productName: "龙虾", productIdentifier: "lobster", period: "202602",
         portals: [
-            { portalName: "智汇云内网门户", internal: true, productIdentifier: "lobster_in", standardAmount: 17567890.12, payableAmount: 10089234.56, payableLastPeriod: 10698567.89, arrearsAmount: 0, settling: false },
-            { portalName: "智汇云官网", internal: false, productIdentifier: "lobster_out", standardAmount: 11000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
+            { portalName: "360集团", internal: true, productIdentifier: "lobster_in", standardAmount: 17567890.12, payableAmount: 10089234.56, payableLastPeriod: 10698567.89, arrearsAmount: 0, settling: false },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "lobster_out", standardAmount: 11000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
         ],
     },
     {
         id: "apicloud-202602", productName: "APICloud", productIdentifier: "apicloud", period: "202602",
         portals: [
-            { portalName: "API市场门户", internal: false, productIdentifier: "apicloud", standardAmount: 21234567.89, payableAmount: 12263456.78, payableLastPeriod: 11228567.90, arrearsAmount: 0, settling: false },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "apicloud", standardAmount: 21234567.89, payableAmount: 12263456.78, payableLastPeriod: 11228567.90, arrearsAmount: 0, settling: false },
         ],
     },
     {
         id: "llm-202601", productName: "大模型", productIdentifier: "llm", period: "202601",
         portals: [
-            { portalName: "智汇云内网门户", internal: true, productIdentifier: "llm_in", standardAmount: 30901234.56, payableAmount: 18075234.56, payableLastPeriod: 18714567.89, arrearsAmount: 0, settling: false },
-            { portalName: "智汇云官网", internal: false, productIdentifier: "llm_out", standardAmount: 18000000.00, payableAmount: 11000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
+            { portalName: "360集团", internal: true, productIdentifier: "llm_in", standardAmount: 30901234.56, payableAmount: 18075234.56, payableLastPeriod: 18714567.89, arrearsAmount: 0, settling: false },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "llm_out", standardAmount: 18000000.00, payableAmount: 11000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
         ],
     },
     {
         id: "lobster-202601", productName: "龙虾", productIdentifier: "lobster", period: "202601",
         portals: [
-            { portalName: "智汇云内网门户", internal: true, productIdentifier: "lobster_in", standardAmount: 16789012.34, payableAmount: 10698567.89, payableLastPeriod: 9926234.56, arrearsAmount: 0, settling: false },
-            { portalName: "智汇云官网", internal: false, productIdentifier: "lobster_out", standardAmount: 10000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
+            { portalName: "360集团", internal: true, productIdentifier: "lobster_in", standardAmount: 16789012.34, payableAmount: 10698567.89, payableLastPeriod: 9926234.56, arrearsAmount: 0, settling: false },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "lobster_out", standardAmount: 10000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
         ],
     },
     {
         id: "apicloud-202601", productName: "APICloud", productIdentifier: "apicloud", period: "202601",
         portals: [
-            { portalName: "API市场门户", internal: false, productIdentifier: "apicloud", standardAmount: 19567890.12, payableAmount: 11228567.90, payableLastPeriod: 11445234.56, arrearsAmount: 0, settling: false },
+            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "apicloud", standardAmount: 19567890.12, payableAmount: 11228567.90, payableLastPeriod: 11445234.56, arrearsAmount: 0, settling: false },
         ],
     },
 ];
@@ -1981,50 +2152,186 @@ export default function AdminPage() {
 
 
     // ===== 平台配置 - 地域可用区 =====
+    // 单个 Portal 下的可用区配置：地域下「每个已开启独立Portal的Portal」都固定存在一条配置，
+    // 不支持增删，只通过 enabled 控制该 Portal 下是否开启该可用区
+    type ZonePortalEntry = {
+        key: number;            // 前端行唯一键
+        portalName: string;     // 所属 Portal
+        enabled: boolean;       // 是否开启（该Portal下是否展示此可用区）
+        name: string;           // 该 Portal 下的可用区名称
+        code: string;           // 该 Portal 下的可用区标识
+    };
     type RegionZone = {
         id: number;
-        innerName: string;      // 内网(qihoo.net)可用区名称
-        innerCode: string;      // 内网(qihoo.net)可用区标识
-        outerName: string;      // 外网(360.cn)可用区名称
-        outerCode: string;      // 外网(360.cn)可用区标识
         region: string;         // 地域
-        publicNet: boolean;     // 公网是否启用
-        cloudServer: string;    // 云服务器名称
+        cloudServer: string;    // 服务方名称
+        portals: ZonePortalEntry[];  // 各 Portal 下的可用区配置（覆盖全部已开启独立Portal）
         createTime: string;
         updateTime: string;
     };
+    // 当前仅有两个 Portal：内部Portal「360集团」与外部/公共Portal「外部/公共(360.cn)」（Portal名称即企业名称）
+    const INNER_PORTAL = '360集团';
+    const OUTER_PORTAL = '外部/公共(360.cn)';
     const [regionZones, setRegionZones] = useState<RegionZone[]>([
-        { id: 1, innerName: '北京电信', innerCode: 'bjwdt', outerName: '北京1区', outerCode: 'beijing1', region: '北京', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
-        { id: 2, innerName: '北京电信', innerCode: 'bjzdt', outerName: '北京2区', outerCode: 'beijing2', region: '北京', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:32:11', updateTime: '2025-12-22 18:32:11' },
-        { id: 3, innerName: '北京联通', innerCode: 'bjpdc', outerName: '北京3区', outerCode: 'beijing3', region: '北京', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03' },
-        { id: 4, innerName: '北京移动', innerCode: 'bjcm', outerName: '北京4区', outerCode: 'beijing4', region: '北京', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:32:29', updateTime: '2025-12-22 18:32:29' },
-        { id: 5, innerName: '北京联通', innerCode: 'bjmd', outerName: '北京5区', outerCode: 'beijing5', region: '北京', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:32:33', updateTime: '2025-12-22 18:32:33' },
-        { id: 6, innerName: '阿里1区', innerCode: 'alibj1', outerName: '阿里1区', outerCode: 'alibj1', region: '北京', publicNet: false, cloudServer: '阿里云', createTime: '2026-07-08 17:40:25', updateTime: '2026-07-08 17:40:25' },
-        { id: 7, innerName: '上海电信', innerCode: 'shbt', outerName: '上海1区', outerCode: 'shanghai1', region: '上海', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06' },
-        { id: 8, innerName: '上海联通', innerCode: 'shyc2', outerName: '上海2区', outerCode: 'shanghai2', region: '上海', publicNet: true, cloudServer: '奇虎360', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06' },
-        { id: 9, innerName: '郑州电信', innerCode: 'zzdt', outerName: '郑州1区', outerCode: 'zhengzhou1', region: '郑州', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:33:15', updateTime: '2025-12-22 18:33:15' },
-        { id: 10, innerName: '郑州联通', innerCode: 'zzzc', outerName: '郑州2区', outerCode: 'zhengzhou2', region: '郑州', publicNet: false, cloudServer: '奇虎360', createTime: '2025-12-22 18:33:20', updateTime: '2025-12-22 18:33:20' },
-        { id: 11, innerName: '广州电信', innerCode: 'gzdt', outerName: '广州1区', outerCode: 'guangzhou1', region: '广州', publicNet: true, cloudServer: '奇虎360', createTime: '2025-12-22 18:33:41', updateTime: '2025-12-22 18:33:41' },
-        { id: 12, innerName: '香港', innerCode: 'hk', outerName: '香港1区', outerCode: 'hongkong1', region: '香港', publicNet: true, cloudServer: '奇虎360', createTime: '2025-12-22 18:34:02', updateTime: '2025-12-22 18:34:02' },
+        {
+            id: 1, region: '北京', cloudServer: '360集团', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京电信', code: 'bjwdt' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '北京1区', code: 'beijing1' },
+            ],
+        },
+        {
+            id: 2, region: '北京', cloudServer: '360集团', createTime: '2025-12-22 18:32:11', updateTime: '2025-12-22 18:32:11',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京电信', code: 'bjzdt' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '北京2区', code: 'beijing2' },
+            ],
+        },
+        {
+            id: 3, region: '北京', cloudServer: '360集团', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京联通', code: 'bjpdc' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '北京3区', code: 'beijing3' },
+            ],
+        },
+        {
+            id: 4, region: '北京', cloudServer: '360集团', createTime: '2025-12-22 18:32:29', updateTime: '2025-12-22 18:32:29',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京移动', code: 'bjcm' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '北京4区', code: 'beijing4' },
+            ],
+        },
+        {
+            id: 5, region: '北京', cloudServer: '360集团', createTime: '2025-12-22 18:32:33', updateTime: '2025-12-22 18:32:33',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京联通', code: 'bjmd' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '北京5区', code: 'beijing5' },
+            ],
+        },
+        {
+            id: 6, region: '北京', cloudServer: '阿里云', createTime: '2026-07-08 17:40:25', updateTime: '2026-07-08 17:40:25',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '阿里1区', code: 'alibj1' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '阿里北京1区', code: 'ali_beijing1' },
+            ],
+        },
+        {
+            id: 7, region: '上海', cloudServer: '360集团', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '上海电信', code: 'shbt' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '上海1区', code: 'shanghai1' },
+            ],
+        },
+        {
+            id: 8, region: '上海', cloudServer: '360集团', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '上海联通', code: 'shyc2' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '上海2区', code: 'shanghai2' },
+            ],
+        },
+        {
+            id: 9, region: '郑州', cloudServer: '360集团', createTime: '2025-12-22 18:33:15', updateTime: '2025-12-22 18:33:15',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '郑州电信', code: 'zzdt' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '郑州1区', code: 'zhengzhou1' },
+            ],
+        },
+        {
+            id: 10, region: '郑州', cloudServer: '360集团', createTime: '2025-12-22 18:33:20', updateTime: '2025-12-22 18:33:20',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '郑州联通', code: 'zzzc' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '郑州2区', code: 'zhengzhou2' },
+            ],
+        },
+        {
+            id: 11, region: '广州', cloudServer: '360集团', createTime: '2025-12-22 18:33:41', updateTime: '2025-12-22 18:33:41',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '广州电信', code: 'gzdt' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '广州1区', code: 'guangzhou1' },
+            ],
+        },
+        {
+            id: 12, region: '香港', cloudServer: '360集团', createTime: '2025-12-22 18:34:02', updateTime: '2025-12-22 18:34:02',
+            portals: [
+                { key: 1, portalName: INNER_PORTAL, enabled: true, name: '香港', code: 'hk' },
+                { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '香港1区', code: 'hongkong1' },
+            ],
+        },
     ]);
     const [regionZoneSearch, setRegionZoneSearch] = useState('');
     const [regionZoneDialogOpen, setRegionZoneDialogOpen] = useState(false);
     const [editingRegionZoneId, setEditingRegionZoneId] = useState<number | null>(null);
-    const emptyRegionZoneForm = {
-        innerName: '', innerCode: '', outerName: '', outerCode: '',
-        region: '', publicNet: true, cloudServer: '',
+    type RegionZoneForm = { region: string; cloudServer: string; portals: ZonePortalEntry[] };
+    const emptyRegionZoneForm: RegionZoneForm = {
+        region: '', cloudServer: '',
+        portals: [],
     };
-    const [regionZoneForm, setRegionZoneForm] = useState(emptyRegionZoneForm);
+    const [regionZoneForm, setRegionZoneForm] = useState<RegionZoneForm>(emptyRegionZoneForm);
+    const [regionZoneFormError, setRegionZoneFormError] = useState('');
 
-    // 云服务器 / 地域 下拉选项
-    const cloudServerOptions = ['奇虎360', '阿里云', '腾讯云', '华为云', 'AWS'];
-    const regionOptions = ['北京', '上海', '广州', '郑州', '香港'];
+    // ===== 平台配置 - 地域配置（服务方 / 地域 / 地域分组）=====
+    const [regionPageTab, setRegionPageTab] = useState<'zone' | 'config'>('zone');
+    const [regionConfigSection, setRegionConfigSection] = useState<'provider' | 'region'>('region');
+
+    type ServiceProvider = { id: number; name: string; createTime: string; updateTime: string };
+    type RegionItem = { id: number; name: string; code: string; createTime: string; updateTime: string };
+    type RegionGroup = { id: number; name: string; regionIds: number[]; createTime: string; updateTime: string };
+
+    const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([
+        { id: 1, name: '360集团', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
+        { id: 2, name: '阿里云', createTime: '2024-08-10 13:07:02', updateTime: '2024-08-10 13:07:02' },
+        { id: 3, name: '腾讯云', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03' },
+        { id: 4, name: '华为云', createTime: '2025-03-11 09:20:15', updateTime: '2025-03-11 09:20:15' },
+        { id: 5, name: 'AWS', createTime: '2025-06-02 11:41:08', updateTime: '2025-06-02 11:41:08' },
+    ]);
+    const [regionItems, setRegionItems] = useState<RegionItem[]>([
+        { id: 1, name: '北京', code: 'beijing', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
+        { id: 2, name: '上海', code: 'shanghai', createTime: '2024-08-10 13:07:02', updateTime: '2024-08-10 13:07:02' },
+        { id: 3, name: '广州', code: 'guangzhou', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03' },
+        { id: 4, name: '郑州', code: 'zhengzhou', createTime: '2024-08-10 13:07:04', updateTime: '2024-08-10 13:07:04' },
+        { id: 5, name: '天津', code: 'tianjin', createTime: '2025-01-15 10:12:20', updateTime: '2025-01-15 10:12:20' },
+        { id: 6, name: '香港', code: 'hongkong', createTime: '2025-02-20 16:30:44', updateTime: '2025-02-20 16:30:44' },
+        { id: 7, name: '新加坡', code: 'singapore', createTime: '2025-07-01 09:05:12', updateTime: '2025-07-01 09:05:12' },
+    ]);
+    const [regionGroups, setRegionGroups] = useState<RegionGroup[]>([
+        { id: 1, name: '国内', regionIds: [1, 2, 3, 4, 5], createTime: '2024-08-10 13:10:00', updateTime: '2025-12-18 16:40:12' },
+        { id: 2, name: '中国港澳台', regionIds: [6], createTime: '2025-02-20 16:35:00', updateTime: '2025-02-20 16:35:00' },
+        { id: 3, name: '海外', regionIds: [7], createTime: '2025-07-01 09:10:00', updateTime: '2025-07-01 09:10:00' },
+    ]);
+
+    // 服务方 / 地域 下拉选项（由地域配置动态生成）
+    const cloudServerOptions = serviceProviders.map(p => p.name);
+    const regionOptions = regionItems.map(r => r.name);
+
+    // 服务方弹窗
+    const [providerDialogOpen, setProviderDialogOpen] = useState(false);
+    const [editingProviderId, setEditingProviderId] = useState<number | null>(null);
+    const [providerForm, setProviderForm] = useState({ name: '' });
+    const [providerFormError, setProviderFormError] = useState('');
+
+    // 地域弹窗
+    const [regionItemDialogOpen, setRegionItemDialogOpen] = useState(false);
+    const [editingRegionItemId, setEditingRegionItemId] = useState<number | null>(null);
+    const [regionItemForm, setRegionItemForm] = useState<{ name: string; code: string; groupIds: number[] }>({ name: '', code: '', groupIds: [] });
+    const [regionItemFormError, setRegionItemFormError] = useState('');
+    const [regionGroupPickerOpen, setRegionGroupPickerOpen] = useState(false);
+
+    // 地域分组弹窗
+    const [regionGroupDialogOpen, setRegionGroupDialogOpen] = useState(false);
+    const [editingRegionGroupId, setEditingRegionGroupId] = useState<number | null>(null);
+    const [regionGroupForm, setRegionGroupForm] = useState<{ name: string; regionIds: number[] }>({ name: '', regionIds: [] });
+    const [regionGroupFormError, setRegionGroupFormError] = useState('');
+    const [expandedGroupIds, setExpandedGroupIds] = useState<number[]>([1]);
+
+    // 左侧分组树选中项：'all' 全部地域 / 'ungrouped' 未分组 / 分组 id
+    const [selectedGroupKey, setSelectedGroupKey] = useState<'all' | 'ungrouped' | number>('all');
+    const [regionItemSearch, setRegionItemSearch] = useState('');
 
     const filteredRegionZones = regionZones.filter(z => {
         const kw = regionZoneSearch.trim().toLowerCase();
         if (!kw) return true;
-        return [z.innerName, z.innerCode, z.outerName, z.outerCode, z.region, z.cloudServer]
-            .some(v => v.toLowerCase().includes(kw));
+        const values = [z.region, z.cloudServer, ...z.portals.flatMap(p => [p.portalName, p.name, p.code])];
+        return values.some(v => (v || '').toLowerCase().includes(kw));
     });
 
     const formatNow = () => {
@@ -2033,77 +2340,432 @@ export default function AdminPage() {
         return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
     };
 
+    // 根据地域名称查询其所属分组名称（用于新建可用区时选中地域后自动展示分组）
+    const getGroupNamesByRegionName = (regionName: string): string[] => {
+        const r = regionItems.find(x => x.name === regionName);
+        if (!r) return [];
+        return regionGroups.filter(g => g.regionIds.includes(r.id)).map(g => g.name);
+    };
+
+    // Portal 名称（即企业名称）-> Portal 域名（来源于「企业配置」中已开启独立Portal的企业配置）
+    const getPortalDomain = (portalName: string): string => {
+        const ent = enterpriseConfigs.find(e => e.enablePortal && e.name.trim() === portalName);
+        return ent ? ent.portalDomain.trim() : '';
+    };
+    // Portal 展示文案：portal名称(域名后缀)
+    const formatPortalLabel = (portalName: string): string => {
+        const domain = getPortalDomain(portalName);
+        return domain ? `${portalName}(${domain})` : portalName;
+    };
+
+    // 依据「已开启独立Portal的企业」生成全量 Portal 配置行；已有配置沿用其名称/标识/开启状态
+    const buildZonePortalEntries = (existing: ZonePortalEntry[] = []): ZonePortalEntry[] =>
+        zonePortalOptions.map((portalName, idx) => {
+            const old = existing.find(p => p.portalName === portalName);
+            return {
+                key: idx + 1,
+                portalName,
+                enabled: old ? old.enabled : false,
+                name: old ? old.name : '',
+                code: old ? old.code : '',
+            };
+        });
+
     const handleOpenCreateRegionZone = () => {
         setEditingRegionZoneId(null);
-        setRegionZoneForm(emptyRegionZoneForm);
+        setRegionZoneForm({
+            region: '', cloudServer: '',
+            portals: buildZonePortalEntries(),
+        });
+        setRegionZoneFormError('');
         setRegionZoneDialogOpen(true);
     };
 
     const handleOpenEditRegionZone = (zone: RegionZone) => {
         setEditingRegionZoneId(zone.id);
         setRegionZoneForm({
-            innerName: zone.innerName,
-            innerCode: zone.innerCode,
-            outerName: zone.outerName,
-            outerCode: zone.outerCode,
             region: zone.region,
-            publicNet: zone.publicNet,
             cloudServer: zone.cloudServer,
+            portals: buildZonePortalEntries(zone.portals),
         });
+        setRegionZoneFormError('');
         setRegionZoneDialogOpen(true);
     };
 
+    // 可用区 - Portal 配置行的修改（Portal 行固定，不支持增删）
+    const handleUpdateZonePortal = (key: number, patch: Partial<ZonePortalEntry>) => {
+        setRegionZoneForm(prev => ({
+            ...prev,
+            portals: prev.portals.map(p => p.key === key ? { ...p, ...patch } : p),
+        }));
+        setRegionZoneFormError('');
+    };
+
     const handleSaveRegionZone = () => {
-        if (!regionZoneForm.cloudServer.trim() || !regionZoneForm.region.trim()
-            || !regionZoneForm.innerName.trim() || !regionZoneForm.innerCode.trim()) {
-            return;
-        }
-        if (regionZoneForm.publicNet && (!regionZoneForm.outerName.trim() || !regionZoneForm.outerCode.trim())) {
-            return;
+        if (!regionZoneForm.cloudServer.trim()) { setRegionZoneFormError('请选择服务方'); return; }
+        if (!regionZoneForm.region.trim()) { setRegionZoneFormError('请选择地域'); return; }
+        // 不管是否启用，每个 Portal 的可用区名称与标识均必填
+        if (regionZoneForm.portals.length === 0) { setRegionZoneFormError('暂无可配置的Portal'); return; }
+        for (const p of regionZoneForm.portals) {
+            if (!p.name.trim()) { setRegionZoneFormError(`请输入「${formatPortalLabel(p.portalName)}」的可用区名称`); return; }
+            if (!p.code.trim()) { setRegionZoneFormError(`请输入「${formatPortalLabel(p.portalName)}」的可用区标识`); return; }
+            if (!/^[A-Za-z0-9_-]+$/.test(p.code.trim())) { setRegionZoneFormError(`「${formatPortalLabel(p.portalName)}」的可用区标识仅支持英文、数字、_、-`); return; }
         }
         const now = formatNow();
+        const portals = regionZoneForm.portals.map(p => ({
+            ...p, portalName: p.portalName.trim(), name: p.name.trim(), code: p.code.trim(),
+        }));
         if (editingRegionZoneId != null) {
             setRegionZones(prev => prev.map(z => z.id === editingRegionZoneId
-                ? { ...z, ...regionZoneForm, updateTime: now }
+                ? { ...z, region: regionZoneForm.region, cloudServer: regionZoneForm.cloudServer, portals, updateTime: now }
                 : z));
         } else {
             const nextId = regionZones.length ? Math.max(...regionZones.map(z => z.id)) + 1 : 1;
-            setRegionZones(prev => [...prev, { id: nextId, ...regionZoneForm, createTime: now, updateTime: now }]);
+            setRegionZones(prev => [...prev, {
+                id: nextId, region: regionZoneForm.region, cloudServer: regionZoneForm.cloudServer,
+                portals, createTime: now, updateTime: now,
+            }]);
         }
         setRegionZoneDialogOpen(false);
     };
 
-    // ===== 平台配置 - 企业配置 =====
+    // ---- 服务方 CRUD ----
+    const handleOpenCreateProvider = () => {
+        setEditingProviderId(null);
+        setProviderForm({ name: '' });
+        setProviderFormError('');
+        setProviderDialogOpen(true);
+    };
+    const handleOpenEditProvider = (p: ServiceProvider) => {
+        setEditingProviderId(p.id);
+        setProviderForm({ name: p.name });
+        setProviderFormError('');
+        setProviderDialogOpen(true);
+    };
+    const handleSaveProvider = () => {
+        const name = providerForm.name.trim();
+        if (!name) { setProviderFormError('请输入服务方名称'); return; }
+        if (serviceProviders.some(p => p.name === name && p.id !== editingProviderId)) {
+            setProviderFormError('服务方名称已存在'); return;
+        }
+        const now = formatNow();
+        if (editingProviderId != null) {
+            const old = serviceProviders.find(p => p.id === editingProviderId);
+            setServiceProviders(prev => prev.map(p => p.id === editingProviderId ? { ...p, name, updateTime: now } : p));
+            if (old && old.name !== name) {
+                setRegionZones(prev => prev.map(z => z.cloudServer === old.name ? { ...z, cloudServer: name } : z));
+            }
+        } else {
+            const nextId = serviceProviders.length ? Math.max(...serviceProviders.map(p => p.id)) + 1 : 1;
+            setServiceProviders(prev => [...prev, { id: nextId, name, createTime: now, updateTime: now }]);
+        }
+        setProviderDialogOpen(false);
+    };
+    const handleDeleteProvider = (p: ServiceProvider) => {
+        if (regionZones.some(z => z.cloudServer === p.name)) {
+            window.alert(`服务方「${p.name}」已被可用区引用，无法删除`);
+            return;
+        }
+        if (window.confirm(`确认删除服务方「${p.name}」？`)) {
+            setServiceProviders(prev => prev.filter(x => x.id !== p.id));
+        }
+    };
+
+    // ---- 地域 CRUD ----
+    const handleOpenCreateRegionItem = () => {
+        setEditingRegionItemId(null);
+        // 若当前选中的是具体分组，默认预选该分组
+        const preset = typeof selectedGroupKey === 'number' ? [selectedGroupKey] : [];
+        setRegionItemForm({ name: '', code: '', groupIds: preset });
+        setRegionItemFormError('');
+        setRegionGroupPickerOpen(false);
+        setRegionItemDialogOpen(true);
+    };
+    const handleOpenEditRegionItem = (r: RegionItem) => {
+        setEditingRegionItemId(r.id);
+        setRegionItemForm({
+            name: r.name,
+            code: r.code,
+            groupIds: regionGroups.filter(g => g.regionIds.includes(r.id)).map(g => g.id),
+        });
+        setRegionItemFormError('');
+        setRegionGroupPickerOpen(false);
+        setRegionItemDialogOpen(true);
+    };
+    const toggleRegionItemGroup = (gid: number) => {
+        setRegionItemForm(prev => prev.groupIds.includes(gid)
+            ? { ...prev, groupIds: prev.groupIds.filter(x => x !== gid) }
+            : { ...prev, groupIds: [...prev.groupIds, gid] });
+    };
+    const handleSaveRegionItem = () => {
+        const name = regionItemForm.name.trim();
+        const code = regionItemForm.code.trim();
+        const groupIds = regionItemForm.groupIds;
+        if (!name) { setRegionItemFormError('请输入地域名称'); return; }
+        if (!code) { setRegionItemFormError('请输入地域标识'); return; }
+        if (!/^[A-Za-z0-9_-]+$/.test(code)) { setRegionItemFormError('地域标识仅支持英文、数字、_、-'); return; }
+        if (groupIds.length === 0) { setRegionItemFormError('请选择地域分组'); return; }
+        if (regionItems.some(r => r.name === name && r.id !== editingRegionItemId)) {
+            setRegionItemFormError('地域名称已存在'); return;
+        }
+        if (regionItems.some(r => r.code === code && r.id !== editingRegionItemId)) {
+            setRegionItemFormError('地域标识已存在'); return;
+        }
+        const now = formatNow();
+        let targetId = editingRegionItemId;
+        if (editingRegionItemId != null) {
+            const old = regionItems.find(r => r.id === editingRegionItemId);
+            setRegionItems(prev => prev.map(r => r.id === editingRegionItemId ? { ...r, name, code, updateTime: now } : r));
+            if (old && old.name !== name) {
+                setRegionZones(prev => prev.map(z => z.region === old.name ? { ...z, region: name } : z));
+            }
+        } else {
+            const nextId = regionItems.length ? Math.max(...regionItems.map(r => r.id)) + 1 : 1;
+            targetId = nextId;
+            setRegionItems(prev => [...prev, { id: nextId, name, code, createTime: now, updateTime: now }]);
+        }
+        // 同步地域与分组的归属关系
+        if (targetId != null) {
+            const rid = targetId;
+            setRegionGroups(prev => prev.map(g => {
+                const should = groupIds.includes(g.id);
+                const has = g.regionIds.includes(rid);
+                if (should === has) return g;
+                return should
+                    ? { ...g, regionIds: [...g.regionIds, rid], updateTime: now }
+                    : { ...g, regionIds: g.regionIds.filter(x => x !== rid), updateTime: now };
+            }));
+            setExpandedGroupIds(prev => Array.from(new Set([...prev, ...groupIds])));
+        }
+        setRegionItemDialogOpen(false);
+    };
+    const handleDeleteRegionItem = (r: RegionItem) => {
+        if (regionZones.some(z => z.region === r.name)) {
+            window.alert(`地域「${r.name}」已被可用区引用，无法删除`);
+            return;
+        }
+        if (window.confirm(`确认删除地域「${r.name}」？删除后将同时从所属地域分组中移除。`)) {
+            setRegionItems(prev => prev.filter(x => x.id !== r.id));
+            setRegionGroups(prev => prev.map(g => ({ ...g, regionIds: g.regionIds.filter(id => id !== r.id) })));
+        }
+    };
+
+    // ---- 地域分组 CRUD ----
+    const handleOpenCreateRegionGroup = () => {
+        setEditingRegionGroupId(null);
+        setRegionGroupForm({ name: '', regionIds: [] });
+        setRegionGroupFormError('');
+        setRegionGroupDialogOpen(true);
+    };
+    const handleOpenEditRegionGroup = (g: RegionGroup) => {
+        setEditingRegionGroupId(g.id);
+        setRegionGroupForm({ name: g.name, regionIds: [...g.regionIds] });
+        setRegionGroupFormError('');
+        setRegionGroupDialogOpen(true);
+    };
+    const toggleRegionGroupRegion = (id: number) => {
+        setRegionGroupForm(prev => prev.regionIds.includes(id)
+            ? { ...prev, regionIds: prev.regionIds.filter(x => x !== id) }
+            : { ...prev, regionIds: [...prev.regionIds, id] });
+    };
+    const handleSaveRegionGroup = () => {
+        const name = regionGroupForm.name.trim();
+        if (!name) { setRegionGroupFormError('请输入地域分组名称'); return; }
+        if (regionGroups.some(g => g.name === name && g.id !== editingRegionGroupId)) {
+            setRegionGroupFormError('地域分组名称已存在'); return;
+        }
+        const now = formatNow();
+        if (editingRegionGroupId != null) {
+            setRegionGroups(prev => prev.map(g => g.id === editingRegionGroupId
+                ? { ...g, name, regionIds: regionGroupForm.regionIds, updateTime: now } : g));
+        } else {
+            const nextId = regionGroups.length ? Math.max(...regionGroups.map(g => g.id)) + 1 : 1;
+            setRegionGroups(prev => [...prev, { id: nextId, name, regionIds: regionGroupForm.regionIds, createTime: now, updateTime: now }]);
+            setExpandedGroupIds(prev => [...prev, nextId]);
+            setSelectedGroupKey(nextId);
+        }
+        setRegionGroupDialogOpen(false);
+    };
+    const handleDeleteRegionGroup = (g: RegionGroup) => {
+        if (window.confirm(`确认删除地域分组「${g.name}」？分组内的地域不会被删除。`)) {
+            setRegionGroups(prev => prev.filter(x => x.id !== g.id));
+            setSelectedGroupKey(prev => (prev === g.id ? 'all' : prev));
+        }
+    };
+    const toggleGroupExpand = (id: number) => {
+        setExpandedGroupIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+    const getRegionNameById = (id: number) => regionItems.find(r => r.id === id);
+
+    // 未分组地域
+    const ungroupedRegionItems = regionItems.filter(r => !regionGroups.some(g => g.regionIds.includes(r.id)));
+
+    // 右侧列表：按左侧选中的分组 + 关键字过滤
+    const currentGroup = typeof selectedGroupKey === 'number'
+        ? regionGroups.find(g => g.id === selectedGroupKey)
+        : undefined;
+    const visibleRegionItems = (() => {
+        let list: RegionItem[];
+        if (selectedGroupKey === 'all') list = regionItems;
+        else if (selectedGroupKey === 'ungrouped') list = ungroupedRegionItems;
+        else list = regionItems.filter(r => currentGroup?.regionIds.includes(r.id));
+        const kw = regionItemSearch.trim().toLowerCase();
+        if (!kw) return list;
+        return list.filter(r => r.name.toLowerCase().includes(kw) || r.code.toLowerCase().includes(kw));
+    })();
+    const currentGroupTitle = selectedGroupKey === 'all'
+        ? '全部地域'
+        : selectedGroupKey === 'ungrouped'
+            ? '未分组地域'
+            : (currentGroup?.name ?? '');
+
+    // 从当前分组中移除某地域
+    const handleRemoveRegionFromGroup = (regionId: number, groupId: number) => {
+        const g = regionGroups.find(x => x.id === groupId);
+        const r = regionItems.find(x => x.id === regionId);
+        if (!g || !r) return;
+        if (window.confirm(`确认将地域「${r.name}」移出分组「${g.name}」？地域本身不会被删除。`)) {
+            const now = formatNow();
+            setRegionGroups(prev => prev.map(x => x.id === groupId
+                ? { ...x, regionIds: x.regionIds.filter(id => id !== regionId), updateTime: now }
+                : x));
+        }
+    };
+
+    // Portal 名称不再单独配置：开启独立Portal的企业，其「企业名称」即为 Portal 名称，避免两个字段冗余
     type EnterpriseConfig = {
         id: number;
-        name: string;          // 企业名称
+        name: string;          // 企业名称（开启独立Portal时同时作为Portal名称）
         internal: boolean;     // 是否是内部企业
         enablePortal: boolean; // 是否开启独立Portal
         tenantId: string;      // 所属租户ID（内部企业必填）
         tenantName: string;    // 所属租户名称
-        bizDeptId: string;     // 经营部门ID（非必填）
+        bizDeptId: string;     // 经营部门ID（仅内部企业可选）
         bizDeptName: string;   // 经营部门名称
-        portalName: string;    // Portal名称（开启独立Portal时必填）
         portalDomain: string;  // Portal域名（开启独立Portal时必填）
         remark: string;        // 备注说明
+        builtin?: boolean;     // 系统内置企业（外部/公共(360.cn)），不可删除
         createTime: string;
         updateTime: string;
     };
+    // 当前仅保留两个 Portal：内部Portal「360集团」与外部/公共Portal「外部/公共(360.cn)」（均取企业名称）
     const [enterpriseConfigs, setEnterpriseConfigs] = useState<EnterpriseConfig[]>([
-        { id: 1, name: '奇虎360', internal: true, enablePortal: true, tenantId: '100000001', tenantName: '奇虎360', bizDeptId: 'd-1', bizDeptName: '技术中台', portalName: '智汇云内网门户', portalDomain: 'zyun.qihoo.net', remark: '公司内部员工访问入口', createTime: '2024-08-10 13:09:22', updateTime: '2025-12-18 16:40:12' },
-        { id: 2, name: '360智汇云', internal: false, enablePortal: true, tenantId: '100000002', tenantName: '360智汇云', bizDeptId: 'z-1', bizDeptName: '智汇云', portalName: '智汇云官网', portalDomain: 'zyun.360.cn', remark: '对外公有云门户', createTime: '2024-08-10 13:07:01', updateTime: '2025-11-02 10:21:36' },
-        { id: 3, name: '360人工智能部', internal: false, enablePortal: true, tenantId: '100000003', tenantName: '360人工智能部', bizDeptId: 'a-1', bizDeptName: '人工智能研究院', portalName: 'AI开发平台门户', portalDomain: 'tai.360.cn', remark: 'TAI 独立门户', createTime: '2025-03-12 14:22:08', updateTime: '2026-02-11 09:33:27' },
-        { id: 4, name: '360政企安全', internal: false, enablePortal: true, tenantId: '100000004', tenantName: '360政企安全', bizDeptId: '', bizDeptName: '', portalName: '安全大脑专属门户', portalDomain: 'sec.360.cn', remark: '专属租户定制门户', createTime: '2025-09-08 10:30:45', updateTime: '2026-03-02 15:12:09' },
-        { id: 5, name: '360数科', internal: false, enablePortal: false, tenantId: '', tenantName: '', bizDeptId: '', bizDeptName: '', portalName: '', portalDomain: '', remark: '暂未开启独立门户', createTime: '2025-06-20 17:45:20', updateTime: '2026-03-25 18:07:13' },
+        { id: 1, name: '360集团', internal: true, enablePortal: true, tenantId: '100000001', tenantName: '360集团', bizDeptId: 'd-1', bizDeptName: '技术中台', portalDomain: 'zyun.qihoo.net', remark: '360集团内部员工访问入口', createTime: '2024-08-10 13:09:22', updateTime: '2025-12-18 16:40:12' },
+        { id: 2, name: '外部/公共(360.cn)', internal: false, enablePortal: true, tenantId: '', tenantName: '', bizDeptId: '', bizDeptName: '', portalDomain: 'zyun.360.cn', remark: '系统内置企业，承载全部外部/公共客户，不可删除', builtin: true, createTime: '2024-08-10 13:07:01', updateTime: '2025-11-02 10:21:36' },
     ]);
     const [enterpriseSearch, setEnterpriseSearch] = useState('');
+    // 可用区「所属Portal」下拉选项：来源于企业配置中已开启独立Portal的企业（Portal名称即企业名称）
+    const zonePortalOptions = Array.from(new Set(
+        enterpriseConfigs.filter(e => e.enablePortal && e.name.trim()).map(e => e.name.trim())
+    ));
+
+    // ===== 产品定义 - 「上架Portal」选项 =====
+    // 选项来源：企业配置中已开启独立Portal的企业（Portal名称即企业名称，展示为 企业名称(域名后缀)），外加固定项「所有portal(一个产品)」
+    const ALL_PORTAL_VALUE = '__all__';
+    type ProductPortalOption = {
+        value: string;        // 选项值：portal名称 或 ALL_PORTAL_VALUE
+        label: string;        // 展示文案：portal名称(域名后缀)
+        internal: boolean;    // 是否为内部企业的portal
+        builtin: boolean;     // 是否为系统内置的外部/公共(360.cn)企业portal
+        tenantId: string;     // 该portal所属企业关联的租户ID
+        tenantName: string;   // 该portal所属企业关联的租户名称
+    };
+    const productPortalOptions: ProductPortalOption[] = enterpriseConfigs
+        .filter(e => e.enablePortal && e.name.trim())
+        .map(e => ({
+            value: e.name.trim(),
+            label: e.portalDomain.trim() ? `${e.name.trim()}(${e.portalDomain.trim()})` : e.name.trim(),
+            internal: e.internal,
+            builtin: !!e.builtin,
+            tenantId: e.tenantId || '',
+            tenantName: e.tenantName || e.name,
+        }));
+    // 内部portal（内部企业的portal），其关联租户用于展示范围联动
+    const internalPortalOption = productPortalOptions.find(o => o.internal);
+    // 外部/公共portal（系统内置的 360.cn 企业portal）
+    const publicPortalOption = productPortalOptions.find(o => o.builtin);
+    // 两个 Portal 的展示名称：用于表单/提示文案中直接展示实际 Portal 名称
+    const internalPortalName = internalPortalOption ? internalPortalOption.value : '内部Portal';
+    const publicPortalName = publicPortalOption ? publicPortalOption.value : '外部/公共Portal';
+    const getProductPortalOption = (value: string) => productPortalOptions.find(o => o.value === value);
+
+    // ===== 产品定义 - 卡片上的「上架Portal」展示与关联关系 =====
+    // Portal 短名称：卡片空间有限，仅展示 portal 名称本身，域名放在 title 提示中
+    const getProductPortalLabel = (portal: string) => {
+        if (portal === ALL_PORTAL_VALUE) return '所有Portal';
+        const opt = getProductPortalOption(portal);
+        return opt ? opt.value : portal;
+    };
+    // Portal 徽标配色：所有portal-蓝、内部portal-紫、外部/公共及其他portal-青
+    const getProductPortalBadgeClass = (portal: string) => {
+        if (portal === ALL_PORTAL_VALUE) return 'bg-blue-100 text-blue-700 border border-blue-300';
+        return getProductPortalOption(portal)?.internal
+            ? 'bg-purple-100 text-purple-700 border border-purple-300'
+            : 'bg-teal-100 text-teal-700 border border-teal-300';
+    };
+    // 产品卡片边框配色：按上架Portal区分（所有portal-蓝 / 内部portal-紫 / 外部portal-青），
+    // 左侧同色竖条进一步强化区分度
+    const getProductCardBorderClass = (portal: string) => {
+        if (portal === ALL_PORTAL_VALUE) return 'border-blue-300 shadow-[inset_3px_0_0_0_#3b82f6]';
+        return getProductPortalOption(portal)?.internal
+            ? 'border-purple-300 shadow-[inset_3px_0_0_0_#a855f7]'
+            : 'border-teal-300 shadow-[inset_3px_0_0_0_#14b8a6]';
+    };
+    // 取该产品在另一个 Portal 下关联的产品（内外Portal同一产品互相关联）
+    const getLinkedProduct = (product: typeof zhihuiProductsData[0]) =>
+        product.linkedProductId ? zhihuiProductsData.find(p => p.id === product.linkedProductId) : undefined;
+
+    // ===== 产品定义 - 列表按 Portal 分类展示 =====
+    // 产品所属的分类分组：internal-内部Portal / external-外部Portal / all-所有Portal
+    const getProductPortalGroupKey = (portal: string): 'internal' | 'external' | 'all' => {
+        if (portal === ALL_PORTAL_VALUE) return 'all';
+        return getProductPortalOption(portal)?.internal ? 'internal' : 'external';
+    };
+    // 分组展示配置（顺序即列表中的模块顺序）：内部Portal-紫 / 外部Portal-青 / 所有Portal-蓝
+    const productPortalGroups: {
+        key: 'internal' | 'external' | 'all';
+        title: string;
+        subTitle: string;
+        desc: string;
+        dotClass: string;
+        titleClass: string;
+        countClass: string;
+    }[] = [
+        {
+            key: 'internal', title: '内部Portal', subTitle: internalPortalName,
+            desc: '仅内部企业可见，每个产品关联一个外部Portal产品，账单与经营分析按同一产品合并统计',
+            dotClass: 'bg-purple-500', titleClass: 'text-purple-700',
+            countClass: 'bg-purple-100 text-purple-700 border border-purple-300',
+        },
+        {
+            key: 'external', title: '外部Portal', subTitle: publicPortalName,
+            desc: '面向外部/公共客户上架的产品',
+            dotClass: 'bg-teal-500', titleClass: 'text-teal-700',
+            countClass: 'bg-teal-100 text-teal-700 border border-teal-300',
+        },
+        {
+            key: 'all', title: '所有Portal', subTitle: '一个产品，全部Portal通用',
+            desc: '同一个产品在全部Portal下上架，无需内外关联',
+            dotClass: 'bg-blue-500', titleClass: 'text-blue-700',
+            countClass: 'bg-blue-100 text-blue-700 border border-blue-300',
+        },
+    ];
+
+    // 展示范围可选择的租户列表（来源于企业配置中已关联租户的企业）
+    const productTenantOptions = enterpriseConfigs
+        .filter(e => (e.tenantId || '').trim())
+        .map(e => ({ id: e.tenantId, name: e.tenantName || e.name }));
+    // 内部portal关联的租户（展示范围默认选中项）
+    const internalPortalTenant = internalPortalOption && internalPortalOption.tenantId
+        ? [{ id: internalPortalOption.tenantId, name: internalPortalOption.tenantName }]
+        : [];
     const [enterpriseDialogOpen, setEnterpriseDialogOpen] = useState(false);
     const [editingEnterpriseId, setEditingEnterpriseId] = useState<number | null>(null);
     const emptyEnterpriseForm = {
         name: '', internal: false, enablePortal: false,
         tenantId: '', tenantName: '',
         bizDeptId: '', bizDeptName: '',
-        portalName: '', portalDomain: '', remark: '',
+        portalDomain: '', remark: '',
     };
     const [enterpriseForm, setEnterpriseForm] = useState(emptyEnterpriseForm);
     const [enterpriseFormError, setEnterpriseFormError] = useState('');
@@ -2179,7 +2841,7 @@ export default function AdminPage() {
     const filteredEnterpriseConfigs = enterpriseConfigs.filter(e => {
         const kw = enterpriseSearch.trim().toLowerCase();
         if (!kw) return true;
-        return [e.name, e.tenantId, e.tenantName, e.bizDeptName, e.portalName, e.portalDomain, e.remark]
+        return [e.name, e.tenantId, e.tenantName, e.bizDeptName, e.portalDomain, e.remark]
             .some(v => (v || '').toLowerCase().includes(kw));
     });
 
@@ -2208,7 +2870,6 @@ export default function AdminPage() {
             tenantName: enterprise.tenantName,
             bizDeptId: enterprise.bizDeptId,
             bizDeptName: enterprise.bizDeptName,
-            portalName: enterprise.portalName,
             portalDomain: enterprise.portalDomain,
             remark: enterprise.remark,
         });
@@ -2217,6 +2878,18 @@ export default function AdminPage() {
         setTenantDropdownOpen(false);
         setBizDeptPickerOpen(false);
         setEnterpriseDialogOpen(true);
+    };
+
+    // 切换「是否是内部企业」：非内部企业不支持配置经营部门，切换为「否」时清空已选经营部门
+    const handleChangeEnterpriseInternal = (internal: boolean) => {
+        setEnterpriseForm(prev => ({
+            ...prev,
+            internal,
+            bizDeptId: internal ? prev.bizDeptId : '',
+            bizDeptName: internal ? prev.bizDeptName : '',
+        }));
+        setBizDeptPickerOpen(false);
+        setEnterpriseFormError('');
     };
 
     // 选择租户：切换租户时清空已选经营部门
@@ -2247,9 +2920,9 @@ export default function AdminPage() {
             setEnterpriseFormError('内部企业必须选择所属租户');
             return;
         }
-        // 开启独立Portal时，Portal名称与域名必填
-        if (enterpriseForm.enablePortal && (!enterpriseForm.portalName.trim() || !enterpriseForm.portalDomain.trim())) {
-            setEnterpriseFormError('开启独立Portal时，Portal名称与Portal域名必填');
+        // 开启独立Portal时，Portal域名必填（Portal名称即企业名称，无需单独填写）
+        if (enterpriseForm.enablePortal && !enterpriseForm.portalDomain.trim()) {
+            setEnterpriseFormError('开启独立Portal时，Portal域名必填');
             return;
         }
         setEnterpriseFormError('');
@@ -2265,11 +2938,145 @@ export default function AdminPage() {
         setEnterpriseDialogOpen(false);
     };
 
-    // 删除企业：内部企业不可删除
+    // 删除企业：内部企业、系统内置企业（外部/公共(360.cn)）不可删除
     const handleDeleteEnterprise = () => {
-        if (!enterpriseDeleteTarget || enterpriseDeleteTarget.internal) return;
+        if (!enterpriseDeleteTarget || enterpriseDeleteTarget.internal || enterpriseDeleteTarget.builtin) return;
         setEnterpriseConfigs(prev => prev.filter(e => e.id !== enterpriseDeleteTarget.id));
         setEnterpriseDeleteTarget(null);
+    };
+
+    // ===== 平台配置 - 内部折扣设置 =====
+    // 二级Tab：企业配置 / 内部折扣设置（同属「企业配置」菜单页）
+    const [portalPageTab, setPortalPageTab] = useState<'enterprise' | 'discount'>('enterprise');
+
+    // 当前内部企业（内部折扣仅针对内部企业下的结算单元；内部企业全局唯一）
+    const internalEnterprise = useMemo(
+        () => enterpriseConfigs.find(e => e.internal) || null,
+        [enterpriseConfigs]
+    );
+
+    // 属性标签：由内部企业自定义，支持新增/重命名/删除
+    const [unitAttrTags, setUnitAttrTags] = useState<string[]>(defaultUnitAttrTags);
+    const [tagManagerOpen, setTagManagerOpen] = useState(false);
+    const [newTagName, setNewTagName] = useState('');
+    const [tagError, setTagError] = useState('');
+
+    // 结算单元折扣配置（key 为结算单元名称）
+    const [unitDiscounts, setUnitDiscounts] = useState<Record<string, UnitDiscountConfig>>(initialUnitDiscounts);
+
+    // 筛选条件
+    const [discountSearch, setDiscountSearch] = useState('');
+    const [discountTagFilter, setDiscountTagFilter] = useState('all'); // all / 标签名 / __unset__(未配置)
+    const [discountDeptFilter, setDiscountDeptFilter] = useState('all'); // all / 部门id / __unlinked__(未关联部门)
+
+    // 编辑弹窗（支持单个编辑与批量编辑）
+    const [discountDialogUnits, setDiscountDialogUnits] = useState<string[] | null>(null);
+    const [discountForm, setDiscountForm] = useState<{ tag: string; discount: UnitDiscountType | '' }>({ tag: '', discount: '' });
+    const [discountFormError, setDiscountFormError] = useState('');
+    // 批量选中的结算单元
+    const [selectedDiscountUnits, setSelectedDiscountUnits] = useState<string[]>([]);
+
+    // 当前租户（内部企业所属租户）下同步的全部结算单元
+    const tenantUnitRows = useMemo(() => {
+        if (!internalEnterprise?.tenantId) return [];
+        return collectTenantSettlementUnits(internalEnterprise.tenantId);
+    }, [internalEnterprise]);
+
+    // 「归属组织部门」筛选项：租户下已被结算单元关联的部门
+    const discountDeptOptions = useMemo(() => {
+        const map = new Map<string, { id: string; path: string; count: number }>();
+        tenantUnitRows.forEach(r => {
+            if (!r.deptId) return;
+            const hit = map.get(r.deptId);
+            if (hit) hit.count += 1;
+            else map.set(r.deptId, { id: r.deptId, path: r.deptPath, count: 1 });
+        });
+        return Array.from(map.values());
+    }, [tenantUnitRows]);
+
+    // 列表数据（合并折扣配置 + 筛选）
+    const filteredDiscountRows = useMemo(() => {
+        const kw = discountSearch.trim().toLowerCase();
+        return tenantUnitRows
+            .map(r => ({
+                ...r,
+                config: unitDiscounts[r.unit] || { tag: '', discount: null, updateTime: '--' },
+            }))
+            .filter(r => {
+                if (kw && ![r.unit, r.deptPath].some(v => (v || '').toLowerCase().includes(kw))) return false;
+                if (discountTagFilter === '__unset__' && r.config.tag) return false;
+                if (discountTagFilter !== 'all' && discountTagFilter !== '__unset__' && r.config.tag !== discountTagFilter) return false;
+                if (discountDeptFilter === '__unlinked__' && r.deptId) return false;
+                if (discountDeptFilter !== 'all' && discountDeptFilter !== '__unlinked__' && r.deptId !== discountDeptFilter) return false;
+                return true;
+            });
+    }, [tenantUnitRows, unitDiscounts, discountSearch, discountTagFilter, discountDeptFilter]);
+
+    // 标签配色（按标签在自定义标签列表中的下标循环取色）
+    const getTagColor = (tag: string) => {
+        const idx = unitAttrTags.indexOf(tag);
+        return idx < 0 ? 'bg-gray-100 text-gray-500' : unitTagColors[idx % unitTagColors.length];
+    };
+
+    // 标签使用次数（删除标签前提示影响范围）
+    const getTagUsedCount = (tag: string) =>
+        Object.values(unitDiscounts).filter(c => c.tag === tag).length;
+
+    // 新增标签
+    const handleAddUnitTag = () => {
+        const name = newTagName.trim();
+        if (!name) { setTagError('请输入标签名称'); return; }
+        if (unitAttrTags.includes(name)) { setTagError('标签名称已存在'); return; }
+        setUnitAttrTags(prev => [...prev, name]);
+        setNewTagName('');
+        setTagError('');
+    };
+
+    // 删除标签：同步清空已使用该标签的结算单元
+    const handleDeleteUnitTag = (tag: string) => {
+        setUnitAttrTags(prev => prev.filter(t => t !== tag));
+        setUnitDiscounts(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(k => {
+                if (next[k].tag === tag) next[k] = { ...next[k], tag: '' };
+            });
+            return next;
+        });
+        if (discountTagFilter === tag) setDiscountTagFilter('all');
+    };
+
+    // 打开折扣配置弹窗（units 为 1 个即单条编辑，多个即批量编辑）
+    const handleOpenDiscountDialog = (units: string[]) => {
+        if (units.length === 0) return;
+        const base = units.length === 1 ? unitDiscounts[units[0]] : undefined;
+        setDiscountForm({
+            tag: base?.tag || '',
+            discount: base?.discount ?? '',
+        });
+        setDiscountFormError('');
+        setDiscountDialogUnits(units);
+    };
+
+    // 保存折扣配置：一个结算单元只能设置一个折扣类型（内部折扣 / SVIP折扣 / VIP折扣，单选）
+    const handleSaveDiscount = () => {
+        if (!discountDialogUnits) return;
+        const discount = discountForm.discount;
+        if (!discount) {
+            setDiscountFormError('请选择折扣');
+            return;
+        }
+        const now = formatNow();
+        setUnitDiscounts(prev => {
+            const next = { ...prev };
+            discountDialogUnits.forEach(u => {
+                // 一个结算单元仅保留一个折扣值，重复设置即覆盖
+                next[u] = { tag: discountForm.tag, discount, updateTime: now };
+            });
+            return next;
+        });
+        setDiscountFormError('');
+        setDiscountDialogUnits(null);
+        setSelectedDiscountUnits([]);
     };
 
     const [activeTab, setActiveTab] = useState("packages");
@@ -2281,6 +3088,7 @@ export default function AdminPage() {
     const [productSearchKeyword, setProductSearchKeyword] = useState("");
     const [productCategoryFilter, setProductCategoryFilter] = useState("all");
     const [productStatusFilter, setProductStatusFilter] = useState("all");
+    const [productPortalFilter, setProductPortalFilter] = useState("all"); // 上架Portal筛选：all / Portal名称 / __all__(所有portal)
     const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false);
     
     // 产品计费项相关状态
@@ -2326,10 +3134,10 @@ export default function AdminPage() {
         icon: null as File | null, // 产品图标
         url: '',            // URL地址
         introUrl: '',       // 介绍页地址
-        networkType: 'external', // 展示Portal：external-外部(360.cn), qihoo-360集团/内部(qihoo.net), both-所有Portal(一个产品)
-        linkedInternalProduct: '', // 关联的内部(qihoo.net)产品标识符，仅"外部(360.cn)"时可配置
+        portal: '',          // 上架Portal：portal名称（对应企业配置）或 ALL_PORTAL_VALUE（所有portal，一个产品）
+        linkedPublicProduct: '', // 关联的外部/公共portal产品标识符，仅选中「内部portal」时必填
         visibility: 'all',  // 展示范围：all / specified / excluded
-        visibilityEnterprises: [{ id: '', name: '' }] as { id: string; name: string }[], // 指定企业列表
+        visibilityTenants: [] as { id: string; name: string }[], // 展示范围关联的租户列表
         auditType: 'default',     // 产品审核开通：default / manual / auto / none
         workOrderSchedule: false, // 工单排班表管理
         billingEnabled: true,     // 计费开通
@@ -2356,15 +3164,26 @@ export default function AdminPage() {
     const [descTipOpen, setDescTipOpen] = useState(false);
 
     // 打开创建产品抽屉
+    // 上架Portal 默认选中「外部/公共Portal」，展示范围随之联动为「指定企业不可见」+ 内部portal关联租户
     const openCreateProduct = () => {
         setProductDrawerMode('create');
-        setNewProduct(emptyProductForm);
+        const defaultPortal = publicPortalOption ? publicPortalOption.value : ALL_PORTAL_VALUE;
+        setNewProduct(
+            publicPortalOption
+                ? { ...emptyProductForm, portal: defaultPortal, visibility: 'excluded', visibilityTenants: internalPortalTenant }
+                : { ...emptyProductForm, portal: ALL_PORTAL_VALUE, visibility: 'all', visibilityTenants: [] }
+        );
         setCreateProductDialogOpen(true);
     };
 
     // 打开编辑产品抽屉（用已有产品数据回填）
     const openEditProduct = (product: typeof zhihuiProductsData[0]) => {
         setProductDrawerMode('edit');
+        // 关联产品：内部Portal产品回填其关联的外部/公共Portal产品标识
+        const linkedProduct = product.linkedProductId
+            ? zhihuiProductsData.find(p => p.id === product.linkedProductId)
+            : undefined;
+        const isInner = !!getProductPortalOption(product.portal)?.internal;
         setNewProduct({
             ...emptyProductForm,
             name: product.name,
@@ -2375,14 +3194,77 @@ export default function AdminPage() {
             tags: ['标签', 'New'],
             url: `/${product.identifier}`,
             hotConsole: true,
-            visibility: product.visibility === '所有企业可见' ? 'all' : 'specified',
+            visibility: product.visibility === '所有企业可见'
+                ? 'all'
+                : (product.visibility === '指定企业不可见' ? 'excluded' : 'specified'),
             auditType: 'auto',
-            networkType: 'external',
-            linkedInternalProduct: zhihuiProductsData.find(p => p.identifier !== product.identifier)?.identifier ?? '',
+            portal: product.portal,
+            linkedPublicProduct: isInner && linkedProduct ? linkedProduct.identifier : '',
+            visibilityTenants: product.visibility === '所有企业可见' ? [] : internalPortalTenant,
             docEnabled: true,
             docUrl: 'https://apicloud.360.cn/user/apistore',
         });
         setCreateProductDialogOpen(true);
+    };
+
+    // ===== 上架Portal 与 展示范围 的联动 =====
+    // 内部portal：展示范围锁定为「指定企业可见」+ 内部portal关联租户，均不可修改
+    // 外部portal：展示范围默认「指定企业不可见」+ 内部portal关联租户，可切换可见/不可见并操作租户
+    // 所有portal：展示范围全部选项可切换、租户可操作
+    const isInternalPortalSelected = (portal: string) => !!getProductPortalOption(portal)?.internal;
+    const isSinglePortalSelected = (portal: string) => !!portal && portal !== ALL_PORTAL_VALUE;
+    // 展示范围是否可切换：仅「内部portal」时锁定
+    const visibilityLocked = isInternalPortalSelected(newProduct.portal);
+    // 展示范围可选项：内部portal仅「指定企业可见」；外部portal仅「指定企业可见/不可见」；所有portal为全部
+    const visibilityOptionsForPortal = (portal: string) => {
+        if (isInternalPortalSelected(portal)) return ['specified'];
+        if (isSinglePortalSelected(portal)) return ['specified', 'excluded'];
+        return ['all', 'specified', 'excluded'];
+    };
+
+    // 切换「上架Portal」
+    const handleChangeProductPortal = (portal: string) => {
+        setNewProduct(prev => {
+            const next = { ...prev, portal };
+            if (isInternalPortalSelected(portal)) {
+                // 内部portal：锁定「指定企业可见」+ 内部portal关联租户；需关联一个外部/公共portal的产品
+                next.visibility = 'specified';
+                next.visibilityTenants = internalPortalTenant;
+            } else if (isSinglePortalSelected(portal)) {
+                // 外部/其他portal：默认「指定企业不可见」+ 内部portal关联租户，可修改
+                next.linkedPublicProduct = '';
+                next.visibility = 'excluded';
+                next.visibilityTenants = internalPortalTenant;
+            } else {
+                // 所有portal：不做限制
+                next.linkedPublicProduct = '';
+                next.visibility = 'all';
+                next.visibilityTenants = [];
+            }
+            return next;
+        });
+    };
+
+    // 选中内部portal并关联外部/公共portal产品后：自动同步名称、分类等配置，仅产品标识为空
+    const handleLinkPublicProduct = (identifier: string) => {
+        const src = zhihuiProductsData.find(p => p.identifier === identifier);
+        setNewProduct(prev => {
+            if (!src) return { ...prev, linkedPublicProduct: '' };
+            return {
+                ...prev,
+                linkedPublicProduct: identifier,
+                // 同步产品配置字段
+                name: src.name,
+                shortName: src.identifier,
+                categories: [src.category.replace('/', ' / ')],
+                description: `${src.name}相关能力，提供稳定可靠的云服务`,
+                tags: ['标签', 'New'],
+                url: `/${src.identifier}`,
+                introUrl: `/intro/${src.identifier}`,
+                // 产品标识符不同步，需单独填写
+                identifier: '',
+            };
+        });
     };
     
     const [dateRange, setDateRange] = useState("today");
@@ -3471,7 +4353,7 @@ export default function AdminPage() {
                         {platformSettingMenuExpanded && (
                             <div className="mt-0.5 space-y-0.5">
                                 <div
-                                    onClick={() => setCurrentMenu('platform-portal')}
+                                    onClick={() => { setCurrentMenu('platform-portal'); setPortalPageTab('enterprise'); }}
                                     className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
                                         currentMenu === 'platform-portal'
                                             ? 'bg-[#3d3d3d] text-white'
@@ -3586,6 +4468,19 @@ export default function AdminPage() {
                                             <option key={status.value} value={status.value}>{status.label}</option>
                                         ))}
                                     </select>
+
+                                    {/* 上架Portal筛选：选项来源于「平台配置-企业配置」中已开启独立Portal的企业 */}
+                                    <select
+                                        value={productPortalFilter}
+                                        onChange={(e) => setProductPortalFilter(e.target.value)}
+                                        className="h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                    >
+                                        <option value="all">全部Portal</option>
+                                        {productPortalOptions.map(o => (
+                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                        <option value={ALL_PORTAL_VALUE}>所有portal(一个产品)</option>
+                                    </select>
                                     
                                     {/* 右侧按钮 */}
                                     <div className="flex items-center gap-2 ml-auto">
@@ -3602,77 +4497,142 @@ export default function AdminPage() {
                                 </div>
                             </div>
                             
-                            {/* 产品卡片网格 */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {zhihuiProductsData
-                                    .filter(product => {
-                                        const matchSearch = product.name.toLowerCase().includes(productSearchKeyword.toLowerCase()) ||
-                                            product.identifier.toLowerCase().includes(productSearchKeyword.toLowerCase());
-                                        const matchCategory = productCategoryFilter === 'all' || product.category.startsWith(productCategoryFilter);
-                                        const matchStatus = productStatusFilter === 'all' || product.status === productStatusFilter;
-                                        return matchSearch && matchCategory && matchStatus;
-                                    })
-                                    .map(product => (
-                                    <div key={product.id} className="bg-white rounded-lg border border-gray-200 p-3 relative hover:shadow-md transition-shadow">
-                                        {/* 状态标签 */}
-                                        <div className={`absolute top-3 right-3 px-1.5 py-0.5 text-xs rounded ${
-                                            product.status === 'online' 
-                                                ? 'bg-green-100 text-green-700' 
-                                                : 'bg-gray-100 text-gray-600'
-                                        }`}>
-                                            {product.status === 'online' ? '已上线' : '已下线'}
+                            {/* 产品列表：按上架Portal分类展示（内部Portal / 外部Portal / 所有Portal），每个模块下展示各自的产品 */}
+                            {(() => {
+                                const filteredProducts = zhihuiProductsData.filter(product => {
+                                    const matchSearch = product.name.toLowerCase().includes(productSearchKeyword.toLowerCase()) ||
+                                        product.identifier.toLowerCase().includes(productSearchKeyword.toLowerCase());
+                                    const matchCategory = productCategoryFilter === 'all' || product.category.startsWith(productCategoryFilter);
+                                    const matchStatus = productStatusFilter === 'all' || product.status === productStatusFilter;
+                                    // 上架Portal筛选：选中具体Portal时，「所有portal(一个产品)」的产品也命中（它在每个Portal下都上架）
+                                    const matchPortal = productPortalFilter === 'all'
+                                        || product.portal === productPortalFilter
+                                        || (productPortalFilter !== ALL_PORTAL_VALUE && product.portal === ALL_PORTAL_VALUE);
+                                    return matchSearch && matchCategory && matchStatus && matchPortal;
+                                });
+
+                                if (filteredProducts.length === 0) {
+                                    return (
+                                        <div className="bg-white rounded-lg border border-gray-200 py-16 text-center text-sm text-gray-400">
+                                            暂无符合条件的产品
                                         </div>
-                                        
-                                        {/* 产品图标 */}
-                                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-2">
-                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                                            </svg>
-                                        </div>
-                                        
-                                        {/* 产品信息 */}
-                                        <h3 className="text-sm font-semibold text-gray-900 mb-1.5 truncate pr-16">{product.name}</h3>
-                                        <div className="space-y-1 text-xs text-gray-600">
-                                            <div className="flex">
-                                                <span className="w-14 text-gray-400 flex-shrink-0">分类</span>
-                                                <span className="truncate">{product.category}</span>
-                                            </div>
-                                            <div className="flex">
-                                                <span className="w-14 text-gray-400 flex-shrink-0">标识</span>
-                                                <span className="font-mono truncate">{product.identifier}</span>
-                                            </div>
-                                            <div className="flex">
-                                                <span className="w-14 text-gray-400 flex-shrink-0">可见</span>
-                                                <span className="truncate">{product.visibility}</span>
-                                            </div>
-                                            <div className="flex">
-                                                <span className="w-14 text-gray-400 flex-shrink-0">时间</span>
-                                                <span className="truncate">{product.onlineTime}</span>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* 操作按钮 */}
-                                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
-                                            <button className={`px-3 py-1 text-xs rounded transition-colors ${
-                                                product.status === 'online'
-                                                    ? 'border border-gray-200 text-gray-400 cursor-not-allowed'
-                                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                                            }`}>
-                                                {product.status === 'online' ? '下线' : '上线'}
-                                            </button>
-                                            <button
-                                                onClick={() => openEditProduct(product)}
-                                                title="编辑产品"
-                                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors"
-                                            >
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                </svg>
-                                            </button>
-                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="space-y-6">
+                                        {productPortalGroups.map(group => {
+                                            const groupProducts = filteredProducts.filter(p => getProductPortalGroupKey(p.portal) === group.key);
+                                            if (groupProducts.length === 0) return null;
+                                            return (
+                                                <div key={group.key}>
+                                                    {/* 分类模块标题 */}
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <span className={`w-1.5 h-4 rounded-sm flex-shrink-0 ${group.dotClass}`} />
+                                                        <span className={`text-sm font-semibold ${group.titleClass}`}>{group.title}</span>
+                                                        <span className="text-xs text-gray-400 truncate max-w-[240px]" title={group.subTitle}>{group.subTitle}</span>
+                                                        <span className={`px-2 py-0.5 text-[11px] leading-none rounded-full ${group.countClass}`}>{groupProducts.length}</span>
+                                                        <span className="text-xs text-gray-400 truncate hidden lg:inline">{group.desc}</span>
+                                                    </div>
+
+                                                    {/* 该分类下的产品卡片 */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                        {groupProducts.map(product => {
+                                                            // 关联产品：仅「内部Portal」产品展示其关联的外部Portal产品；
+                                                            // 外部Portal产品不再展示关联的内部Portal产品，仅保留外部Portal标识
+                                                            const isInner = group.key === 'internal';
+                                                            const linked = isInner ? getLinkedProduct(product) : undefined;
+                                                            return (
+                                                            <div key={product.id} className={`bg-white rounded-lg border p-3 relative hover:shadow-md transition-shadow ${getProductCardBorderClass(product.portal)}`}>
+                                                                {/* 状态标签 */}
+                                                                <div className={`absolute top-3 right-3 px-1.5 py-0.5 text-xs rounded ${
+                                                                    product.status === 'online'
+                                                                        ? 'bg-green-100 text-green-700'
+                                                                        : 'bg-gray-100 text-gray-600'
+                                                                }`}>
+                                                                    {product.status === 'online' ? '已上线' : '已下线'}
+                                                                </div>
+
+                                                                {/* 产品图标 */}
+                                                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-2">
+                                                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                                                                    </svg>
+                                                                </div>
+
+                                                                {/* 产品信息 */}
+                                                                <h3 className="text-sm font-semibold text-gray-900 mb-1.5 truncate pr-16">{product.name}</h3>
+
+                                                                {/* 上架Portal 标记 + 关联产品：同一行展示，节省纵向空间 */}
+                                                                <div className="flex items-center gap-1.5 mb-2 min-w-0">
+                                                                    <span
+                                                                        title={`上架Portal：${getProductPortalOption(product.portal)?.label || getProductPortalLabel(product.portal)}`}
+                                                                        className={`px-2 py-1 text-[11px] font-medium leading-none rounded flex-shrink-0 ${getProductPortalBadgeClass(product.portal)}`}
+                                                                    >
+                                                                        {getProductPortalLabel(product.portal)}
+                                                                    </span>
+                                                                    {linked && (
+                                                                        <span
+                                                                            onClick={() => setProductPortalFilter(linked.portal)}
+                                                                            title={`已关联「${getProductPortalLabel(linked.portal)}」产品：${linked.identifier}（${linked.name}）；账单与经营分析按同一产品合并统计`}
+                                                                            className="flex items-center gap-1 min-w-0 text-[11px] leading-none text-gray-500 cursor-pointer group"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5 flex-shrink-0 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" />
+                                                                            </svg>
+                                                                            <span className="font-mono text-blue-600 truncate group-hover:underline">{linked.identifier}</span>
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="space-y-1 text-xs text-gray-600">
+                                                                    <div className="flex">
+                                                                        <span className="w-14 text-gray-400 flex-shrink-0">分类</span>
+                                                                        <span className="truncate">{product.category}</span>
+                                                                    </div>
+                                                                    <div className="flex">
+                                                                        <span className="w-14 text-gray-400 flex-shrink-0">标识</span>
+                                                                        <span className="font-mono truncate">{product.identifier}</span>
+                                                                    </div>
+                                                                    <div className="flex">
+                                                                        <span className="w-14 text-gray-400 flex-shrink-0">可见</span>
+                                                                        <span className="truncate">{product.visibility}</span>
+                                                                    </div>
+                                                                    <div className="flex">
+                                                                        <span className="w-14 text-gray-400 flex-shrink-0">时间</span>
+                                                                        <span className="truncate">{product.onlineTime}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* 操作按钮 */}
+                                                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                                                                    <button className={`px-3 py-1 text-xs rounded transition-colors ${
+                                                                        product.status === 'online'
+                                                                            ? 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                                                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                                    }`}>
+                                                                        {product.status === 'online' ? '下线' : '上线'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => openEditProduct(product)}
+                                                                        title="编辑产品"
+                                                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors"
+                                                                    >
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })()}
                         </div>
                     )}
                     
@@ -6247,10 +7207,36 @@ export default function AdminPage() {
                     {currentMenu === 'platform-portal' && (
                         <div className="flex-1 bg-gray-50 overflow-auto">
                             {/* 页面标题 */}
-                            <div className="px-6 py-4 bg-white border-b border-gray-200">
+                            <div className="px-6 pt-4 bg-white">
                                 <h2 className="text-base font-medium text-gray-900">企业配置</h2>
                             </div>
 
+                            {/* 二级 Tab：企业配置 / 内部折扣设置 */}
+                            <div className="px-6 bg-white border-b border-gray-200">
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={() => setPortalPageTab('enterprise')}
+                                        className={`px-1 py-3 text-sm font-medium transition-colors relative ${portalPageTab === 'enterprise' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                    >
+                                        企业配置
+                                        {portalPageTab === 'enterprise' && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => setPortalPageTab('discount')}
+                                        className={`px-1 py-3 text-sm font-medium transition-colors relative flex items-center ${portalPageTab === 'discount' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                    >
+                                        内部折扣设置
+                                        <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                        {portalPageTab === 'discount' && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {portalPageTab === 'enterprise' && (
                             <div className="p-6">
                                 <div className="bg-white rounded-lg border border-gray-200">
                                     {/* 操作栏 */}
@@ -6260,7 +7246,7 @@ export default function AdminPage() {
                                                 type="text"
                                                 value={enterpriseSearch}
                                                 onChange={(e) => setEnterpriseSearch(e.target.value)}
-                                                placeholder="企业名称/租户ID/经营部门/Portal名称"
+                                                placeholder="企业名称/租户ID/经营部门/Portal域名"
                                                 className="w-72 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                             />
                                         </div>
@@ -6272,20 +7258,17 @@ export default function AdminPage() {
                                         </button>
                                     </div>
 
-                                    {/* 列表 */}
+                                    {/* 列表：备注说明并入「企业名称」列下方；所属租户与经营部门合并一列，紧随「是否是内部企业」之后；Portal 名称即企业名称，故仅展示 Portal 域名 */}
                                     <div className="overflow-x-auto">
-                                            <table className="w-full min-w-[1300px]">
+                                            <table className="w-full min-w-[1080px]">
                                             <thead>
                                                 <tr className="bg-gray-50 border-y border-gray-200">
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">企业名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[220px]">企业名称</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-28">是否是内部企业</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[200px]">所属租户 / 经营部门</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-32">是否开启独立Portal</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属租户</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">经营部门</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Portal名称</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Portal域名</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">备注说明</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[200px]">Portal域名</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-28">操作</th>
@@ -6294,38 +7277,54 @@ export default function AdminPage() {
                                             <tbody>
                                                 {filteredEnterpriseConfigs.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={12} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                        <td colSpan={9} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
                                                     </tr>
                                                 ) : (
                                                     filteredEnterpriseConfigs.map((ent, idx) => (
                                                         <tr key={ent.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.name}</td>
-                                                            <td className="py-3 px-4">
+                                                            <td className="py-3 px-4 text-sm text-gray-600 align-top">{idx + 1}</td>
+                                                            {/* 企业名称：备注说明以灰色小字展示在名称下方 */}
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span>{ent.name}</span>
+                                                                    {ent.builtin && (
+                                                                        <span className="px-1 py-0.5 text-[10px] leading-none rounded bg-gray-100 text-gray-500 flex-shrink-0">内置</span>
+                                                                    )}
+                                                                </div>
+                                                                {ent.remark && (
+                                                                    <div className="mt-1 text-xs text-gray-400 leading-[1.6]">{ent.remark}</div>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 px-4 align-top">
                                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.internal ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
                                                                     {ent.internal ? '是' : '否'}
                                                                 </span>
                                                             </td>
-                                                            <td className="py-3 px-4">
+                                                            {/* 所属租户 / 经营部门合并一列：仅内部企业存在经营部门 */}
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                {ent.bizDeptName || ent.tenantId ? (
+                                                                    <div className="leading-tight">
+                                                                        <div>{ent.tenantId ? `${ent.tenantName}（${ent.tenantId}）` : '--'}</div>
+                                                                        <div className="mt-1 text-xs text-gray-400">
+                                                                            经营部门：{ent.internal ? (ent.bizDeptName || '--') : '--'}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : '--'}
+                                                            </td>
+                                                            <td className="py-3 px-4 align-top">
                                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.enablePortal ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
                                                                     {ent.enablePortal ? '是' : '否'}
                                                                 </span>
                                                             </td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">
-                                                                {ent.tenantId ? (
-                                                                    <div className="leading-tight">
-                                                                        <div>{ent.tenantName}</div>
-                                                                        <div className="text-xs text-gray-400">ID：{ent.tenantId}</div>
-                                                                    </div>
+                                                            {/* Portal域名 */}
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                {ent.enablePortal ? (
+                                                                    <div className="font-mono text-gray-600">{ent.portalDomain || '--'}</div>
                                                                 ) : '--'}
                                                             </td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.bizDeptName || '--'}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.enablePortal ? (ent.portalName || '--') : '--'}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{ent.enablePortal ? (ent.portalDomain || '--') : '--'}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-600">{ent.remark || '--'}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-600">{ent.createTime}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-600">{ent.updateTime}</td>
-                                                            <td className="py-3 px-4">
+                                                            <td className="py-3 px-4 text-sm text-gray-600 align-top">{ent.createTime}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 align-top">{ent.updateTime}</td>
+                                                            <td className="py-3 px-4 align-top">
                                                                 <div className="flex items-center gap-3">
                                                                     <button
                                                                         onClick={() => handleOpenEditEnterprise(ent)}
@@ -6333,10 +7332,10 @@ export default function AdminPage() {
                                                                     >
                                                                         编辑
                                                                     </button>
-                                                                    {ent.internal ? (
+                                                                    {ent.internal || ent.builtin ? (
                                                                         <span
                                                                             className="group relative text-sm text-gray-300 cursor-not-allowed"
-                                                                            title="内部企业不支持删除"
+                                                                            title={ent.internal ? '内部企业不支持删除' : '系统内置企业不支持删除'}
                                                                         >
                                                                             删除
                                                                         </span>
@@ -6358,6 +7357,327 @@ export default function AdminPage() {
                                     </div>
                                 </div>
                             </div>
+                            )}
+
+                            {/* ===== 内部折扣设置 Tab ===== */}
+                            {portalPageTab === 'discount' && (
+                            <div className="p-6">
+                                {/* 说明：数据来源与规则 */}
+                                <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+                                    <p className="text-[13px] leading-[1.9] text-blue-600">
+                                        管理内部企业
+                                        <span className="font-medium">
+                                            {internalEnterprise ? `「${internalEnterprise.name}」` : ''}
+                                        </span>
+                                        下的结算单元折扣。列表同步自当前租户
+                                        <span className="font-medium">
+                                            {internalEnterprise?.tenantId ? `「${internalEnterprise.tenantName}（${internalEnterprise.tenantId}）」` : ''}
+                                        </span>
+                                        下的全部 ops 结算单元，不支持在此新增或删除结算单元。一个组织部门可关联多个结算单元，一个结算单元只能关联一个组织部门；属性标签由内部企业自行定义；<span className="font-medium">一个结算单元只能设置一个折扣（内部折扣 / SVIP折扣 / VIP折扣，单选）</span>，设置后该结算单元计费时即按所选折扣类型取值。
+                                    </p>
+                                </div>
+
+                                {!internalEnterprise || !internalEnterprise.tenantId ? (
+                                    <div className="bg-white rounded-lg border border-gray-200 py-20 text-center text-sm text-gray-400">
+                                        当前尚未配置内部企业或内部企业未关联租户，请先在「企业配置」中完成配置
+                                    </div>
+                                ) : (
+                                <div className="bg-white rounded-lg border border-gray-200">
+                                    {/* 操作栏 */}
+                                    <div className="flex items-center justify-between gap-3 px-5 py-4 flex-wrap">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <input
+                                                type="text"
+                                                value={discountSearch}
+                                                onChange={(e) => setDiscountSearch(e.target.value)}
+                                                placeholder="结算单元名称/归属组织部门"
+                                                className="w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                            />
+                                            {/* 归属组织部门筛选 */}
+                                            <select
+                                                value={discountDeptFilter}
+                                                onChange={(e) => setDiscountDeptFilter(e.target.value)}
+                                                className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500 max-w-[260px]"
+                                            >
+                                                <option value="all">全部归属组织部门</option>
+                                                {discountDeptOptions.map(d => (
+                                                    <option key={d.id} value={d.id}>{d.path}（{d.count}）</option>
+                                                ))}
+                                                <option value="__unlinked__">未关联组织部门</option>
+                                            </select>
+                                            {/* 属性标签筛选 */}
+                                            <select
+                                                value={discountTagFilter}
+                                                onChange={(e) => setDiscountTagFilter(e.target.value)}
+                                                className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                            >
+                                                <option value="all">全部属性标签</option>
+                                                {unitAttrTags.map(t => (
+                                                    <option key={t} value={t}>{t}</option>
+                                                ))}
+                                                <option value="__unset__">未配置标签</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => { setTagManagerOpen(true); setNewTagName(''); setTagError(''); }}
+                                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                                            >
+                                                管理属性标签
+                                            </button>
+                                            <button
+                                                onClick={() => handleOpenDiscountDialog(selectedDiscountUnits)}
+                                                disabled={selectedDiscountUnits.length === 0}
+                                                className={`px-4 py-2 text-sm rounded-lg transition-colors ${selectedDiscountUnits.length === 0
+                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-[#006bff] text-white hover:bg-blue-600'}`}
+                                            >
+                                                批量设置折扣{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 列表 */}
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full min-w-[1120px]">
+                                            <thead>
+                                                <tr className="bg-gray-50 border-y border-gray-200">
+                                                    <th className="text-left py-3 px-4 w-12">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4"
+                                                            checked={filteredDiscountRows.length > 0 && filteredDiscountRows.every(r => selectedDiscountUnits.includes(r.unit))}
+                                                            onChange={(e) => {
+                                                                const all = filteredDiscountRows.map(r => r.unit);
+                                                                setSelectedDiscountUnits(e.target.checked
+                                                                    ? Array.from(new Set([...selectedDiscountUnits, ...all]))
+                                                                    : selectedDiscountUnits.filter(u => !all.includes(u)));
+                                                            }}
+                                                        />
+                                                    </th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[200px]">结算单元名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[240px]">归属组织部门</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">属性标签</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-32">折扣</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">更新时间</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-20">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredDiscountRows.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={8} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                    </tr>
+                                                ) : (
+                                                    filteredDiscountRows.map((row, idx) => (
+                                                        <tr key={row.unit} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 align-top">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="w-4 h-4"
+                                                                    checked={selectedDiscountUnits.includes(row.unit)}
+                                                                    onChange={(e) => setSelectedDiscountUnits(prev => e.target.checked
+                                                                        ? [...prev, row.unit]
+                                                                        : prev.filter(u => u !== row.unit))}
+                                                                />
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 align-top">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">{row.unit}</td>
+                                                            {/* 归属组织部门：展示完整层级路径 */}
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                {row.deptId ? (
+                                                                    <div className="leading-tight">
+                                                                        <div>{row.deptName}</div>
+                                                                        <div className="mt-1 text-xs text-gray-400">{row.deptPath}</div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-xs text-gray-400">未关联组织部门</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 px-4 align-top">
+                                                                {row.config.tag ? (
+                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getTagColor(row.config.tag)}`}>
+                                                                        {row.config.tag}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-xs text-gray-400">--</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                {row.config.discount == null
+                                                                    ? <span className="text-xs text-gray-400">未设置</span>
+                                                                    : formatDiscount(row.config.discount)}
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 align-top">{row.config.updateTime}</td>
+                                                            <td className="py-3 px-4 align-top">
+                                                                <button
+                                                                    onClick={() => handleOpenDiscountDialog([row.unit])}
+                                                                    className="text-blue-600 hover:text-blue-700 text-sm"
+                                                                >
+                                                                    设置
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* 底部统计 */}
+                                    <div className="px-5 py-3 border-t border-gray-100 text-sm text-gray-500">
+                                        共 {filteredDiscountRows.length} 个结算单元
+                                        {filteredDiscountRows.length !== tenantUnitRows.length && `（全部 ${tenantUnitRows.length} 个）`}
+                                    </div>
+                                </div>
+                                )}
+                            </div>
+                            )}
+
+                            {/* 属性标签管理弹窗：标签由内部企业自定义 */}
+                            {tagManagerOpen && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/40" onClick={() => setTagManagerOpen(false)} />
+                                    <div className="relative w-[520px] max-w-[92vw] bg-white rounded-lg shadow-xl">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">管理属性标签</h3>
+                                            <button onClick={() => setTagManagerOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="px-6 py-5">
+                                            <p className="text-xs text-gray-400 mb-3">属性标签由内部企业自行定义，删除标签后使用该标签的结算单元将变为「未配置标签」。</p>
+                                            <div className="space-y-2 max-h-[320px] overflow-auto">
+                                                {unitAttrTags.length === 0 ? (
+                                                    <div className="py-8 text-center text-sm text-gray-400">暂无标签</div>
+                                                ) : unitAttrTags.map(tag => (
+                                                    <div key={tag} className="flex items-center justify-between px-3 py-2 border border-gray-100 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getTagColor(tag)}`}>{tag}</span>
+                                                            <span className="text-xs text-gray-400">已用于 {getTagUsedCount(tag)} 个结算单元</span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleDeleteUnitTag(tag)}
+                                                            className="text-red-500 hover:text-red-600 text-sm"
+                                                        >
+                                                            删除
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="mt-4 flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newTagName}
+                                                    onChange={(e) => { setNewTagName(e.target.value); setTagError(''); }}
+                                                    placeholder="请输入新标签名称"
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                                <button
+                                                    onClick={handleAddUnitTag}
+                                                    className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                                >
+                                                    新增标签
+                                                </button>
+                                            </div>
+                                            {tagError && <p className="mt-2 text-xs text-red-500">{tagError}</p>}
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                            <button
+                                                onClick={() => setTagManagerOpen(false)}
+                                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                            >
+                                                完成
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 折扣配置弹窗（单条 / 批量） */}
+                            {discountDialogUnits && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/40" onClick={() => setDiscountDialogUnits(null)} />
+                                    <div className="relative w-[560px] max-w-[92vw] bg-white rounded-lg shadow-xl">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                {discountDialogUnits.length > 1 ? `批量设置折扣（${discountDialogUnits.length} 个结算单元）` : '设置折扣'}
+                                            </h3>
+                                            <button onClick={() => setDiscountDialogUnits(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div className="px-6 py-5 space-y-4">
+                                            {/* 结算单元（只读，来源 ops 同步） */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">结算单元</label>
+                                                <div className="flex flex-wrap gap-1.5 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 max-h-[104px] overflow-auto">
+                                                    {discountDialogUnits.map(u => (
+                                                        <span key={u} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-600">{u}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* 属性标签 */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">属性标签</label>
+                                                <select
+                                                    value={discountForm.tag}
+                                                    onChange={(e) => { setDiscountForm({ ...discountForm, tag: e.target.value }); setDiscountFormError(''); }}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                >
+                                                    <option value="">请选择属性标签</option>
+                                                    {unitAttrTags.map(t => (
+                                                        <option key={t} value={t}>{t}</option>
+                                                    ))}
+                                                </select>
+                                                <p className="mt-1.5 text-xs text-gray-400">属性标签由内部企业自定义，可在「管理属性标签」中增删。</p>
+                                            </div>
+
+                                            {/* 折扣配置：一个结算单元只能设置一个折扣（单选） */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">折扣 <span className="text-red-500">*</span></label>
+                                                <select
+                                                    value={discountForm.discount}
+                                                    onChange={(e) => { setDiscountForm({ ...discountForm, discount: e.target.value as UnitDiscountType | '' }); setDiscountFormError(''); }}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                >
+                                                    <option value="">请选择折扣</option>
+                                                    {unitDiscountTypeOptions.map(o => (
+                                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                                    ))}
+                                                </select>
+                                                <p className="mt-1.5 text-xs text-gray-400">一个结算单元只能设置一个折扣（单选）。设置后该结算单元计费时按所选折扣类型对应的产品折扣值计算，重复设置将覆盖原值。</p>
+                                            </div>
+
+                                            {discountFormError && (
+                                                <div className="px-3 py-2 rounded-lg bg-red-50 text-sm text-red-500">{discountFormError}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                            <button
+                                                onClick={() => setDiscountDialogUnits(null)}
+                                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                                            >
+                                                取消
+                                            </button>
+                                            <button
+                                                onClick={handleSaveDiscount}
+                                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                            >
+                                                保存
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* 新建/编辑企业抽屉（右侧滑出） */}
                             {enterpriseDialogOpen && (
@@ -6387,7 +7707,7 @@ export default function AdminPage() {
                                                     type="text"
                                                     value={enterpriseForm.name}
                                                     onChange={(e) => setEnterpriseForm({ ...enterpriseForm, name: e.target.value })}
-                                                    placeholder="请输入企业名称，如：奇虎360"
+                                                    placeholder="请输入企业名称，如：360集团"
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                                 />
                                             </div>
@@ -6414,8 +7734,7 @@ export default function AdminPage() {
                                                                     checked={enterpriseForm.internal === opt.v}
                                                                     onChange={() => {
                                                                         if (disabled) return;
-                                                                        setEnterpriseForm({ ...enterpriseForm, internal: opt.v });
-                                                                        setEnterpriseFormError('');
+                                                                        handleChangeEnterpriseInternal(opt.v);
                                                                     }}
                                                                     className="w-4 h-4 text-blue-600"
                                                                 />
@@ -6427,7 +7746,7 @@ export default function AdminPage() {
                                                 <p className="mt-1.5 text-xs text-gray-400">
                                                     {existedInternalEnterprise
                                                         ? `内部企业全局只能有一个，当前内部企业为「${existedInternalEnterprise.name}」，不可再创建。`
-                                                        : '选择「是」时，所属租户为必填项；内部企业创建后不支持删除，且全局只能有一个。'}
+                                                        : '选择「是」时，所属租户为必填项，且仅内部企业可配置经营部门；内部企业创建后不支持删除，且全局只能有一个。'}
                                                 </p>
                                             </div>
 
@@ -6484,21 +7803,23 @@ export default function AdminPage() {
                                                 )}
                                             </div>
 
-                                            {/* 经营部门 */}
+                                            {/* 经营部门：仅内部企业可选 */}
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">经营部门</label>
                                                 <div className="relative">
                                                     <button
                                                         type="button"
-                                                        disabled={!enterpriseForm.tenantId}
+                                                        disabled={!enterpriseForm.internal || !enterpriseForm.tenantId}
                                                         onClick={() => setBizDeptPickerOpen(v => !v)}
-                                                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm focus:outline-none ${enterpriseForm.tenantId ? 'border-gray-300 bg-white hover:border-blue-500' : 'border-gray-200 bg-gray-50 cursor-not-allowed'}`}
+                                                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm focus:outline-none ${enterpriseForm.internal && enterpriseForm.tenantId ? 'border-gray-300 bg-white hover:border-blue-500' : 'border-gray-200 bg-gray-50 cursor-not-allowed'}`}
                                                     >
                                                         <span className={enterpriseForm.bizDeptName ? 'text-gray-700' : 'text-gray-400'}>
-                                                            {enterpriseForm.bizDeptName || (enterpriseForm.tenantId ? '请选择经营部门' : '请先选择所属租户')}
+                                                            {!enterpriseForm.internal
+                                                                ? '仅内部企业可选择经营部门'
+                                                                : enterpriseForm.bizDeptName || (enterpriseForm.tenantId ? '请选择经营部门' : '请先选择所属租户')}
                                                         </span>
                                                         <span className="flex items-center gap-2">
-                                                            {enterpriseForm.bizDeptName && (
+                                                            {enterpriseForm.internal && enterpriseForm.bizDeptName && (
                                                                 <span
                                                                     role="button"
                                                                     onClick={(e) => {
@@ -6515,7 +7836,7 @@ export default function AdminPage() {
                                                             </svg>
                                                         </span>
                                                     </button>
-                                                    {bizDeptPickerOpen && enterpriseForm.tenantId && (
+                                                    {bizDeptPickerOpen && enterpriseForm.internal && enterpriseForm.tenantId && (
                                                         <>
                                                             <div className="fixed inset-0 z-10" onClick={() => setBizDeptPickerOpen(false)} />
                                                             <div className="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
@@ -6570,7 +7891,7 @@ export default function AdminPage() {
                                                     )}
                                                 </div>
                                                 <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">
-                                                    经营部门用于经营分析&gt;部门分析，取的是选中经营部门下已关联结算单元的部门；组织架构部门可关联多个结算单元，无需另行创建部门或关联结算单元。
+                                                    仅内部企业可配置经营部门。经营部门用于经营分析&gt;部门分析，分析选中经营部门下已关联各结算单元的收支情况。
                                                 </p>
                                             </div>
                                             </div>
@@ -6594,33 +7915,19 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
 
-                                            {/* 4. Portal名称 + Portal域名（同一行） */}
+                                            {/* 4. Portal域名（Portal名称即企业名称，无需单独配置） */}
                                             {enterpriseForm.enablePortal && (
-                                                <div className="grid grid-cols-2 gap-4 items-start">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                            Portal名称 <span className="text-red-500">*</span>
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={enterpriseForm.portalName}
-                                                            onChange={(e) => setEnterpriseForm({ ...enterpriseForm, portalName: e.target.value })}
-                                                            placeholder="如：智汇云官网"
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                            Portal域名 <span className="text-red-500">*</span>
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={enterpriseForm.portalDomain}
-                                                            onChange={(e) => setEnterpriseForm({ ...enterpriseForm, portalDomain: e.target.value })}
-                                                            placeholder="如：zyun.360.cn"
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                        />
-                                                    </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                        Portal域名 <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={enterpriseForm.portalDomain}
+                                                        onChange={(e) => setEnterpriseForm({ ...enterpriseForm, portalDomain: e.target.value })}
+                                                        placeholder="如：zyun.360.cn"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                    />
                                                 </div>
                                             )}
 
@@ -6695,10 +8002,33 @@ export default function AdminPage() {
                     {currentMenu === 'platform-region' && (
                         <div className="flex-1 bg-gray-50 overflow-auto">
                             {/* 页面标题 */}
-                            <div className="px-6 py-4 bg-white border-b border-gray-200">
+                            <div className="px-6 pt-4 bg-white border-b border-gray-200">
                                 <h2 className="text-base font-medium text-gray-900">地域可用区</h2>
+                                {/* Tab 切换 */}
+                                <div className="flex items-center gap-1 mt-3">
+                                    <button
+                                        onClick={() => setRegionPageTab('zone')}
+                                        className={`px-4 py-3 text-sm font-medium transition-colors relative ${regionPageTab === 'zone' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                    >
+                                        可用区列表
+                                        {regionPageTab === 'zone' && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => setRegionPageTab('config')}
+                                        className={`px-4 py-3 text-sm font-medium transition-colors relative flex items-center ${regionPageTab === 'config' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                    >
+                                        <span>地域配置</span>
+                                        <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                        {regionPageTab === 'config' && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                        )}
+                                    </button>
+                                </div>
                             </div>
 
+                            {regionPageTab === 'zone' && (
                             <div className="p-6">
                                 <div className="bg-white rounded-lg border border-gray-200">
                                     {/* 操作栏 */}
@@ -6720,58 +8050,359 @@ export default function AdminPage() {
                                         </button>
                                     </div>
 
-                                    {/* 列表 */}
+                                    {/* 列表：所属分组并入「地域」列下方展示；Portal配置按每个Portal拆分为名称/标识两列，便于横向对比 */}
                                     <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[1280px]">
+                                        <table className="w-full min-w-[1080px]">
                                             <thead>
                                                 <tr className="bg-gray-50 border-y border-gray-200">
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">云服务器名称</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">内网(qihoo.net)可用区名称</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">内网(qihoo.net)可用区标识</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">外网(360.cn)可用区名称</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">外网(360.cn)可用区标识</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">公网是否启用</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-20">操作</th>
+                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14 border-r border-gray-200">序号</th>
+                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">服务方</th>
+                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">
+                                                        <span className="inline-flex items-center">
+                                                            <span>地域 / 所属分组</span>
+                                                            <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                                        </span>
+                                                    </th>
+                                                    {zonePortalOptions.map(portalName => (
+                                                        <th key={portalName} colSpan={2} className="text-center py-2 px-4 text-sm font-medium text-gray-700 border-r border-gray-200">
+                                                            <div className="inline-flex items-center gap-1.5">
+                                                                <span className="truncate max-w-[200px]" title={formatPortalLabel(portalName)}>{portalName}</span>
+                                                                {getPortalDomain(portalName) && (
+                                                                    <span className="text-[11px] font-normal text-gray-400 font-mono">({getPortalDomain(portalName)})</span>
+                                                                )}
+                                                                <span className="px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                                            </div>
+                                                        </th>
+                                                    ))}
+                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap">更新时间</th>
+                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-20">操作</th>
+                                                </tr>
+                                                <tr className="bg-gray-50 border-b border-gray-200">
+                                                    {zonePortalOptions.map(portalName => (
+                                                        <Fragment key={portalName}>
+                                                            <th className="text-left py-2 px-4 text-xs font-normal text-gray-500 whitespace-nowrap">可用区名称</th>
+                                                            <th className="text-left py-2 px-4 text-xs font-normal text-gray-500 whitespace-nowrap border-r border-gray-200">可用区标识</th>
+                                                        </Fragment>
+                                                    ))}
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {filteredRegionZones.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={11} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                        <td colSpan={5 + zonePortalOptions.length * 2} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
                                                     </tr>
                                                 ) : (
-                                                    filteredRegionZones.map((zone, idx) => (
-                                                        <tr key={zone.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.cloudServer}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.region}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.innerName}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.innerCode}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.outerName}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.outerCode}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{zone.publicNet ? '是' : '否'}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-600">{zone.createTime}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-600">{zone.updateTime}</td>
-                                                            <td className="py-3 px-4">
-                                                                <button
-                                                                    onClick={() => handleOpenEditRegionZone(zone)}
-                                                                    className="text-blue-600 hover:text-blue-700 text-sm"
-                                                                >
-                                                                    编辑
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))
+                                                    filteredRegionZones.map((zone, idx) => {
+                                                        const zoneGroups = getGroupNamesByRegionName(zone.region);
+                                                        return (
+                                                            <tr key={zone.id} className="border-b border-gray-100 hover:bg-gray-50 align-top">
+                                                                <td className="py-3 px-4 text-sm text-gray-600 border-r border-gray-100">{idx + 1}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700 border-r border-gray-100 whitespace-nowrap">{zone.cloudServer}</td>
+                                                                {/* 地域 + 所属分组（分组展示在地域下方，节省页面空间） */}
+                                                                <td className="py-3 px-4 text-sm border-r border-gray-100">
+                                                                    <div className="text-gray-700">{zone.region}</div>
+                                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                                        {zoneGroups.length === 0 ? (
+                                                                            <span className="text-xs text-gray-400">未分组</span>
+                                                                        ) : zoneGroups.map(name => (
+                                                                            <span key={name} className="px-1.5 py-0.5 text-[11px] leading-none rounded bg-blue-50 text-[#006bff]">{name}</span>
+                                                                        ))}
+                                                                    </div>
+                                                                </td>
+                                                                {/* 每个Portal的可用区名称、标识各占一列，方便横向对比 */}
+                                                                {zonePortalOptions.map(portalName => {
+                                                                    const p = zone.portals.find(x => x.portalName === portalName);
+                                                                    const enabled = !!p?.enabled;
+                                                                    return (
+                                                                        <Fragment key={portalName}>
+                                                                            <td className="py-3 px-4 text-sm whitespace-nowrap">
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <span className={enabled ? 'text-gray-700' : 'text-gray-400'}>{p?.name || '--'}</span>
+                                                                                    <span className={`inline-flex items-center px-1 py-0.5 rounded text-[10px] leading-none flex-shrink-0 ${enabled ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                                                        {enabled ? '开启' : '关闭'}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </td>
+                                                                            <td className={`py-3 px-4 text-xs font-mono whitespace-nowrap border-r border-gray-100 ${enabled ? 'text-gray-500' : 'text-gray-300'}`}>
+                                                                                {p?.code || '--'}
+                                                                            </td>
+                                                                        </Fragment>
+                                                                    );
+                                                                })}
+                                                                <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{zone.updateTime}</td>
+                                                                <td className="py-3 px-4">
+                                                                    <button
+                                                                        onClick={() => handleOpenEditRegionZone(zone)}
+                                                                        className="text-blue-600 hover:text-blue-700 text-sm"
+                                                                    >
+                                                                        编辑
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
                                                 )}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                             </div>
+                            )}
+
+                            {/* 地域配置 Tab */}
+                            {regionPageTab === 'config' && (
+                            <div className="p-6 space-y-6">
+                                <div className="bg-white rounded-lg border border-gray-200 px-5">
+                                    <div className="flex items-center gap-1">
+                                        {([
+                                            { key: 'region', label: '地域管理', count: regionItems.length },
+                                            { key: 'provider', label: '服务方', count: serviceProviders.length },
+                                        ] as const).map(t => (
+                                            <button
+                                                key={t.key}
+                                                onClick={() => setRegionConfigSection(t.key)}
+                                                className={`px-4 py-3 text-sm font-medium transition-colors relative ${regionConfigSection === t.key ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                            >
+                                                {t.label}
+                                                <span className="ml-1 text-xs text-gray-400">({t.count})</span>
+                                                {regionConfigSection === t.key && (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 服务方 */}
+                                {regionConfigSection === 'provider' && (
+                                    <div className="bg-white rounded-lg border border-gray-200">
+                                        <div className="flex items-center justify-between px-5 py-4">
+                                            <span className="text-sm text-gray-500">服务方为资源的提供方，创建后可在新建可用区时选择</span>
+                                            <button
+                                                onClick={handleOpenCreateProvider}
+                                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                            >
+                                                + 新建服务方
+                                            </button>
+                                        </div>
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="bg-gray-50 border-y border-gray-200">
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">服务方名称</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">关联可用区数</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-32">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {serviceProviders.length === 0 ? (
+                                                    <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                ) : serviceProviders.map((p, idx) => (
+                                                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                        <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                        <td className="py-3 px-4 text-sm text-gray-900">{p.name}</td>
+                                                        <td className="py-3 px-4 text-sm text-gray-700">{regionZones.filter(z => z.cloudServer === p.name).length}</td>
+                                                        <td className="py-3 px-4 text-sm text-gray-600">{p.createTime}</td>
+                                                        <td className="py-3 px-4 text-sm text-gray-600">{p.updateTime}</td>
+                                                        <td className="py-3 px-4 text-sm">
+                                                            <button onClick={() => handleOpenEditProvider(p)} className="text-blue-600 hover:text-blue-700 mr-4">编辑</button>
+                                                            <button onClick={() => handleDeleteProvider(p)} className="text-red-500 hover:text-red-600">删除</button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* 地域管理：左侧分组树 + 右侧地域列表 */}
+                                {regionConfigSection === 'region' && (
+                                    <div className="flex gap-4 items-start">
+                                        {/* 左侧：地域分组 */}
+                                        <div className="w-64 flex-shrink-0 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                                                <span className="text-sm font-medium text-gray-900">地域分组</span>
+                                                <button
+                                                    onClick={handleOpenCreateRegionGroup}
+                                                    className="text-xs text-[#006bff] hover:text-blue-600"
+                                                >
+                                                    + 新建分组
+                                                </button>
+                                            </div>
+                                            <div className="py-2 max-h-[560px] overflow-auto">
+                                                {/* 全部地域 */}
+                                                <button
+                                                    onClick={() => setSelectedGroupKey('all')}
+                                                    className={`w-full flex items-center justify-between px-4 py-2 text-sm transition-colors ${selectedGroupKey === 'all' ? 'bg-blue-50 text-[#006bff] font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                                        </svg>
+                                                        全部地域
+                                                    </span>
+                                                    <span className="text-xs text-gray-400">{regionItems.length}</span>
+                                                </button>
+
+                                                {/* 分组列表 */}
+                                                {regionGroups.map(g => {
+                                                    const expanded = expandedGroupIds.includes(g.id);
+                                                    const active = selectedGroupKey === g.id;
+                                                    return (
+                                                        <div key={g.id}>
+                                                            <div className={`group flex items-center gap-1 px-2 py-2 transition-colors ${active ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); toggleGroupExpand(g.id); }}
+                                                                    className="p-0.5 text-gray-400 hover:text-gray-600 flex-shrink-0"
+                                                                >
+                                                                    <svg className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setSelectedGroupKey(g.id)}
+                                                                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                                                                >
+                                                                    <svg className={`w-4 h-4 flex-shrink-0 ${active ? 'text-[#006bff]' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                                                    </svg>
+                                                                    <span className={`text-sm truncate ${active ? 'text-[#006bff] font-medium' : 'text-gray-700'}`}>{g.name}</span>
+                                                                    <span className="text-xs text-gray-400 flex-shrink-0">{g.regionIds.length}</span>
+                                                                </button>
+                                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                                                    <button onClick={(e) => { e.stopPropagation(); handleOpenEditRegionGroup(g); }} title="编辑分组" className="p-1 text-gray-400 hover:text-[#006bff]">
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteRegionGroup(g); }} title="删除分组" className="p-1 text-gray-400 hover:text-red-500">
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            {/* 分组下的地域 */}
+                                                            {expanded && (
+                                                                <div className="pl-8 pr-2 pb-1">
+                                                                    {g.regionIds.length === 0 ? (
+                                                                        <div className="py-1.5 text-xs text-gray-400">暂无地域</div>
+                                                                    ) : g.regionIds.map(rid => {
+                                                                        const r = getRegionNameById(rid);
+                                                                        if (!r) return null;
+                                                                        return (
+                                                                            <button
+                                                                                key={rid}
+                                                                                onClick={() => { setSelectedGroupKey(g.id); setRegionItemSearch(r.name); }}
+                                                                                className="w-full flex items-center gap-1.5 py-1.5 px-2 rounded text-left hover:bg-gray-50"
+                                                                            >
+                                                                                <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                </svg>
+                                                                                <span className="text-xs text-gray-600 truncate">{r.name}</span>
+                                                                                <span className="text-[11px] text-gray-400 font-mono truncate">{r.code}</span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+
+                                                {/* 未分组 */}
+                                                <button
+                                                    onClick={() => setSelectedGroupKey('ungrouped')}
+                                                    className={`w-full flex items-center justify-between px-4 py-2 text-sm transition-colors ${selectedGroupKey === 'ungrouped' ? 'bg-blue-50 text-[#006bff] font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                                        </svg>
+                                                        未分组
+                                                    </span>
+                                                    <span className="text-xs text-gray-400">{ungroupedRegionItems.length}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* 右侧：地域列表 */}
+                                        <div className="flex-1 min-w-0 bg-white rounded-lg border border-gray-200">
+                                            <div className="flex items-center justify-between px-5 py-4 gap-3">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <span className="text-sm font-medium text-gray-900 flex-shrink-0">{currentGroupTitle}</span>
+                                                    <span className="text-xs text-gray-400 flex-shrink-0">共 {visibleRegionItems.length} 个地域</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 flex-shrink-0">
+                                                    <div className="relative">
+                                                        <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                        </svg>
+                                                        <input
+                                                            type="text"
+                                                            value={regionItemSearch}
+                                                            onChange={(e) => setRegionItemSearch(e.target.value)}
+                                                            placeholder="搜索地域名称/标识"
+                                                            className="w-56 pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={handleOpenCreateRegionItem}
+                                                        className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                                    >
+                                                        + 新建地域
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-y border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域标识</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属分组</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {visibleRegionItems.length === 0 ? (
+                                                        <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                    ) : visibleRegionItems.map((r, idx) => {
+                                                        const groups = regionGroups.filter(g => g.regionIds.includes(r.id));
+                                                        return (
+                                                            <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{r.name}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700 font-mono">{r.code}</td>
+                                                                <td className="py-3 px-4 text-sm">
+                                                                    {groups.length === 0 ? (
+                                                                        <span className="text-gray-400">未分组</span>
+                                                                    ) : groups.map(g => (
+                                                                        <span key={g.id} className="inline-block mr-1 px-2 py-0.5 text-xs rounded bg-blue-50 text-[#006bff]">{g.name}</span>
+                                                                    ))}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm text-gray-600">{r.updateTime}</td>
+                                                                <td className="py-3 px-4 text-sm whitespace-nowrap">
+                                                                    <button onClick={() => handleOpenEditRegionItem(r)} className="text-blue-600 hover:text-blue-700 mr-3">编辑</button>
+                                                                    {typeof selectedGroupKey === 'number' && (
+                                                                        <button onClick={() => handleRemoveRegionFromGroup(r.id, selectedGroupKey)} className="text-gray-500 hover:text-gray-700 mr-3">移出分组</button>
+                                                                    )}
+                                                                    <button onClick={() => handleDeleteRegionItem(r)} className="text-red-500 hover:text-red-600">删除</button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            )}
 
                             {/* 新建/编辑可用区弹窗 */}
                             {regionZoneDialogOpen && (
@@ -6792,96 +8423,99 @@ export default function AdminPage() {
                                         </div>
 
                                         <div className="flex-1 overflow-auto px-6 py-6 space-y-5">
-                                            {/* 云服务器 */}
+                                            {/* 服务方 */}
                                             <div className="flex items-center gap-3">
                                                 <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
-                                                    <span className="text-red-500 mr-0.5">*</span>云服务器:
+                                                    <span className="text-red-500 mr-0.5">*</span>服务方:
                                                 </label>
                                                 <select
                                                     value={regionZoneForm.cloudServer}
-                                                    onChange={(e) => setRegionZoneForm({ ...regionZoneForm, cloudServer: e.target.value })}
+                                                    onChange={(e) => { setRegionZoneForm({ ...regionZoneForm, cloudServer: e.target.value }); setRegionZoneFormError(''); }}
                                                     className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${regionZoneForm.cloudServer ? 'text-gray-700' : 'text-gray-400'}`}
                                                 >
-                                                    <option value="">请选择云服务器</option>
+                                                    <option value="">请选择服务方</option>
                                                     {cloudServerOptions.map(opt => (
                                                         <option key={opt} value={opt}>{opt}</option>
                                                     ))}
                                                 </select>
                                             </div>
 
-                                            {/* 地域 */}
-                                            <div className="flex items-center gap-3">
-                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                            {/* 地域：选中后自动展示所属分组 */}
+                                            <div className="flex items-start gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
                                                     <span className="text-red-500 mr-0.5">*</span>地域:
                                                 </label>
-                                                <select
-                                                    value={regionZoneForm.region}
-                                                    onChange={(e) => setRegionZoneForm({ ...regionZoneForm, region: e.target.value })}
-                                                    className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${regionZoneForm.region ? 'text-gray-700' : 'text-gray-400'}`}
-                                                >
-                                                    <option value="">请选择地域</option>
-                                                    {regionOptions.map(opt => (
-                                                        <option key={opt} value={opt}>{opt}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* 内网（qihoo.net） */}
-                                            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-                                                <div className="text-sm font-medium text-[#006bff]">内网（qihoo.net）</div>
-                                                <div className="flex items-center gap-3">
-                                                    <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
-                                                        <span className="text-red-500 mr-0.5">*</span>可用区名称:
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={regionZoneForm.innerName}
-                                                        onChange={(e) => setRegionZoneForm({ ...regionZoneForm, innerName: e.target.value })}
-                                                        placeholder="支持中英文、数字(20个字符以内)"
-                                                        maxLength={20}
-                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
-                                                        <span className="text-red-500 mr-0.5">*</span>可用区标识:
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={regionZoneForm.innerCode}
-                                                        onChange={(e) => setRegionZoneForm({ ...regionZoneForm, innerCode: e.target.value })}
-                                                        placeholder="支持英文、数字、_、-(20个字符以内)"
-                                                        maxLength={20}
-                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* 公网（360.cn） */}
-                                            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-                                                <div className="text-sm font-medium text-[#006bff]">公网（360.cn）</div>
-                                                <div className="flex items-center gap-3">
-                                                    <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">是否启用:</label>
-                                                    <button
-                                                        onClick={() => setRegionZoneForm({ ...regionZoneForm, publicNet: !regionZoneForm.publicNet })}
-                                                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${regionZoneForm.publicNet ? 'bg-[#006bff]' : 'bg-gray-300'}`}
+                                                <div className="flex-1 min-w-0">
+                                                    <select
+                                                        value={regionZoneForm.region}
+                                                        onChange={(e) => { setRegionZoneForm({ ...regionZoneForm, region: e.target.value }); setRegionZoneFormError(''); }}
+                                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${regionZoneForm.region ? 'text-gray-700' : 'text-gray-400'}`}
                                                     >
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${regionZoneForm.publicNet ? 'translate-x-5' : ''}`} />
-                                                    </button>
+                                                        <option value="">请选择地域</option>
+                                                        {regionOptions.map(opt => (
+                                                            <option key={opt} value={opt}>{opt}</option>
+                                                        ))}
+                                                    </select>
+                                                    {/* 选中地域后，在筛选框下自动展示其所属分组名称 */}
+                                                    {regionZoneForm.region && (
+                                                        <div className="mt-2 flex items-center flex-wrap gap-1.5">
+                                                            <span className="text-xs text-gray-500">所属分组：</span>
+                                                            {getGroupNamesByRegionName(regionZoneForm.region).length === 0 ? (
+                                                                <span className="text-xs text-gray-400">未分组</span>
+                                                            ) : getGroupNamesByRegionName(regionZoneForm.region).map(name => (
+                                                                <span key={name} className="px-2 py-0.5 text-xs rounded bg-blue-50 text-[#006bff]">{name}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                {regionZoneForm.publicNet && (
-                                                    <>
+                                            </div>
+
+                                            {/* Portal 可用区配置：自动列出全部已开启独立Portal，仅支持开启/关闭，不支持增删 */}
+                                            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-sm font-medium text-[#006bff]">可用区配置</div>
+                                                    <span className="text-xs text-gray-400">
+                                                        共 {regionZoneForm.portals.length} 个Portal，已开启 {regionZoneForm.portals.filter(p => p.enabled).length} 个
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 leading-[1.6]">
+                                                    该地域的可用区在全部已开启独立Portal（当前为「{internalPortalName}」与「{publicPortalName}」）下均存在，无需添加或删除；不管是否启用，均需填写各 Portal 下的可用区名称与标识，「启用」仅控制该 Portal 前台是否展示。
+                                                </div>
+                                                {regionZoneForm.portals.length === 0 && (
+                                                    <div className="text-sm text-gray-400 py-4 text-center">暂无已开启独立Portal的企业，请先在「企业配置」中配置</div>
+                                                )}
+                                                {regionZoneForm.portals.map(p => (
+                                                    <div key={p.key} className={`border rounded-lg p-4 space-y-3 ${p.enabled ? 'border-gray-200 bg-gray-50/60' : 'border-gray-200 bg-gray-50/30'}`}>
+                                                        <div className="flex items-center justify-between">
+                                                            {/* Portal展示规则：portal名称(域名后缀) */}
+                                                            <span className="text-sm font-medium text-gray-700 truncate" title={formatPortalLabel(p.portalName)}>
+                                                                {p.portalName}
+                                                                {getPortalDomain(p.portalName) && (
+                                                                    <span className="ml-1 text-xs font-normal text-gray-400 font-mono">({getPortalDomain(p.portalName)})</span>
+                                                                )}
+                                                            </span>
+                                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                                <span className="text-xs text-gray-500">{p.enabled ? '已开启' : '已关闭'}</span>
+                                                                <button
+                                                                    onClick={() => handleUpdateZonePortal(p.key, { enabled: !p.enabled })}
+                                                                    className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${p.enabled ? 'bg-[#006bff]' : 'bg-gray-300'}`}
+                                                                >
+                                                                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${p.enabled ? 'translate-x-5' : ''}`} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {/* 不管是否启用，名称和标识都要填写 */}
                                                         <div className="flex items-center gap-3">
                                                             <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
                                                                 <span className="text-red-500 mr-0.5">*</span>可用区名称:
                                                             </label>
                                                             <input
                                                                 type="text"
-                                                                value={regionZoneForm.outerName}
-                                                                onChange={(e) => setRegionZoneForm({ ...regionZoneForm, outerName: e.target.value })}
+                                                                value={p.name}
+                                                                onChange={(e) => handleUpdateZonePortal(p.key, { name: e.target.value })}
                                                                 placeholder="支持中英文、数字(20个字符以内)"
                                                                 maxLength={20}
-                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
                                                             />
                                                         </div>
                                                         <div className="flex items-center gap-3">
@@ -6890,16 +8524,20 @@ export default function AdminPage() {
                                                             </label>
                                                             <input
                                                                 type="text"
-                                                                value={regionZoneForm.outerCode}
-                                                                onChange={(e) => setRegionZoneForm({ ...regionZoneForm, outerCode: e.target.value })}
+                                                                value={p.code}
+                                                                onChange={(e) => handleUpdateZonePortal(p.key, { code: e.target.value })}
                                                                 placeholder="支持英文、数字、_、-(20个字符以内)"
                                                                 maxLength={20}
-                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
                                                             />
                                                         </div>
-                                                    </>
-                                                )}
+                                                    </div>
+                                                ))}
                                             </div>
+
+                                            {regionZoneFormError && (
+                                                <div className="text-sm text-red-500">{regionZoneFormError}</div>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
@@ -6915,6 +8553,202 @@ export default function AdminPage() {
                                             >
                                                 确定
                                             </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 新建/编辑服务方弹窗 */}
+                            {providerDialogOpen && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[480px]">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                            <h3 className="text-base font-semibold text-gray-900">{editingProviderId != null ? '编辑服务方' : '新建服务方'}</h3>
+                                            <button onClick={() => setProviderDialogOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="px-6 py-6">
+                                            <div className="flex items-center gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                    <span className="text-red-500 mr-0.5">*</span>名称:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={providerForm.name}
+                                                    onChange={(e) => { setProviderForm({ name: e.target.value }); setProviderFormError(''); }}
+                                                    placeholder="支持中英文、数字(20个字符以内)"
+                                                    maxLength={20}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            {providerFormError && <div className="mt-2 pl-[108px] text-xs text-red-500">{providerFormError}</div>}
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                                            <button onClick={() => setProviderDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleSaveProvider} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 新建/编辑地域弹窗 */}
+                            {regionItemDialogOpen && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[560px]">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                            <h3 className="text-base font-semibold text-gray-900">{editingRegionItemId != null ? '编辑地域' : '新建地域'}</h3>
+                                            <button onClick={() => setRegionItemDialogOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="px-6 py-6 space-y-5">
+                                            <div className="flex items-center gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                    <span className="text-red-500 mr-0.5">*</span>地域名称:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={regionItemForm.name}
+                                                    onChange={(e) => { setRegionItemForm({ ...regionItemForm, name: e.target.value }); setRegionItemFormError(''); }}
+                                                    placeholder="如：北京"
+                                                    maxLength={20}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                    <span className="text-red-500 mr-0.5">*</span>地域标识:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={regionItemForm.code}
+                                                    onChange={(e) => { setRegionItemForm({ ...regionItemForm, code: e.target.value }); setRegionItemFormError(''); }}
+                                                    placeholder="如：beijing，支持英文、数字、_、-"
+                                                    maxLength={20}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            {/* 地域分组：多选 */}
+                                            <div className="flex items-start gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
+                                                    <span className="text-red-500 mr-0.5">*</span>地域分组:
+                                                </label>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="relative">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setRegionGroupPickerOpen(v => !v)}
+                                                            className="w-full flex items-center justify-between gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-left focus:outline-none focus:border-blue-500 hover:border-gray-400 transition-colors"
+                                                        >
+                                                            <span className="flex-1 min-w-0 flex flex-wrap gap-1">
+                                                                {regionItemForm.groupIds.length === 0 ? (
+                                                                    <span className="text-gray-400">请选择地域分组（可多选，必填）</span>
+                                                                ) : regionItemForm.groupIds.map(gid => {
+                                                                    const g = regionGroups.find(x => x.id === gid);
+                                                                    if (!g) return null;
+                                                                    return (
+                                                                        <span key={gid} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-blue-50 text-[#006bff]">
+                                                                            {g.name}
+                                                                            <span
+                                                                                role="button"
+                                                                                onClick={(e) => { e.stopPropagation(); toggleRegionItemGroup(gid); }}
+                                                                                className="hover:text-blue-700 cursor-pointer"
+                                                                            >×</span>
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </span>
+                                                            <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${regionGroupPickerOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                            </svg>
+                                                        </button>
+                                                        {regionGroupPickerOpen && (
+                                                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-auto py-1">
+                                                                {regionGroups.length === 0 ? (
+                                                                    <div className="px-3 py-4 text-sm text-gray-400 text-center">暂无地域分组</div>
+                                                                ) : regionGroups.map(g => (
+                                                                    <label key={g.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={regionItemForm.groupIds.includes(g.id)}
+                                                                            onChange={() => toggleRegionItemGroup(g.id)}
+                                                                            className="w-4 h-4 accent-[#006bff]"
+                                                                        />
+                                                                        <span className="text-sm text-gray-700 flex-1">{g.name}</span>
+                                                                        <span className="text-xs text-gray-400">{g.regionIds.length}个地域</span>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="mt-1.5 text-xs text-gray-400">可多选；至少选择一个地域分组</div>
+                                                </div>
+                                            </div>
+                                            {regionItemFormError && <div className="pl-[108px] text-xs text-red-500">{regionItemFormError}</div>}
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                                            <button onClick={() => setRegionItemDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleSaveRegionItem} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 新建/编辑地域分组弹窗 */}
+                            {regionGroupDialogOpen && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[560px] max-h-[85vh] flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                            <h3 className="text-base font-semibold text-gray-900">{editingRegionGroupId != null ? '编辑地域分组' : '新建地域分组'}</h3>
+                                            <button onClick={() => setRegionGroupDialogOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-auto px-6 py-6 space-y-5">
+                                            <div className="flex items-center gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
+                                                    <span className="text-red-500 mr-0.5">*</span>分组名称:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={regionGroupForm.name}
+                                                    onChange={(e) => { setRegionGroupForm({ ...regionGroupForm, name: e.target.value }); setRegionGroupFormError(''); }}
+                                                    placeholder="如：国内"
+                                                    maxLength={20}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">包含地域:</label>
+                                                <div className="flex-1 border border-gray-200 rounded-lg p-3 max-h-64 overflow-auto">
+                                                    {regionItems.length === 0 ? (
+                                                        <div className="text-sm text-gray-400 py-4 text-center">暂无地域，请先创建地域</div>
+                                                    ) : regionItems.map(r => (
+                                                        <label key={r.id} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 rounded px-1">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={regionGroupForm.regionIds.includes(r.id)}
+                                                                onChange={() => toggleRegionGroupRegion(r.id)}
+                                                                className="w-4 h-4 accent-[#006bff]"
+                                                            />
+                                                            <span className="text-sm text-gray-700">{r.name}</span>
+                                                            <span className="text-xs text-gray-400 font-mono">{r.code}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {regionGroupFormError && <div className="pl-[108px] text-xs text-red-500">{regionGroupFormError}</div>}
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                                            <button onClick={() => setRegionGroupDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleSaveRegionGroup} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
                                         </div>
                                     </div>
                                 </div>
@@ -9903,9 +11737,9 @@ export default function AdminPage() {
                                         // TODO: 保存产品
                                         setCreateProductDialogOpen(false);
                                     }}
-                                    disabled={!newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url}
+                                    disabled={!newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url || !newProduct.portal || (isInternalPortalSelected(newProduct.portal) && !newProduct.linkedPublicProduct)}
                                     className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${
-                                        !newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url
+                                        !newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url || !newProduct.portal || (isInternalPortalSelected(newProduct.portal) && !newProduct.linkedPublicProduct)
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                             : 'bg-blue-600 text-white hover:bg-blue-700'
                                     }`}
@@ -9917,6 +11751,162 @@ export default function AdminPage() {
                         
                         {/* 表单内容 */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                            {/* 上架Portal + 展示范围：置于表单顶部，二者存在联动 */}
+                            <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-4 space-y-5">
+                                {/* 上架Portal */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        上架Portal <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex items-center flex-wrap gap-x-6 gap-y-2">
+                                        {[
+                                            ...productPortalOptions.map(o => ({ value: o.value, label: o.label })),
+                                            { value: ALL_PORTAL_VALUE, label: '所有portal(一个产品)' },
+                                        ].map(option => (
+                                            <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="productPortal"
+                                                    value={option.value}
+                                                    checked={newProduct.portal === option.value}
+                                                    onChange={(e) => handleChangeProductPortal(e.target.value)}
+                                                    className="w-4 h-4 text-blue-600"
+                                                />
+                                                <span className={`text-sm ${newProduct.portal === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+
+                                    {/* 选中内部portal时，必须关联一个外部/公共portal的产品 */}
+                                    {isInternalPortalSelected(newProduct.portal) && (
+                                        <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm text-gray-700 flex-shrink-0">
+                                                    关联「{publicPortalName}」的产品 <span className="text-red-500">*</span>：
+                                                </span>
+                                                <select
+                                                    value={newProduct.linkedPublicProduct}
+                                                    onChange={(e) => handleLinkPublicProduct(e.target.value)}
+                                                    className="w-72 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                >
+                                                    <option value="">请选择「{publicPortalName}」的产品</option>
+                                                    {/* 仅可关联非内部Portal的产品（「外部/公共(360.cn)」或「所有portal」下的产品） */}
+                                                    {zhihuiProductsData
+                                                        .filter(p => !isInternalPortalSelected(p.portal))
+                                                        .map(p => (
+                                                            <option key={p.id} value={p.identifier}>{p.name}（{p.identifier}）</option>
+                                                        ))}
+                                                </select>
+                                                {newProduct.linkedPublicProduct && (
+                                                    <button
+                                                        onClick={() => setNewProduct({ ...newProduct, linkedPublicProduct: '' })}
+                                                        className="text-xs text-gray-400 hover:text-red-500"
+                                                    >
+                                                        清除
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
+                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                「{internalPortalName}」的产品需关联一个「{publicPortalName}」的产品；关联后自动同步其产品名称、分类等配置，仅「产品标识符」需单独填写
+                                            </div>
+                                            {newProduct.linkedPublicProduct && (
+                                                <div className="mt-2 text-xs text-blue-600">
+                                                    已同步关联产品的名称、简介、分类、描述、标签、URL等配置，产品标识符请单独填写
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 展示范围：随上架Portal联动 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        展示范围
+                                    </label>
+                                    <div className="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                                        {[
+                                            { value: 'all', label: '所有企业可见' },
+                                            { value: 'specified', label: '指定企业可见' },
+                                            { value: 'excluded', label: '指定企业不可见' },
+                                        ].map((option, idx) => {
+                                            const allowed = visibilityOptionsForPortal(newProduct.portal).includes(option.value);
+                                            const active = newProduct.visibility === option.value;
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    disabled={!allowed}
+                                                    onClick={() => allowed && setNewProduct({ ...newProduct, visibility: option.value })}
+                                                    className={`px-4 py-1.5 text-sm transition-colors ${idx > 0 ? 'border-l border-gray-300' : ''} ${
+                                                        active
+                                                            ? 'bg-blue-50 text-blue-600'
+                                                            : allowed
+                                                                ? 'bg-white text-gray-600 hover:bg-gray-50'
+                                                                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                                    }`}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {visibilityLocked && (
+                                        <span className="ml-3 text-xs text-gray-400">
+                                            选中「{internalPortalName}」时，展示范围固定为「指定企业可见」且租户不可修改
+                                        </span>
+                                    )}
+
+                                    {/* 租户列表：内部portal时只读；其余可增删 */}
+                                    {newProduct.visibility !== 'all' && (
+                                        <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                                            {newProduct.visibilityTenants.length === 0 && (
+                                                <div className="text-sm text-gray-400 py-1">请添加租户</div>
+                                            )}
+                                            {newProduct.visibilityTenants.map((t, index) => (
+                                                <div key={index} className="flex items-center gap-2">
+                                                    <select
+                                                        value={t.id}
+                                                        disabled={visibilityLocked}
+                                                        onChange={(e) => {
+                                                            const opt = productTenantOptions.find(o => o.id === e.target.value);
+                                                            const list = [...newProduct.visibilityTenants];
+                                                            list[index] = { id: e.target.value, name: opt ? opt.name : '' };
+                                                            setNewProduct({ ...newProduct, visibilityTenants: list });
+                                                        }}
+                                                        className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 ${visibilityLocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                                                    >
+                                                        <option value="">请选择租户</option>
+                                                        {productTenantOptions.map(o => (
+                                                            <option key={o.id} value={o.id}>{o.name}（{o.id}）</option>
+                                                        ))}
+                                                    </select>
+                                                    {!visibilityLocked && (
+                                                        <button
+                                                            onClick={() => setNewProduct({ ...newProduct, visibilityTenants: newProduct.visibilityTenants.filter((_, i) => i !== index) })}
+                                                            className="p-1.5 text-gray-400 hover:text-red-500"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {!visibilityLocked && (
+                                                <button
+                                                    onClick={() => setNewProduct({ ...newProduct, visibilityTenants: [...newProduct.visibilityTenants, { id: '', name: '' }] })}
+                                                    className="w-full py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                                                >
+                                                    添加租户
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* 产品名称 & 产品简介 */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -10237,139 +12227,6 @@ export default function AdminPage() {
                                     placeholder="请输入"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                 />
-                            </div>
-                            
-                            {/* 展示Portal */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    展示Portal <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex items-center gap-6">
-                                    {[
-                                        { value: 'qihoo', label: '360集团/内部(qihoo.net)' },
-                                        { value: 'external', label: '外部(360.cn)' },
-                                        { value: 'both', label: '所有Portal(一个产品)' },
-                                    ].map(option => (
-                                        <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="networkType"
-                                                value={option.value}
-                                                checked={newProduct.networkType === option.value}
-                                                onChange={(e) => setNewProduct({ ...newProduct, networkType: e.target.value, linkedInternalProduct: e.target.value === 'external' ? newProduct.linkedInternalProduct : '' })}
-                                                className="w-4 h-4 text-blue-600"
-                                            />
-                                            <span className={`text-sm ${newProduct.networkType === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
-                                        </label>
-                                    ))}
-                                </div>
-
-                                {/* 外部(360.cn) 时可关联一个内部产品 */}
-                                {newProduct.networkType === 'external' && (
-                                    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm text-gray-700 flex-shrink-0">关联内部产品：</span>
-                                            <select
-                                                value={newProduct.linkedInternalProduct}
-                                                onChange={(e) => setNewProduct({ ...newProduct, linkedInternalProduct: e.target.value })}
-                                                className="w-72 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                            >
-                                                <option value="">请选择内部(qihoo.net)产品</option>
-                                                {zhihuiProductsData.map(p => (
-                                                    <option key={p.id} value={p.identifier}>{p.name}（{p.identifier}）</option>
-                                                ))}
-                                            </select>
-                                            {newProduct.linkedInternalProduct && (
-                                                <button
-                                                    onClick={() => setNewProduct({ ...newProduct, linkedInternalProduct: '' })}
-                                                    className="text-xs text-gray-400 hover:text-red-500"
-                                                >
-                                                    清除
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
-                                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            选填，最多关联一个内部(qihoo.net)产品，关联后两侧产品的资源与计费数据可打通
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {/* 展示范围 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    展示范围
-                                </label>
-                                <div className="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                                    {[
-                                        { value: 'all', label: '所有企业可见' },
-                                        { value: 'specified', label: '指定企业可见' },
-                                        { value: 'excluded', label: '指定企业不可见' },
-                                    ].map((option, idx) => (
-                                        <button
-                                            key={option.value}
-                                            onClick={() => setNewProduct({ ...newProduct, visibility: option.value })}
-                                            className={`px-4 py-1.5 text-sm transition-colors ${idx > 0 ? 'border-l border-gray-300' : ''} ${
-                                                newProduct.visibility === option.value
-                                                    ? 'bg-blue-50 text-blue-600'
-                                                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {option.label}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* 指定企业列表 */}
-                                {newProduct.visibility !== 'all' && (
-                                    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
-                                        {newProduct.visibilityEnterprises.map((ent, index) => (
-                                            <div key={index} className="flex items-center gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={ent.id}
-                                                    onChange={(e) => {
-                                                        const list = [...newProduct.visibilityEnterprises];
-                                                        list[index] = { ...list[index], id: e.target.value };
-                                                        setNewProduct({ ...newProduct, visibilityEnterprises: list });
-                                                    }}
-                                                    placeholder="请输入企业ID"
-                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={ent.name}
-                                                    onChange={(e) => {
-                                                        const list = [...newProduct.visibilityEnterprises];
-                                                        list[index] = { ...list[index], name: e.target.value };
-                                                        setNewProduct({ ...newProduct, visibilityEnterprises: list });
-                                                    }}
-                                                    placeholder="企业名称"
-                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                />
-                                                {newProduct.visibilityEnterprises.length > 1 && (
-                                                    <button
-                                                        onClick={() => setNewProduct({ ...newProduct, visibilityEnterprises: newProduct.visibilityEnterprises.filter((_, i) => i !== index) })}
-                                                        className="p-1.5 text-gray-400 hover:text-red-500"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, visibilityEnterprises: [...newProduct.visibilityEnterprises, { id: '', name: '' }] })}
-                                            className="w-full py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
-                                        >
-                                            添加企业
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                             
                             {/* 分隔线 */}
