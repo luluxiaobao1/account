@@ -1906,12 +1906,14 @@ const formatNumber = (num: number) => {
 };
 
 // ===== 账单管理 - 产品账单 =====
-// 单个 Portal 下的产品账单数据；当同一产品的内部Portal与外部Portal已关联时，portals 长度为2，
-// 列表按各列相加合并展示为一行，支持展开查看内部/外部Portal各自的数据
-interface ProductBillPortalRow {
-    portalName: string;          // Portal 名称
-    internal: boolean;           // 是否为内部Portal
-    productIdentifier: string;   // 该Portal对应的产品标识（内、外Portal产品标识不同）
+// 产品账单按「产品」维度展示，不区分内外Portal：同一产品的内、外Portal数据已合并为一条，
+// 列表仅展示一个产品名称，无展开/收起交互。
+// 产品名称与「经营分析 - 产品分析」保持一致（同一份产品口径）。
+interface ProductBillRow {
+    id: string;
+    productName: string;         // 产品名称（与产品分析一致）
+    productIdentifier: string;   // 产品标识
+    period: string;              // 账期年月
     standardAmount: number;      // 官方标准价金额(元)
     payableAmount: number;       // 客户应付总金额(元)
     payableLastPeriod: number;   // 上一账期客户应付总金额(元)，用于计算环比
@@ -1919,86 +1921,65 @@ interface ProductBillPortalRow {
     settling: boolean;           // 本账期是否处于"结算中"（尚未出准确欠费数据）
 }
 
-interface ProductBillRow {
-    id: string;
-    productName: string;
-    productIdentifier: string;
-    period: string;                      // 账期年月
-    portals: ProductBillPortalRow[];     // 长度为1：未关联Portal；长度>=2：内外Portal已关联合并
-}
+// 产品账单 - 从产品分析的产品名称中提取产品标识（名称末尾括号内的英文标识）
+const extractProductIdentifier = (name: string) => {
+    const m = name.match(/\(([a-z0-9_]+)\)\s*$/i);
+    return m ? m[1] : "";
+};
 
+// 产品账单 - 「所属产品」筛选选项：取自「经营分析 - 产品分析」的产品（去重，保持数据一致）
+const billProductOptions = Array.from(
+    new Set(productAnalysisData.map((r) => cleanProductName(r.productName)))
+).map((name) => ({ value: name, label: name }));
+
+// 产品账单 - 列表测试数据：产品取自「产品分析」的前 3 个产品，覆盖 3 个账期
 const productBillData: ProductBillRow[] = [
     {
-        id: "llm-202603", productName: "大模型", productIdentifier: "llm", period: "202603",
-        portals: [
-            { portalName: "360集团", internal: true, productIdentifier: "llm_in", standardAmount: 28456789.12, payableAmount: 17234567.89, payableLastPeriod: 16789234.56, arrearsAmount: 0, settling: true },
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "llm_out", standardAmount: 17221445.44, payableAmount: 11221555.89, payableLastPeriod: 14253333.33, arrearsAmount: 0, settling: true },
-        ],
+        id: "cloud_server-202603", productName: cleanProductName(productAnalysisData[0].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[0].productName), period: "202603",
+        standardAmount: 45678234.56, payableAmount: 28456123.78, payableLastPeriod: 31042567.89, arrearsAmount: 0, settling: true,
     },
     {
-        id: "lobster-202603", productName: "龙虾", productIdentifier: "lobster", period: "202603",
-        portals: [
-            { portalName: "360集团", internal: true, productIdentifier: "lobster_in", standardAmount: 19234567.89, payableAmount: 11234567.45, payableLastPeriod: 10089234.56, arrearsAmount: 0, settling: true },
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "lobster_out", standardAmount: 12955000.00, payableAmount: 8000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: true },
-        ],
+        id: "cluster-202603", productName: cleanProductName(productAnalysisData[1].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[1].productName), period: "202603",
+        standardAmount: 32189567.89, payableAmount: 19234567.45, payableLastPeriod: 17089234.56, arrearsAmount: 0, settling: true,
     },
     {
-        id: "apicloud-202603", productName: "APICloud", productIdentifier: "apicloud", period: "202603",
-        portals: [
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "apicloud", standardAmount: 18456789.23, payableAmount: 11567890.34, payableLastPeriod: 12263456.78, arrearsAmount: 0, settling: true },
-        ],
+        id: "oss_storage-202603", productName: cleanProductName(productAnalysisData[4].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[4].productName), period: "202603",
+        standardAmount: 18456789.23, payableAmount: 11567890.34, payableLastPeriod: 12263456.78, arrearsAmount: 0, settling: true,
     },
     {
-        id: "llm-202602", productName: "大模型", productIdentifier: "llm", period: "202602",
-        portals: [
-            { portalName: "360集团", internal: true, productIdentifier: "llm_in", standardAmount: 32345678.90, payableAmount: 19042567.89, payableLastPeriod: 18075234.56, arrearsAmount: 0, settling: false },
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "llm_out", standardAmount: 20000000.00, payableAmount: 12000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
-        ],
+        id: "cloud_server-202602", productName: cleanProductName(productAnalysisData[0].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[0].productName), period: "202602",
+        standardAmount: 52345678.90, payableAmount: 31042567.89, payableLastPeriod: 29075234.56, arrearsAmount: 0, settling: false,
     },
     {
-        id: "lobster-202602", productName: "龙虾", productIdentifier: "lobster", period: "202602",
-        portals: [
-            { portalName: "360集团", internal: true, productIdentifier: "lobster_in", standardAmount: 17567890.12, payableAmount: 10089234.56, payableLastPeriod: 10698567.89, arrearsAmount: 0, settling: false },
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "lobster_out", standardAmount: 11000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
-        ],
+        id: "cluster-202602", productName: cleanProductName(productAnalysisData[1].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[1].productName), period: "202602",
+        standardAmount: 28567890.12, payableAmount: 17089234.56, payableLastPeriod: 17698567.89, arrearsAmount: 0, settling: false,
     },
     {
-        id: "apicloud-202602", productName: "APICloud", productIdentifier: "apicloud", period: "202602",
-        portals: [
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "apicloud", standardAmount: 21234567.89, payableAmount: 12263456.78, payableLastPeriod: 11228567.90, arrearsAmount: 0, settling: false },
-        ],
+        id: "oss_storage-202602", productName: cleanProductName(productAnalysisData[4].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[4].productName), period: "202602",
+        standardAmount: 21234567.89, payableAmount: 12263456.78, payableLastPeriod: 11228567.90, arrearsAmount: 0, settling: false,
     },
     {
-        id: "llm-202601", productName: "大模型", productIdentifier: "llm", period: "202601",
-        portals: [
-            { portalName: "360集团", internal: true, productIdentifier: "llm_in", standardAmount: 30901234.56, payableAmount: 18075234.56, payableLastPeriod: 18714567.89, arrearsAmount: 0, settling: false },
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "llm_out", standardAmount: 18000000.00, payableAmount: 11000000.00, payableLastPeriod: 11000000.00, arrearsAmount: 0, settling: false },
-        ],
+        id: "cloud_server-202601", productName: cleanProductName(productAnalysisData[0].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[0].productName), period: "202601",
+        standardAmount: 48901234.56, payableAmount: 29075234.56, payableLastPeriod: 29714567.89, arrearsAmount: 0, settling: false,
     },
     {
-        id: "lobster-202601", productName: "龙虾", productIdentifier: "lobster", period: "202601",
-        portals: [
-            { portalName: "360集团", internal: true, productIdentifier: "lobster_in", standardAmount: 16789012.34, payableAmount: 10698567.89, payableLastPeriod: 9926234.56, arrearsAmount: 0, settling: false },
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "lobster_out", standardAmount: 10000000.00, payableAmount: 7000000.00, payableLastPeriod: 7000000.00, arrearsAmount: 0, settling: false },
-        ],
+        id: "cluster-202601", productName: cleanProductName(productAnalysisData[1].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[1].productName), period: "202601",
+        standardAmount: 26789012.34, payableAmount: 17698567.89, payableLastPeriod: 16926234.56, arrearsAmount: 0, settling: false,
     },
     {
-        id: "apicloud-202601", productName: "APICloud", productIdentifier: "apicloud", period: "202601",
-        portals: [
-            { portalName: "外部/公共(360.cn)", internal: false, productIdentifier: "apicloud", standardAmount: 19567890.12, payableAmount: 11228567.90, payableLastPeriod: 11445234.56, arrearsAmount: 0, settling: false },
-        ],
+        id: "oss_storage-202601", productName: cleanProductName(productAnalysisData[4].productName),
+        productIdentifier: extractProductIdentifier(productAnalysisData[4].productName), period: "202601",
+        standardAmount: 19567890.12, payableAmount: 11228567.90, payableLastPeriod: 11445234.56, arrearsAmount: 0, settling: false,
     },
 ];
-
-// 产品账单 - 汇总某产品行下所有Portal的数据（内外Portal已关联时为二者之和）
-const aggregateProductBillRow = (row: ProductBillRow) => {
-    const standardAmount = row.portals.reduce((s, p) => s + p.standardAmount, 0);
-    const payableAmount = row.portals.reduce((s, p) => s + p.payableAmount, 0);
-    const payableLastPeriod = row.portals.reduce((s, p) => s + p.payableLastPeriod, 0);
-    const arrearsAmount = row.portals.reduce((s, p) => s + p.arrearsAmount, 0);
-    const settling = row.portals.some((p) => p.settling);
-    return { standardAmount, payableAmount, payableLastPeriod, arrearsAmount, settling };
-};
 
 // 产品账单 - 计算环比变化（对比上一账期客户应付总金额）
 const getBillMomChange = (current: number, last: number) => {
@@ -2070,6 +2051,7 @@ export default function AdminPage() {
     const [analysisSettlementUnit, setAnalysisSettlementUnit] = useState(""); // 结算单元
     const [analysisProductTags, setAnalysisProductTags] = useState<string[]>(["云数据库 PGSQL (p..."]); // 产品名称多选标签
     const [analysisProductPickerOpen, setAnalysisProductPickerOpen] = useState(false); // 产品下拉是否展开
+    const [analysisGoalTipOpen, setAnalysisGoalTipOpen] = useState(false);   // 右上角虚浮球：预期目标说明面板
     const [analysisPage, setAnalysisPage] = useState(1);                     // 当前页
     const [analysisPageSize, setAnalysisPageSize] = useState(10);            // 每页条数
 
@@ -2646,7 +2628,8 @@ export default function AdminPage() {
     // ===== 平台配置 - 计费配置 =====
     // 四个二级Tab：计量单位 / 计费标签 / 客户计费标签 / 计费小产品
     type BillingUnit = { id: number; name: string; symbol: string; remark: string; createTime: string; updateTime: string };
-    type BillingTagValue = { id: number; name: string; code: string };
+    // 标签值：标识 + 外部/公共Portal名称(必填) + 内部Portal名称(非必填，默认与外部一致)
+    type BillingTagValue = { id: number; code: string; outerName: string; innerName: string };
     type BillingTag = {
         id: number;
         name: string;
@@ -2658,7 +2641,7 @@ export default function AdminPage() {
     type CustomerBillingTag = { id: number; name: string; enterprise: string; tagName: string; status: '使用中' | '未使用'; createTime: string; updateTime: string };
     type BillingSubProduct = { id: number; name: string; code: string; product: string; status: '使用中' | '未使用'; createTime: string; updateTime: string };
 
-    const [billingPageTab, setBillingPageTab] = useState<'unit' | 'tag' | 'customerTag' | 'subProduct'>('tag');
+    const [billingPageTab, setBillingPageTab] = useState<'unit' | 'tag' | 'customerTag' | 'mainSubProduct' | 'supplierConfig' | 'subProduct'>('tag');
 
     const [billingUnits, setBillingUnits] = useState<BillingUnit[]>([
         { id: 1, name: '核', symbol: 'Core', remark: 'CPU 核数计量', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
@@ -2673,25 +2656,44 @@ export default function AdminPage() {
 
     const [billingTags, setBillingTags] = useState<BillingTag[]>([
         {
+            // 「可用区」置顶：由原「内网可用区」更名，标签值同步「地域可用区」列表。
+            // 标签值标识 = 内部Portal的地域标识；外部名称 = 外部/公共Portal可用区名称；内部名称 = 内部Portal可用区名称
+            id: 9, name: '可用区', status: '使用中', createTime: '2025-11-12 13:09:01', updateTime: '2026-07-08 17:40:25',
+            values: [
+                { id: 1, code: 'bjwdt', outerName: '北京1区', innerName: '北京电信' },
+                { id: 2, code: 'bjzdt', outerName: '北京2区', innerName: '北京电信' },
+                { id: 3, code: 'bjpdc', outerName: '北京3区', innerName: '北京联通' },
+                { id: 4, code: 'bjcm', outerName: '北京4区', innerName: '北京移动' },
+                { id: 5, code: 'bjmd', outerName: '北京5区', innerName: '北京联通' },
+                { id: 6, code: 'alibj1', outerName: '阿里北京1区', innerName: '阿里1区' },
+                { id: 7, code: 'shbt', outerName: '上海1区', innerName: '上海电信' },
+                { id: 8, code: 'shyc2', outerName: '上海2区', innerName: '上海联通' },
+                { id: 9, code: 'zzdt', outerName: '郑州1区', innerName: '郑州电信' },
+                { id: 10, code: 'zzzc', outerName: '郑州2区', innerName: '郑州联通' },
+                { id: 11, code: 'gzdt', outerName: '广州1区', innerName: '广州电信' },
+                { id: 12, code: 'hk', outerName: '香港1区', innerName: '香港' },
+            ],
+        },
+        {
             id: 1, name: '公网可用区', status: '使用中', createTime: '2024-09-04 19:20:07', updateTime: '2026-03-10 20:33:34',
             values: [
-                { id: 1, name: '北京1区', code: 'beijing1' },
-                { id: 2, name: '上海1区', code: 'shanghai1' },
-                { id: 3, name: '广州1区', code: 'guangzhou1' },
+                { id: 1, code: 'beijing1', outerName: '北京1区', innerName: '北京1区' },
+                { id: 2, code: 'shanghai1', outerName: '上海1区', innerName: '上海1区' },
+                { id: 3, code: 'guangzhou1', outerName: '广州1区', innerName: '广州1区' },
             ],
         },
         {
             id: 2, name: '短信计费标签', status: '使用中', createTime: '2024-09-04 18:55:47', updateTime: '2024-09-04 18:55:46',
             values: [
-                { id: 1, name: '国内短信', code: 'sms_cn' },
-                { id: 2, name: '国际短信', code: 'sms_intl' },
+                { id: 1, code: 'sms_cn', outerName: '国内短信', innerName: '国内短信' },
+                { id: 2, code: 'sms_intl', outerName: '国际短信', innerName: '国际短信' },
             ],
         },
         {
             id: 3, name: 'OBS_Polefs_HDFS地域', status: '使用中', createTime: '2024-11-08 15:51:35', updateTime: '2026-04-02 10:23:59',
             values: [
-                { id: 1, name: '华北地域', code: 'north' },
-                { id: 2, name: '华东地域', code: 'east' },
+                { id: 1, code: 'north', outerName: '华北地域', innerName: '华北地域' },
+                { id: 2, code: 'east', outerName: '华东地域', innerName: '华东地域' },
             ],
         },
         {
@@ -2701,9 +2703,9 @@ export default function AdminPage() {
         {
             id: 5, name: 'TAI优先级别', status: '使用中', createTime: '2025-04-25 14:55:39', updateTime: '2025-09-17 17:28:59',
             values: [
-                { id: 1, name: '高优先级', code: 'high' },
-                { id: 2, name: '中优先级', code: 'middle' },
-                { id: 3, name: '低优先级', code: 'low' },
+                { id: 1, code: 'high', outerName: '高优先级', innerName: '高优先级' },
+                { id: 2, code: 'middle', outerName: '中优先级', innerName: '中优先级' },
+                { id: 3, code: 'low', outerName: '低优先级', innerName: '低优先级' },
             ],
         },
         {
@@ -2711,32 +2713,17 @@ export default function AdminPage() {
             values: [],
         },
         {
-            id: 7, name: '主子产品分账渠道', status: '未使用', createTime: '2025-06-23 14:37:17', updateTime: '2025-06-23 14:45:23',
-            values: [],
-        },
-        {
-            id: 8, name: '供应商', status: '未使用', createTime: '2025-08-06 16:00:53', updateTime: '2025-08-06 16:00:53',
-            values: [],
-        },
-        {
-            id: 9, name: '内网可用区', status: '使用中', createTime: '2025-11-12 13:09:01', updateTime: '2025-11-12 13:09:00',
-            values: [
-                { id: 1, name: '北京电信', code: 'bjwdt' },
-                { id: 2, name: '上海电信', code: 'shbt' },
-            ],
-        },
-        {
             id: 10, name: '大数据计算内网计费标签', status: '使用中', createTime: '2025-11-18 15:23:13', updateTime: '2025-11-25 19:22:54',
             values: [
-                { id: 1, name: '离线计算', code: 'offline' },
-                { id: 2, name: '实时计算', code: 'realtime' },
+                { id: 1, code: 'offline', outerName: '离线计算', innerName: '离线计算' },
+                { id: 2, code: 'realtime', outerName: '实时计算', innerName: '实时计算' },
             ],
         },
         {
             id: 11, name: '容器计费规格', status: '使用中', createTime: '2026-01-08 10:14:22', updateTime: '2026-02-11 14:02:05',
             values: [
-                { id: 1, name: '通用型', code: 'general' },
-                { id: 2, name: '计算型', code: 'compute' },
+                { id: 1, code: 'general', outerName: '通用型', innerName: '通用型' },
+                { id: 2, code: 'compute', outerName: '计算型', innerName: '计算型' },
             ],
         },
         {
@@ -2746,7 +2733,7 @@ export default function AdminPage() {
     ]);
 
     const [customerBillingTags, setCustomerBillingTags] = useState<CustomerBillingTag[]>([
-        { id: 1, name: '大客户专属可用区', enterprise: '360集团', tagName: '内网可用区', status: '使用中', createTime: '2025-03-12 10:20:31', updateTime: '2025-11-02 16:41:09' },
+        { id: 1, name: '大客户专属可用区', enterprise: '360集团', tagName: '可用区', status: '使用中', createTime: '2025-03-12 10:20:31', updateTime: '2025-11-02 16:41:09' },
         { id: 2, name: '短信定制标签', enterprise: '外部/公共(360.cn)', tagName: '短信计费标签', status: '使用中', createTime: '2025-05-21 14:08:52', updateTime: '2025-05-21 14:08:52' },
         { id: 3, name: '存储地域定制', enterprise: '360集团', tagName: 'OBS_Polefs_HDFS地域', status: '未使用', createTime: '2025-09-18 11:36:04', updateTime: '2025-09-18 11:36:04' },
         { id: 4, name: 'TAI优先级定制', enterprise: '360集团', tagName: 'TAI优先级别', status: '使用中', createTime: '2026-01-15 09:52:17', updateTime: '2026-03-04 18:20:45' },
@@ -2760,6 +2747,129 @@ export default function AdminPage() {
         { id: 5, name: 'K8s 节点资源', code: 'k8s_node', product: '容器服务 K8s', status: '未使用', createTime: '2025-04-08 16:12:55', updateTime: '2025-04-08 16:12:55' },
         { id: 6, name: 'Flink 作业资源', code: 'flink_job', product: '实时计算 Flink', status: '未使用', createTime: '2025-07-23 10:29:41', updateTime: '2025-07-23 10:29:41' },
     ]);
+
+    // ===== 主子产品标识 / 产品供应商配置 =====
+    // 原「计费标签」中的「主子产品分账渠道」「供应商」两个标签移出，改为独立 Tab 单独管理，
+    // 二者数据结构沿用标签值的「名称 + 标识」形式。
+    type KeyValueTagEntry = { id: number; name: string; code: string; status: '使用中' | '未使用'; createTime: string; updateTime: string };
+
+    const [mainSubProducts, setMainSubProducts] = useState<KeyValueTagEntry[]>([
+        { id: 1, name: '云服务器ECS(主产品)', code: 'cloud_server', status: '使用中', createTime: '2025-06-23 14:38:02', updateTime: '2025-06-23 14:45:23' },
+        { id: 2, name: '对象存储OSS(主产品)', code: 'oss_storage', status: '使用中', createTime: '2025-06-23 14:39:11', updateTime: '2025-08-12 10:11:36' },
+        { id: 3, name: '裸金属CPU(子产品)', code: 'cloud_server_bm', status: '使用中', createTime: '2025-06-23 14:40:25', updateTime: '2025-06-23 14:40:25' },
+        { id: 4, name: '标准存储(子产品)', code: 'oss_standard', status: '未使用', createTime: '2025-06-23 14:41:07', updateTime: '2025-06-23 14:41:07' },
+    ]);
+
+    const [supplierConfigs, setSupplierConfigs] = useState<KeyValueTagEntry[]>([
+        { id: 1, name: '百度智能云', code: 'baidu', status: '使用中', createTime: '2025-08-06 16:01:30', updateTime: '2025-08-06 16:01:30' },
+        { id: 2, name: '阿里云', code: 'aliyun', status: '使用中', createTime: '2025-08-06 16:02:44', updateTime: '2025-12-11 09:30:18' },
+        { id: 3, name: 'AWS海外', code: 'aws', status: '未使用', createTime: '2025-08-06 16:03:52', updateTime: '2025-08-06 16:03:52' },
+    ]);
+
+    // 主子产品标识 / 产品供应商配置 搜索
+    const [mainSubProductSearch, setMainSubProductSearch] = useState('');
+    const [supplierConfigSearch, setSupplierConfigSearch] = useState('');
+
+    // 主子产品标识 - 新建/编辑抽屉
+    const [mainSubProductDialogOpen, setMainSubProductDialogOpen] = useState(false);
+    const [editingMainSubProductId, setEditingMainSubProductId] = useState<number | null>(null);
+    const [mainSubProductForm, setMainSubProductForm] = useState<{ name: string; code: string }>({ name: '', code: '' });
+    const [mainSubProductFormError, setMainSubProductFormError] = useState('');
+    const [mainSubProductDeleteTarget, setMainSubProductDeleteTarget] = useState<KeyValueTagEntry | null>(null);
+
+    // 产品供应商配置 - 新建/编辑抽屉
+    const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+    const [editingSupplierId, setEditingSupplierId] = useState<number | null>(null);
+    const [supplierForm, setSupplierForm] = useState<{ name: string; code: string }>({ name: '', code: '' });
+    const [supplierFormError, setSupplierFormError] = useState('');
+    const [supplierDeleteTarget, setSupplierDeleteTarget] = useState<KeyValueTagEntry | null>(null);
+
+    // 主子产品标识 / 产品供应商配置 列表筛选
+    const filteredMainSubProducts = useMemo(() => {
+        const kw = mainSubProductSearch.trim().toLowerCase();
+        if (!kw) return mainSubProducts;
+        return mainSubProducts.filter(v => v.name.toLowerCase().includes(kw) || v.code.toLowerCase().includes(kw));
+    }, [mainSubProducts, mainSubProductSearch]);
+
+    const filteredSupplierConfigs = useMemo(() => {
+        const kw = supplierConfigSearch.trim().toLowerCase();
+        if (!kw) return supplierConfigs;
+        return supplierConfigs.filter(v => v.name.toLowerCase().includes(kw) || v.code.toLowerCase().includes(kw));
+    }, [supplierConfigs, supplierConfigSearch]);
+
+    // 主子产品标识 - 打开新建
+    const handleOpenCreateMainSubProduct = () => {
+        setEditingMainSubProductId(null);
+        setMainSubProductForm({ name: '', code: '' });
+        setMainSubProductFormError('');
+        setMainSubProductDialogOpen(true);
+    };
+    // 主子产品标识 - 打开编辑
+    const handleOpenEditMainSubProduct = (v: KeyValueTagEntry) => {
+        setEditingMainSubProductId(v.id);
+        setMainSubProductForm({ name: v.name, code: v.code });
+        setMainSubProductFormError('');
+        setMainSubProductDialogOpen(true);
+    };
+    // 主子产品标识 - 保存
+    const handleSaveMainSubProduct = () => {
+        const name = mainSubProductForm.name.trim();
+        const code = mainSubProductForm.code.trim();
+        if (!name || !code) { setMainSubProductFormError('名称与标识均不能为空'); return; }
+        if (!/^[A-Za-z0-9_-]+$/.test(code)) { setMainSubProductFormError('标识仅支持英文、数字、_、-'); return; }
+        if (mainSubProducts.some(v => v.code === code && v.id !== editingMainSubProductId)) { setMainSubProductFormError('标识已存在'); return; }
+        const now = formatNow();
+        if (editingMainSubProductId != null) {
+            setMainSubProducts(prev => prev.map(v => v.id === editingMainSubProductId ? { ...v, name, code, updateTime: now } : v));
+        } else {
+            const nextId = mainSubProducts.reduce((m, v) => Math.max(m, v.id), 0) + 1;
+            setMainSubProducts(prev => [...prev, { id: nextId, name, code, status: '使用中', createTime: now, updateTime: now }]);
+        }
+        setMainSubProductDialogOpen(false);
+    };
+    // 主子产品标识 - 确认删除
+    const handleConfirmDeleteMainSubProduct = () => {
+        if (!mainSubProductDeleteTarget) return;
+        setMainSubProducts(prev => prev.filter(v => v.id !== mainSubProductDeleteTarget.id));
+        setMainSubProductDeleteTarget(null);
+    };
+
+    // 产品供应商配置 - 打开新建
+    const handleOpenCreateSupplier = () => {
+        setEditingSupplierId(null);
+        setSupplierForm({ name: '', code: '' });
+        setSupplierFormError('');
+        setSupplierDialogOpen(true);
+    };
+    // 产品供应商配置 - 打开编辑
+    const handleOpenEditSupplier = (v: KeyValueTagEntry) => {
+        setEditingSupplierId(v.id);
+        setSupplierForm({ name: v.name, code: v.code });
+        setSupplierFormError('');
+        setSupplierDialogOpen(true);
+    };
+    // 产品供应商配置 - 保存
+    const handleSaveSupplier = () => {
+        const name = supplierForm.name.trim();
+        const code = supplierForm.code.trim();
+        if (!name || !code) { setSupplierFormError('供应商名称与标识均不能为空'); return; }
+        if (!/^[A-Za-z0-9_-]+$/.test(code)) { setSupplierFormError('标识仅支持英文、数字、_、-'); return; }
+        if (supplierConfigs.some(v => v.code === code && v.id !== editingSupplierId)) { setSupplierFormError('标识已存在'); return; }
+        const now = formatNow();
+        if (editingSupplierId != null) {
+            setSupplierConfigs(prev => prev.map(v => v.id === editingSupplierId ? { ...v, name, code, updateTime: now } : v));
+        } else {
+            const nextId = supplierConfigs.reduce((m, v) => Math.max(m, v.id), 0) + 1;
+            setSupplierConfigs(prev => [...prev, { id: nextId, name, code, status: '使用中', createTime: now, updateTime: now }]);
+        }
+        setSupplierDialogOpen(false);
+    };
+    // 产品供应商配置 - 确认删除
+    const handleConfirmDeleteSupplier = () => {
+        if (!supplierDeleteTarget) return;
+        setSupplierConfigs(prev => prev.filter(v => v.id !== supplierDeleteTarget.id));
+        setSupplierDeleteTarget(null);
+    };
 
     // 计费标签筛选条件
     const [billingTagSearch, setBillingTagSearch] = useState('');
@@ -2871,14 +2981,14 @@ export default function AdminPage() {
         setBillingTagValueError('');
     };
 
-    // 标签值 - 新增一行
+    // 标签值 - 新增一行（标识 + 外部Portal名称 + 内部Portal名称）
     const handleAddBillingTagValue = () => {
         const nextId = billingTagValueDraft.reduce((m, v) => Math.max(m, v.id), 0) + 1;
-        setBillingTagValueDraft(prev => [...prev, { id: nextId, name: '', code: '' }]);
+        setBillingTagValueDraft(prev => [...prev, { id: nextId, code: '', outerName: '', innerName: '' }]);
     };
 
     // 标签值 - 修改某行字段
-    const handleChangeBillingTagValue = (id: number, field: 'name' | 'code', value: string) => {
+    const handleChangeBillingTagValue = (id: number, field: 'code' | 'outerName' | 'innerName', value: string) => {
         setBillingTagValueDraft(prev => prev.map(v => v.id === id ? { ...v, [field]: value } : v));
     };
 
@@ -2887,12 +2997,17 @@ export default function AdminPage() {
         setBillingTagValueDraft(prev => prev.filter(v => v.id !== id));
     };
 
-    // 标签值 - 保存（每行名称与标识均必填，标识不可重复）
+    // 标签值 - 保存（标识必填、外部Portal名称必填、内部Portal名称非必填默认与外部一致；标识不可重复）
     const handleSaveBillingTagValues = () => {
         if (!billingTagValueDialogTag) return;
-        const cleaned = billingTagValueDraft.map(v => ({ ...v, name: v.name.trim(), code: v.code.trim() }));
-        if (cleaned.some(v => !v.name || !v.code)) {
-            setBillingTagValueError('标签值名称与标识均不能为空');
+        const cleaned = billingTagValueDraft.map(v => ({
+            ...v,
+            code: v.code.trim(),
+            outerName: v.outerName.trim(),
+            innerName: v.innerName.trim() || v.outerName.trim(),
+        }));
+        if (cleaned.some(v => !v.outerName || !v.code)) {
+            setBillingTagValueError('标签值标识与外部/公共Portal名称均不能为空');
             return;
         }
         const codes = cleaned.map(v => v.code);
@@ -3295,14 +3410,22 @@ export default function AdminPage() {
     // 判断结算单元是否为「内结部门」（不可再编辑折扣）
     const isInnerDept = (unit: string) => unitDiscounts[unit]?.deptAttr === 'inner';
 
+    // 批量设置折扣仅对「经营部门」生效：内结部门固定内部折扣、未配置部门属性的单元均不可批量改折扣
+    const selectedBizUnits = useMemo(
+        () => selectedDiscountUnits.filter(u => unitDiscounts[u]?.deptAttr === 'biz'),
+        [selectedDiscountUnits, unitDiscounts]
+    );
+
     // 打开折扣配置弹窗（units 为 1 个即单条编辑，多个即批量编辑）
     // mode：'both' 部门属性+折扣一起编辑；'attr' 仅部门属性；'discount' 仅折扣
     const [discountDialogMode, setDiscountDialogMode] = useState<'both' | 'attr' | 'discount'>('both');
     const handleOpenDiscountDialog = (units: string[], mode: 'both' | 'attr' | 'discount' = 'both') => {
         if (units.length === 0) return;
         const base = units.length === 1 ? unitDiscounts[units[0]] : undefined;
+        // 仅设置折扣模式：只针对经营部门，预设 deptAttr 为经营部门，直接展示 SVIP/VIP 折扣选择，无需先选部门属性
+        const presetDeptAttr = mode === 'discount' ? 'biz' : (base?.deptAttr || '');
         setDiscountForm({
-            deptAttr: base?.deptAttr || '',
+            deptAttr: presetDeptAttr,
             discount: base?.discount ?? '',
         });
         setDiscountDialogMode(mode);
@@ -3313,6 +3436,33 @@ export default function AdminPage() {
     // 保存折扣配置（部门属性 / 折扣，支持批量）
     const handleSaveDiscount = () => {
         if (!discountDialogUnits) return;
+        
+        // 仅设置折扣模式：只更新经营部门的折扣类型
+        if (discountDialogMode === 'discount') {
+            const discount = discountForm.discount;
+            if (!discount) {
+                setDiscountFormError('请选择折扣');
+                return;
+            }
+            const now = formatNow();
+            setUnitDiscounts(prev => {
+                const next = { ...prev };
+                discountDialogUnits.forEach(u => {
+                    const old = prev[u] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' };
+                    // 仅更新经营部门的折扣，保持部门属性和单独设置的产品不变
+                    if (old.deptAttr === 'biz') {
+                        next[u] = { ...old, discount: discount as UnitDiscountType, updateTime: now };
+                    }
+                });
+                return next;
+            });
+            setDiscountFormError('');
+            setDiscountDialogUnits(null);
+            setSelectedDiscountUnits([]);
+            return;
+        }
+        
+        // 设置部门属性或完整设置模式
         const deptAttr = discountForm.deptAttr;
         if (!deptAttr) {
             setDiscountFormError('请选择部门属性');
@@ -3638,7 +3788,6 @@ export default function AdminPage() {
     const [packageNameSearch, setPackageNameSearch] = useState(""); // 套餐名称搜索
     const [packageTypeFilter, setPackageTypeFilter] = useState("all"); // 所属产品筛选
     const [expandedPackageIds, setExpandedPackageIds] = useState<number[]>([]); // 展开的套餐ID列表
-    const [expandedBillRowIds, setExpandedBillRowIds] = useState<string[]>([]); // 产品账单-已展开的内外Portal合并行ID列表
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // 二级菜单收起状态
     const [packageSubTab, setPackageSubTab] = useState("packages"); // 套餐页面二级tab: packages | analysis
     const [modelSubTab, setModelSubTab] = useState("config"); // AI计划管理页面二级tab: config | stats
@@ -4711,6 +4860,7 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>计费配置</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                             </div>
                         )}
@@ -5706,12 +5856,12 @@ export default function AdminPage() {
                                         defaultValue="2026-03"
                                         className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                     />
-                                    {/* 所属产品 */}
-                                    <select className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                                    {/* 所属产品：选项与「经营分析 - 产品分析」的产品保持一致 */}
+                                    <select className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 max-w-[280px]">
                                         <option value="">所属产品</option>
-                                        <option value="llm">大模型</option>
-                                        <option value="lobster">龙虾</option>
-                                        <option value="apicloud">APICloud</option>
+                                        {billProductOptions.map((o) => (
+                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -5738,103 +5888,30 @@ export default function AdminPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
+                                        {/* 产品账单按产品维度展示，不区分内外Portal，仅展示一个产品名称 */}
                                         {productBillData.map((row) => {
-                                            const agg = aggregateProductBillRow(row);
-                                            const isMerged = row.portals.length > 1;
-                                            const isExpanded = expandedBillRowIds.includes(row.id);
-                                            const mom = getBillMomChange(agg.payableAmount, agg.payableLastPeriod);
+                                            const mom = getBillMomChange(row.payableAmount, row.payableLastPeriod);
                                             return (
-                                                <React.Fragment key={row.id}>
-                                                    <tr className="hover:bg-gray-50">
-                                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                                                            <div className="flex items-center">
-                                                                {isMerged ? (
-                                                                    <button
-                                                                        onClick={() => setExpandedBillRowIds((prev) => prev.includes(row.id) ? prev.filter((id) => id !== row.id) : [...prev, row.id])}
-                                                                        className="mr-1.5 p-0.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
-                                                                        title={isExpanded ? "收起" : "展开查看各Portal数据"}
-                                                                    >
-                                                                        <svg className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                        </svg>
-                                                                    </button>
-                                                                ) : (
-                                                                    <span className="w-6 flex-shrink-0"></span>
-                                                                )}
-                                                                <span>{row.productName}</span>
-                                                                {/* 内外Portal已关联的合并行：外层仅展示产品名称，产品标识在展开的各Portal子行中查看 */}
-                                                                {!isMerged && (
-                                                                    <span className="ml-2 text-xs text-gray-500 font-mono">
-                                                                        {row.portals[0].productIdentifier}
-                                                                    </span>
-                                                                )}
-                                                                {isMerged && (
-                                                                    <span className="ml-2 px-1.5 py-0.5 text-[10px] leading-none rounded bg-blue-50 text-blue-600 border border-blue-100 flex-shrink-0">内外Portal关联</span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900">{row.period}</td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">{agg.standardAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</td>
-                                                        <td className="px-4 py-3 text-sm text-right">
-                                                            <span className="font-mono">{agg.payableAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</span>
-                                                            <span className={`ml-2 ${mom.up ? 'text-red-600' : 'text-green-600'}`}>{mom.up ? '↑' : '↓'} {mom.pct.toFixed(2)}%</span>
-                                                            <span className="ml-1 text-gray-400 text-xs">({agg.payableLastPeriod.toLocaleString('zh-CN', { minimumFractionDigits: 2 })})</span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">
-                                                            {agg.settling ? '结算中' : agg.arrearsAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                            <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                            <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                                        </td>
-                                                    </tr>
-                                                    {isExpanded && (
-                                                        <>
-                                                            <tr className="bg-blue-50/40 border-b border-blue-50">
-                                                                <td colSpan={6} className="px-6 py-2">
-                                                                    <div className="text-xs text-gray-500">
-                                                                        该产品在 <span className="font-medium text-gray-700">{row.portals.length}</span> 个Portal下关联，下列为各Portal独立数据（合计行 = 各Portal对应列相加）：
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                            {row.portals.map((portal, idx) => {
-                                                                const pMom = getBillMomChange(portal.payableAmount, portal.payableLastPeriod);
-                                                                return (
-                                                                    <tr key={idx} className="bg-gray-50/70 hover:bg-gray-100">
-                                                                        <td className="px-4 py-3 text-sm text-gray-500">
-                                                                            <div className="flex items-center pl-6">
-                                                                                <svg className="w-4 h-4 text-gray-400 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                                                                </svg>
-                                                                                <span>{portal.portalName}</span>
-                                                                                <span className="ml-1.5 text-xs text-gray-400 font-mono">{portal.productIdentifier}</span>
-                                                                                <span className={`ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded flex-shrink-0 ${portal.internal ? 'bg-purple-50 text-purple-600 border border-purple-100' : 'bg-teal-50 text-teal-600 border border-teal-100'}`}>
-                                                                                    {portal.internal ? '内部Portal' : '外部Portal'}
-                                                                                </span>
-                                                                            </div>
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-sm text-gray-500">{row.period}</td>
-                                                                        <td className="px-4 py-3 text-sm text-gray-600 text-right font-mono">{portal.standardAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</td>
-                                                                        <td className="px-4 py-3 text-sm text-right">
-                                                                            <span className="font-mono text-gray-600">{portal.payableAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</span>
-                                                                            <span className={`ml-2 ${pMom.up ? 'text-red-600' : 'text-green-600'}`}>{pMom.up ? '↑' : '↓'} {pMom.pct.toFixed(2)}%</span>
-                                                                            <span className="ml-1 text-gray-400 text-xs">({portal.payableLastPeriod.toLocaleString('zh-CN', { minimumFractionDigits: 2 })})</span>
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-sm text-right font-mono text-gray-500">
-                                                                            {portal.settling ? '结算中' : portal.arrearsAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-center">
-                                                                            <button className="text-blue-500 hover:text-blue-600 text-sm mr-3">客户账单</button>
-                                                                            <button className="text-blue-500 hover:text-blue-600 text-sm mr-3">计费明细</button>
-                                                                            <button className="text-blue-500 hover:text-blue-600 text-sm">变化趋势</button>
-                                                                        </td>
-                                                                    </tr>
-                                                                );
-                                                            })}
-                                                        </>
-                                                    )}
-                                                </React.Fragment>
+                                                <tr key={row.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                                        <span>{row.productName}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">{row.period}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">{row.standardAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</td>
+                                                    <td className="px-4 py-3 text-sm text-right">
+                                                        <span className="font-mono">{row.payableAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</span>
+                                                        <span className={`ml-2 ${mom.up ? 'text-red-600' : 'text-green-600'}`}>{mom.up ? '↑' : '↓'} {mom.pct.toFixed(2)}%</span>
+                                                        <span className="ml-1 text-gray-400 text-xs">({row.payableLastPeriod.toLocaleString('zh-CN', { minimumFractionDigits: 2 })})</span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">
+                                                        {row.settling ? '结算中' : row.arrearsAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
+                                                    </td>
+                                                </tr>
                                             );
                                         })}
                                     </tbody>
@@ -6494,7 +6571,42 @@ export default function AdminPage() {
 
                     {/* 经营分析 - 产品分析页面 */}
                     {currentMenu === 'analysis-product' && (
-                        <div className="flex-1 bg-gray-50 p-6 overflow-auto">
+                        <div className="relative flex-1 bg-gray-50 p-6 overflow-auto">
+                            {/* 右上角虚浮球：预期目标说明 */}
+                            <div className="pointer-events-none absolute right-6 top-6 z-40 flex flex-col items-end">
+                                <button
+                                    onClick={() => setAnalysisGoalTipOpen(!analysisGoalTipOpen)}
+                                    title="预期目标说明"
+                                    className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full shadow-lg ring-4 transition-all ${
+                                        analysisGoalTipOpen
+                                            ? "bg-orange-500 text-white ring-orange-100"
+                                            : "bg-white text-orange-500 ring-white/70 hover:bg-orange-50"
+                                    }`}
+                                >
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </button>
+
+                                {analysisGoalTipOpen && (
+                                    <div className="pointer-events-auto mt-2 w-[320px] rounded-lg border border-orange-200 bg-white p-4 shadow-xl">
+                                        <div className="mb-2 flex items-start justify-between gap-2">
+                                            <span className="text-[13px] font-semibold text-gray-900">预期目标</span>
+                                            <svg
+                                                onClick={() => setAnalysisGoalTipOpen(false)}
+                                                className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 cursor-pointer text-gray-400 hover:text-gray-600"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-[13px] leading-[1.9] text-gray-600">
+                                            内外产品是一个，小产品也是一样的。产品分析里不体现内外，就一个产品。
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
                             {/* 顶部说明提示 */}
                             <div className="mb-4 rounded-lg border border-red-100 bg-red-50/60 px-4 py-3">
                                 <p className="text-[13px] leading-[1.9] text-red-500">
@@ -6535,15 +6647,20 @@ export default function AdminPage() {
                                     ))}
                                 </select>
 
-                                {/* 产品名称（多选标签） */}
-                                <div className="relative w-[200px]">
+                                {/* 产品名称（多选标签）：本期改动，标红提示 */}
+                                <div className="group/prod relative w-[200px]">
                                     {/* 点击外部关闭下拉 */}
                                     {analysisProductPickerOpen && (
                                         <div className="fixed inset-0 z-10" onClick={() => setAnalysisProductPickerOpen(false)} />
                                     )}
+                                    {/* 悬停说明：下拉与筛选口径 */}
+                                    <div className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden w-[300px] rounded bg-gray-700 px-3 py-2 text-[12px] leading-[1.7] text-white shadow-lg group-hover/prod:block">
+                                        下拉框里只展示外部/标品的产品名称和共用 Portal 的产品名称；筛选时，关联选中标品的内部 Portal 的产品以及对应的外部 Portal 的产品。
+                                        <span className="absolute left-6 top-full border-4 border-transparent border-t-gray-700" />
+                                    </div>
                                     <div
                                         onClick={() => setAnalysisProductPickerOpen(!analysisProductPickerOpen)}
-                                        className="min-h-[36px] w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-2 py-1.5 pr-7 text-sm focus:outline-none"
+                                        className="min-h-[36px] w-full cursor-pointer rounded-lg border border-red-400 bg-white px-2 py-1.5 pr-7 text-sm ring-1 ring-red-100 focus:outline-none"
                                     >
                                         {analysisProductTags.length === 0 ? (
                                             <span className="leading-[24px] text-gray-400">产品名称</span>
@@ -6568,18 +6685,22 @@ export default function AdminPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <svg className="pointer-events-none absolute right-2.5 top-3 h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="pointer-events-none absolute right-2.5 top-3 h-3.5 w-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                     </svg>
 
-                                    {/* 产品下拉选择面板 */}
+                                    {/* 产品下拉选择面板：仅展示外部/标品与共用Portal的产品名称 */}
                                     {analysisProductPickerOpen && (
-                                        <div className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[260px] w-[280px] overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                        <div className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[300px] w-[300px] overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                            {/* 口径说明 */}
+                                            <div className="mb-1 border-b border-gray-100 bg-red-50/70 px-3 py-2 text-[12px] leading-[1.7] text-red-500">
+                                                仅展示<span className="font-medium">外部/标品</span>的产品名称与<span className="font-medium">共用 Portal</span> 的产品名称；选中标品后，将<span className="font-medium">自动关联</span>其内部 Portal 产品与对应的外部 Portal 产品。
+                                            </div>
                                             {productAnalysisData.map((row) => {
                                                 const short = row.productName.length > 22 ? `${row.productName.slice(0, 22)}...` : row.productName;
                                                 const checked = analysisProductTags.includes(short);
                                                 return (
-                                                    <label key={row.id} className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50">
+                                                    <label key={row.id} className="flex cursor-pointer items-start gap-2 px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50">
                                                         <input
                                                             type="checkbox"
                                                             checked={checked}
@@ -6590,9 +6711,18 @@ export default function AdminPage() {
                                                                         : [...analysisProductTags, short]
                                                                 )
                                                             }
-                                                            className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-0"
+                                                            className="mt-1 h-3.5 w-3.5 flex-shrink-0 rounded border-gray-300 text-blue-600 focus:ring-0"
                                                         />
-                                                        <span className="truncate">{row.productName}</span>
+                                                        <span className="min-w-0 flex-1">
+                                                            <span className="block truncate">{row.productName}</span>
+                                                            <span className={`mt-0.5 inline-block rounded px-1.5 py-px text-[10px] leading-none ${
+                                                                row.hasOuterPortal
+                                                                    ? "bg-orange-50 text-orange-600"
+                                                                    : "bg-blue-50 text-blue-600"
+                                                            }`}>
+                                                                {row.hasOuterPortal ? "外部/标品 · 关联内部Portal产品" : "共用Portal"}
+                                                            </span>
+                                                        </span>
                                                     </label>
                                                 );
                                             })}
@@ -7508,15 +7638,24 @@ export default function AdminPage() {
                                 {/* 说明：数据来源与规则 */}
                                 <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
                                     <p className="text-[13px] leading-[1.9] text-blue-600">
-                                        管理内部企业
+                                        同步内部企业
                                         <span className="font-medium">
                                             {internalEnterprise ? `「${internalEnterprise.name}」` : ''}
                                         </span>
-                                        下的结算单元折扣。列表同步自当前租户
-                                        <span className="font-medium">
-                                            {internalEnterprise?.tenantId ? `「${internalEnterprise.tenantName}（${internalEnterprise.tenantId}）」` : ''}
-                                        </span>
-                                        下的全部 ops 结算单元，不支持在此新增或删除结算单元。一个组织部门可关联多个结算单元，一个结算单元只能关联一个组织部门；<span className="font-medium">部门属性</span>分为<span className="font-medium">经营部门</span>与<span className="font-medium">内结部门</span>：内结部门固定为内部折扣，不可再编辑；经营部门可通过 SVIP/VIP 折扣设置折扣，也可<span className="font-medium">单独设置折扣</span>。
+                                        的结算单元，可以给内部企业下个结算单元配置单独折扣。在
+                                        <a
+                                            href={internalEnterprise?.portalDomain ? `https://${internalEnterprise.portalDomain}` : undefined}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={internalEnterprise?.portalDomain ? `跳转至内部企业Portal：https://${internalEnterprise.portalDomain}` : '内部企业未配置Portal域名'}
+                                            className="mx-0.5 inline-flex items-center gap-0.5 font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700"
+                                        >
+                                            控制台
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                        管理结算单元。
                                     </p>
                                 </div>
 
@@ -7573,13 +7712,13 @@ export default function AdminPage() {
                                                 批量设置部门属性{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
                                             </button>
                                             <button
-                                                onClick={() => handleOpenDiscountDialog(selectedDiscountUnits, 'discount')}
-                                                disabled={selectedDiscountUnits.length === 0}
-                                                className={`px-4 py-2 text-sm rounded-lg transition-colors ${selectedDiscountUnits.length === 0
+                                                onClick={() => handleOpenDiscountDialog(selectedBizUnits, 'discount')}
+                                                disabled={selectedBizUnits.length === 0}
+                                                className={`px-4 py-2 text-sm rounded-lg transition-colors ${selectedBizUnits.length === 0
                                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                     : 'bg-[#006bff] text-white hover:bg-blue-600'}`}
                                             >
-                                                批量设置折扣{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
+                                                批量设置折扣{selectedBizUnits.length > 0 ? `（${selectedBizUnits.length}）` : ''}
                                             </button>
                                         </div>
                                     </div>
@@ -9103,16 +9242,21 @@ export default function AdminPage() {
                                     <div className="flex items-center gap-1 px-5 border-b border-gray-200">
                                         {([
                                             { key: 'unit', label: '计量单位' },
-                                            { key: 'tag', label: '计费标签' },
+                                            { key: 'tag', label: '计费项标签' },
                                             { key: 'customerTag', label: '客户计费标签' },
+                                            { key: 'mainSubProduct', label: '主子产品标识' },
+                                            { key: 'supplierConfig', label: '产品供应商配置' },
                                             { key: 'subProduct', label: '计费小产品' },
                                         ] as const).map(t => (
                                             <button
                                                 key={t.key}
                                                 onClick={() => setBillingPageTab(t.key)}
-                                                className={`px-4 py-3 text-sm font-medium transition-colors relative ${billingPageTab === t.key ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                                className={`px-4 py-3 text-sm font-medium transition-colors relative flex items-center ${billingPageTab === t.key ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
                                             >
                                                 {t.label}
+                                                {['tag', 'mainSubProduct', 'supplierConfig'].includes(t.key) && (
+                                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                                )}
                                                 {billingPageTab === t.key && (
                                                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
                                                 )}
@@ -9197,17 +9341,7 @@ export default function AdminPage() {
                                                             <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                                 <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
                                                                 <td className="py-3 px-4 text-sm text-gray-900">
-                                                                    <div>{t.name}</div>
-                                                                    {t.values.length > 0 && (
-                                                                        <div className="mt-1 flex flex-wrap gap-1">
-                                                                            {t.values.slice(0, 3).map(v => (
-                                                                                <span key={v.id} className="px-1.5 py-0.5 text-[11px] leading-none rounded bg-blue-50 text-[#006bff]">{v.name}</span>
-                                                                            ))}
-                                                                            {t.values.length > 3 && (
-                                                                                <span className="px-1.5 py-0.5 text-[11px] leading-none rounded bg-gray-100 text-gray-500">+{t.values.length - 3}</span>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
+                                                                    <span>{t.name}</span>
                                                                 </td>
                                                                 <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{t.createTime}</td>
                                                                 <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{t.updateTime}</td>
@@ -9308,6 +9442,114 @@ export default function AdminPage() {
                                                                 <span className={t.status === '使用中' ? 'text-gray-700' : 'text-gray-400'}>{t.status}</span>
                                                             </td>
                                                             <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{t.updateTime}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </>
+                                    )}
+
+                                    {/* 主子产品标识 */}
+                                    {billingPageTab === 'mainSubProduct' && (
+                                        <>
+                                            <div className="flex items-center justify-between px-5 py-4">
+                                                <input
+                                                    type="text"
+                                                    value={mainSubProductSearch}
+                                                    onChange={(e) => setMainSubProductSearch(e.target.value)}
+                                                    placeholder="搜索名称/标识"
+                                                    className="w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                <button
+                                                    onClick={handleOpenCreateMainSubProduct}
+                                                    className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                                >
+                                                    + 新建主子产品标识
+                                                </button>
+                                            </div>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-y border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">标识</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">状态</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredMainSubProducts.length === 0 ? (
+                                                        <tr><td colSpan={7} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                    ) : filteredMainSubProducts.map((v, idx) => (
+                                                        <tr key={v.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{v.name}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-500 font-mono">{v.code}</td>
+                                                            <td className="py-3 px-4 text-sm">
+                                                                <span className={v.status === '使用中' ? 'text-gray-700' : 'text-gray-400'}>{v.status}</span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.createTime}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.updateTime}</td>
+                                                            <td className="py-3 px-4 text-sm whitespace-nowrap">
+                                                                <button onClick={() => handleOpenEditMainSubProduct(v)} className="text-blue-600 hover:text-blue-700 mr-3">编辑</button>
+                                                                <button onClick={() => setMainSubProductDeleteTarget(v)} className="text-red-500 hover:text-red-600">删除</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </>
+                                    )}
+
+                                    {/* 产品供应商配置 */}
+                                    {billingPageTab === 'supplierConfig' && (
+                                        <>
+                                            <div className="flex items-center justify-between px-5 py-4">
+                                                <input
+                                                    type="text"
+                                                    value={supplierConfigSearch}
+                                                    onChange={(e) => setSupplierConfigSearch(e.target.value)}
+                                                    placeholder="搜索供应商名称/标识"
+                                                    className="w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                <button
+                                                    onClick={handleOpenCreateSupplier}
+                                                    className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                                >
+                                                    + 新建供应商
+                                                </button>
+                                            </div>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-y border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">供应商名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">供应商标识</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">状态</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredSupplierConfigs.length === 0 ? (
+                                                        <tr><td colSpan={7} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                    ) : filteredSupplierConfigs.map((v, idx) => (
+                                                        <tr key={v.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{v.name}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-500 font-mono">{v.code}</td>
+                                                            <td className="py-3 px-4 text-sm">
+                                                                <span className={v.status === '使用中' ? 'text-gray-700' : 'text-gray-400'}>{v.status}</span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.createTime}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.updateTime}</td>
+                                                            <td className="py-3 px-4 text-sm whitespace-nowrap">
+                                                                <button onClick={() => handleOpenEditSupplier(v)} className="text-blue-600 hover:text-blue-700 mr-3">编辑</button>
+                                                                <button onClick={() => setSupplierDeleteTarget(v)} className="text-red-500 hover:text-red-600">删除</button>
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -9422,8 +9664,9 @@ export default function AdminPage() {
                                         </div>
                                         <div className="px-6 py-5 flex-1 overflow-auto">
                                             <div className="flex items-center gap-2 pb-2 text-xs text-gray-500">
-                                                <span className="flex-1">标签值名称</span>
-                                                <span className="flex-1">标签值标识</span>
+                                                <span className="w-36 flex-shrink-0">标签值标识</span>
+                                                <span className="flex-1"><span className="text-red-400">*</span> 外部/公共Portal名称</span>
+                                                <span className="flex-1">内部Portal名称</span>
                                                 <span className="w-12 text-center">操作</span>
                                             </div>
                                             {billingTagValueDraft.length === 0 ? (
@@ -9432,17 +9675,24 @@ export default function AdminPage() {
                                                 <div key={v.id} className="flex items-center gap-2 py-1.5">
                                                     <input
                                                         type="text"
-                                                        value={v.name}
-                                                        onChange={(e) => { handleChangeBillingTagValue(v.id, 'name', e.target.value); setBillingTagValueError(''); }}
-                                                        placeholder="请输入名称"
+                                                        value={v.code}
+                                                        onChange={(e) => { handleChangeBillingTagValue(v.id, 'code', e.target.value); setBillingTagValueError(''); }}
+                                                        placeholder="标识"
+                                                        className="w-36 flex-shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 font-mono focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={v.outerName}
+                                                        onChange={(e) => { handleChangeBillingTagValue(v.id, 'outerName', e.target.value); setBillingTagValueError(''); }}
+                                                        placeholder="外部/公共Portal名称（必填）"
                                                         className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                                     />
                                                     <input
                                                         type="text"
-                                                        value={v.code}
-                                                        onChange={(e) => { handleChangeBillingTagValue(v.id, 'code', e.target.value); setBillingTagValueError(''); }}
-                                                        placeholder="请输入标识"
-                                                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 font-mono focus:outline-none focus:border-blue-500"
+                                                        value={v.innerName}
+                                                        onChange={(e) => { handleChangeBillingTagValue(v.id, 'innerName', e.target.value); setBillingTagValueError(''); }}
+                                                        placeholder="内部Portal名称（默认同外部）"
+                                                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                                     />
                                                     <button
                                                         onClick={() => handleRemoveBillingTagValue(v.id)}
@@ -9482,6 +9732,140 @@ export default function AdminPage() {
                                         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
                                             <button onClick={() => setBillingTagDeleteTarget(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
                                             <button onClick={handleConfirmDeleteBillingTag} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors">确认删除</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 新建 / 编辑主子产品标识抽屉（右侧滑出） */}
+                            {mainSubProductDialogOpen && (
+                                <div className="fixed inset-0 z-50">
+                                    <div className="absolute inset-0 bg-black/40" onClick={() => setMainSubProductDialogOpen(false)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[560px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">{editingMainSubProductId != null ? '编辑主子产品标识' : '新建主子产品标识'}</h3>
+                                            <button
+                                                onClick={() => setMainSubProductDialogOpen(false)}
+                                                className="text-gray-400 hover:text-gray-600"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    名称 <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={mainSubProductForm.name}
+                                                    onChange={(e) => { setMainSubProductForm({ ...mainSubProductForm, name: e.target.value }); setMainSubProductFormError(''); }}
+                                                    placeholder="请输入主子产品名称"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    标识 <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={mainSubProductForm.code}
+                                                    onChange={(e) => { setMainSubProductForm({ ...mainSubProductForm, code: e.target.value }); setMainSubProductFormError(''); }}
+                                                    placeholder="请输入标识（英文、数字、_、-）"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 font-mono focus:outline-none focus:border-blue-500"
+                                                />
+                                                {mainSubProductFormError && <div className="mt-1.5 text-xs text-red-500">{mainSubProductFormError}</div>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                                            <button onClick={() => setMainSubProductDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleSaveMainSubProduct} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 删除主子产品标识确认弹窗 */}
+                            {mainSubProductDeleteTarget && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[400px]">
+                                        <div className="px-6 py-5">
+                                            <h3 className="text-base font-semibold text-gray-900 mb-1">确认删除主子产品标识</h3>
+                                            <p className="text-sm text-gray-500 leading-[1.8]">确认删除主子产品标识「{mainSubProductDeleteTarget.name}」吗？删除后不可恢复。</p>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                                            <button onClick={() => setMainSubProductDeleteTarget(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleConfirmDeleteMainSubProduct} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors">确认删除</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 新建 / 编辑产品供应商配置抽屉（右侧滑出） */}
+                            {supplierDialogOpen && (
+                                <div className="fixed inset-0 z-50">
+                                    <div className="absolute inset-0 bg-black/40" onClick={() => setSupplierDialogOpen(false)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[560px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">{editingSupplierId != null ? '编辑产品供应商' : '新建产品供应商'}</h3>
+                                            <button
+                                                onClick={() => setSupplierDialogOpen(false)}
+                                                className="text-gray-400 hover:text-gray-600"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    供应商名称 <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={supplierForm.name}
+                                                    onChange={(e) => { setSupplierForm({ ...supplierForm, name: e.target.value }); setSupplierFormError(''); }}
+                                                    placeholder="请输入供应商名称"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    供应商标识 <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={supplierForm.code}
+                                                    onChange={(e) => { setSupplierForm({ ...supplierForm, code: e.target.value }); setSupplierFormError(''); }}
+                                                    placeholder="请输入标识（英文、数字、_、-）"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 font-mono focus:outline-none focus:border-blue-500"
+                                                />
+                                                {supplierFormError && <div className="mt-1.5 text-xs text-red-500">{supplierFormError}</div>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                                            <button onClick={() => setSupplierDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleSaveSupplier} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 删除产品供应商配置确认弹窗 */}
+                            {supplierDeleteTarget && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[400px]">
+                                        <div className="px-6 py-5">
+                                            <h3 className="text-base font-semibold text-gray-900 mb-1">确认删除供应商</h3>
+                                            <p className="text-sm text-gray-500 leading-[1.8]">确认删除供应商「{supplierDeleteTarget.name}」吗？删除后不可恢复。</p>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                                            <button onClick={() => setSupplierDeleteTarget(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleConfirmDeleteSupplier} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors">确认删除</button>
                                         </div>
                                     </div>
                                 </div>
