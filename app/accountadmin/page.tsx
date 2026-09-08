@@ -365,102 +365,6 @@ const productAnalysisData: ProductAnalysisRow[] = [
     },
 ];
 
-// 产品分析 - 内外Portal关联的子行（外层产品行 = 各Portal对应列相加，毛利率两列除外）
-interface ProductAnalysisPortalRow {
-    portalName: string;             // Portal 名称
-    internal: boolean;              // 是否为内部Portal
-    productIdentifier: string;      // 该Portal下的产品标识（内、外Portal标识不同）
-    totalRevenue: number;
-    innerRevenue: number;
-    innerNonMidRevenue: number;
-    midNonZyunRevenue: number;
-    zyunNonUnitRevenue: number;
-    unitRevenue: number;
-    outerGroupRevenue: number;
-    outerPortalRevenue: number;
-    outerInnerPriceRevenue: number;
-    innerTotalRevenue: number;
-    productCost: number;
-    innerProfit: number;
-    outerProfit: number;
-    innerMargin: number;            // 各Portal单独计算，不参与外层求和
-    outerMargin: number;            // 各Portal单独计算，不参与外层求和
-    balance: number;
-}
-
-// 产品分析 - 取产品名称末尾的英文产品标识，如 "云服务器 ECS(cloud_server)" -> "cloud_server"
-const getAnalysisIdentifier = (name: string) => {
-    const m = name.match(/\(([a-z0-9_]+)\)\s*$/i);
-    return m ? m[1] : "";
-};
-
-// 产品分析 - 按内外Portal拆分产品行；未关联外部Portal时返回空数组（不可展开）
-// 拆分规则：内部Portal承载「公司内收入 + 集团内的外部事业部收入」，外部Portal承载「外部(360.cn)收入」；
-// 外部Portal各列由「外层产品行 - 内部Portal」倒推，保证除毛利率外每列相加严格等于外层产品行。
-const getAnalysisPortalRows = (row: ProductAnalysisRow): ProductAnalysisPortalRow[] => {
-    if (!row.hasOuterPortal) return [];
-    const base = getAnalysisIdentifier(row.productName);
-
-    // 外部收入对应的内结算价收入：按「集团内的外部事业部 / 外部(360.cn)」收入占比拆分
-    const outerTotal = row.outerGroupRevenue + row.outerPortalRevenue;
-    const groupRatio = outerTotal > 0 ? row.outerGroupRevenue / outerTotal : 0;
-    const innerOuterInnerPrice = row.outerInnerPriceRevenue * groupRatio;
-
-    // 内部Portal
-    const innerInnerTotal = row.innerRevenue + innerOuterInnerPrice;
-    const innerCost = row.innerTotalRevenue > 0 ? row.productCost * (innerInnerTotal / row.innerTotalRevenue) : row.productCost;
-    const innerProfit = innerInnerTotal - innerCost;
-    const innerOuterProfit = row.outerGroupRevenue - innerOuterInnerPrice;
-    const inner: ProductAnalysisPortalRow = {
-        portalName: "360集团",
-        internal: true,
-        productIdentifier: base ? `${base}_in` : "-",
-        totalRevenue: row.innerRevenue + row.outerGroupRevenue,
-        innerRevenue: row.innerRevenue,
-        innerNonMidRevenue: row.innerNonMidRevenue,
-        midNonZyunRevenue: row.midNonZyunRevenue,
-        zyunNonUnitRevenue: row.zyunNonUnitRevenue,
-        unitRevenue: row.unitRevenue,
-        outerGroupRevenue: row.outerGroupRevenue,
-        outerPortalRevenue: 0,
-        outerInnerPriceRevenue: innerOuterInnerPrice,
-        innerTotalRevenue: innerInnerTotal,
-        productCost: innerCost,
-        innerProfit,
-        outerProfit: innerOuterProfit,
-        innerMargin: innerInnerTotal > 0 ? (innerProfit / innerInnerTotal) * 100 : 0,
-        outerMargin: row.outerGroupRevenue > 0 ? (innerOuterProfit / row.outerGroupRevenue) * 100 : 0,
-        balance: innerProfit + innerOuterProfit,
-    };
-
-    // 外部Portal（由外层产品行倒推）
-    const outerInnerTotal = row.innerTotalRevenue - inner.innerTotalRevenue;
-    const outerProfitVal = row.outerProfit - inner.outerProfit;
-    const outerInnerProfit = row.innerProfit - inner.innerProfit;
-    const outer: ProductAnalysisPortalRow = {
-        portalName: "外部/公共(360.cn)",
-        internal: false,
-        productIdentifier: base ? `${base}_out` : "-",
-        totalRevenue: row.totalRevenue - inner.totalRevenue,
-        innerRevenue: 0,
-        innerNonMidRevenue: 0,
-        midNonZyunRevenue: 0,
-        zyunNonUnitRevenue: 0,
-        unitRevenue: 0,
-        outerGroupRevenue: 0,
-        outerPortalRevenue: row.outerPortalRevenue,
-        outerInnerPriceRevenue: row.outerInnerPriceRevenue - inner.outerInnerPriceRevenue,
-        innerTotalRevenue: outerInnerTotal,
-        productCost: row.productCost - inner.productCost,
-        innerProfit: outerInnerProfit,
-        outerProfit: outerProfitVal,
-        innerMargin: outerInnerTotal > 0 ? (outerInnerProfit / outerInnerTotal) * 100 : 0,
-        outerMargin: row.outerPortalRevenue > 0 ? (outerProfitVal / row.outerPortalRevenue) * 100 : 0,
-        balance: row.balance - inner.balance,
-    };
-
-    return [inner, outer];
-};
 
 // 产品分析 - 账单类型选项
 const analysisBillTypes = [
@@ -673,41 +577,8 @@ const getProductRevenueDetailRows = (row: ProductAnalysisRow) => {
     });
 };
 
-// 产品分析 - 「集团内外部事业部」收入明细：按结算单元名称拆分账单
-const outerGroupSettlementUnits = ["智汇云-云平台部", "智汇云-智能工程部", "智汇云-系统部"];
-
-// 内外属性 - 枚举选项
-const innerOuterAttributeOptions = ["集团内", "集团内非中台", "中台内非智汇云", "智汇云内", "集团外"];
-
-// 「集团内的外部事业部」明细 - 各结算单元对应的内外属性
-const outerGroupUnitAttributeMap: Record<string, string> = {
-    "智汇云-云平台部": "智汇云内",
-    "智汇云-智能工程部": "中台内非智汇云",
-    "智汇云-系统部": "集团内非中台",
-};
-
-const getOuterGroupDetailRows = (row: ProductAnalysisRow) => {
-    const total = row.outerGroupRevenue;
-    if (total === 0) return [];
-    const units = outerGroupSettlementUnits;
-    const weights = units.map((_, i) => units.length - i);
-    const weightSum = weights.reduce((s, w) => s + w, 0);
-    let allocated = 0;
-    return units.map((unitName, i) => {
-        const amount = i === units.length - 1
-            ? total - allocated
-            : Math.round((total * weights[i]) / weightSum * 100) / 100;
-        allocated += amount;
-        return {
-            period: row.period,
-            unitName,
-            attribute: outerGroupUnitAttributeMap[unitName] || innerOuterAttributeOptions[0],
-            amount,
-        };
-    });
-};
-
 // 产品分析 - 通用结算单元账单金额明细：按结算单元名称拆分账单金额（用于各可点击收入列）
+const outerGroupSettlementUnits = ["智汇云-云平台部", "智汇云-智能工程部", "智汇云-系统部"];
 const getUnitBillDetailRows = (row: ProductAnalysisRow, amount: number) => {
     if (amount === 0) return [];
     const units = outerGroupSettlementUnits;
@@ -725,23 +596,51 @@ const getUnitBillDetailRows = (row: ProductAnalysisRow, amount: number) => {
 
 
 
-// 产品分析 - 「外部(360.cn)」收入明细：按租户名称拆分账单
-const outerPortalTenantNames = ["360安全云-租户A", "360政企云-租户B", "360营销云-租户C"];
+// 产品分析 - 外部Portal租户（名称 + 域名）
+const outerPortalTenants = [
+    { name: "360安全云", domain: "aq.360.cn" },
+    { name: "360政企云", domain: "zq.360.cn" },
+    { name: "360营销云", domain: "yx.360.cn" },
+];
 
-const getOuterPortalDetailRows = (row: ProductAnalysisRow) => {
-    const total = row.outerPortalRevenue;
-    if (total === 0) return [];
-    const tenants = outerPortalTenantNames;
-    const weights = tenants.map((_, i) => tenants.length - i);
-    const weightSum = weights.reduce((s, w) => s + w, 0);
-    let allocated = 0;
-    return tenants.map((tenantName, i) => {
-        const amount = i === tenants.length - 1
-            ? total - allocated
-            : Math.round((total * weights[i]) / weightSum * 100) / 100;
-        allocated += amount;
-        return { period: row.period, tenantName, amount };
-    });
+// 产品分析 - 「公司外收入」明细：拆分「收入来源」与「来源名称」两列，
+// 合并「集团下外部结算单元账单」与「外部Portal名称(域名)」两类收入来源
+const getOuterRevenueDetailRows = (row: ProductAnalysisRow) => {
+    const rows: { period: string; unitName: string; source: string; sourceName: string; amount: number }[] = [];
+
+    // 来源一：集团下外部结算单元账单（按结算单元拆分）
+    const groupTotal = row.outerGroupRevenue;
+    if (groupTotal > 0) {
+        const units = outerGroupSettlementUnits;
+        const weights = units.map((_, i) => units.length - i);
+        const weightSum = weights.reduce((s, w) => s + w, 0);
+        let allocated = 0;
+        units.forEach((unitName, i) => {
+            const amount = i === units.length - 1
+                ? groupTotal - allocated
+                : Math.round((groupTotal * weights[i]) / weightSum * 100) / 100;
+            allocated += amount;
+            rows.push({ period: row.period, unitName, source: "集团下外部结算单元账单", sourceName: unitName, amount });
+        });
+    }
+
+    // 来源二：外部Portal名称(域名)（按租户名称/域名拆分）
+    const portalTotal = row.outerPortalRevenue;
+    if (portalTotal > 0) {
+        const tenants = outerPortalTenants;
+        const weights = tenants.map((_, i) => tenants.length - i);
+        const weightSum = weights.reduce((s, w) => s + w, 0);
+        let allocated = 0;
+        tenants.forEach((t, i) => {
+            const amount = i === tenants.length - 1
+                ? portalTotal - allocated
+                : Math.round((portalTotal * weights[i]) / weightSum * 100) / 100;
+            allocated += amount;
+            rows.push({ period: row.period, unitName: "-", source: "外部Portal名称(域名)", sourceName: `${t.name}（${t.domain}）`, amount });
+        });
+    }
+
+    return rows;
 };
 
 // 产品分析 - 「公司内收入」明细：来源一为集团内部结算单元账单，来源二为内部结算单元账号在外部portal上
@@ -782,6 +681,19 @@ const getInnerRevenuePortalUsageRows = (row: ProductAnalysisRow) => {
         const [unitName, portalAccount] = account.split("@");
         return { period: row.period, unitName, portalAccount, amount };
     });
+};
+
+// 产品分析 - 「公司内收入」明细：将「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」
+// 合并为一张表展示。收入来源列取值：内部结算单元名称（来源一）或 外部Portal账号（来源二）
+const getInnerRevenueMergedRows = (row: ProductAnalysisRow) => {
+    const rows: { period: string; unitName: string; source: string; amount: number; type: "internal" | "portal" }[] = [];
+    getInnerRevenueUnitBillRows(row).forEach((r) => {
+        rows.push({ period: r.period, unitName: r.unitName, source: r.unitName, amount: r.amount, type: "internal" });
+    });
+    getInnerRevenuePortalUsageRows(row).forEach((r) => {
+        rows.push({ period: r.period, unitName: r.unitName, source: r.portalAccount, amount: r.amount, type: "portal" });
+    });
+    return rows;
 };
 
 // ===== 经营分析 - 整体分析 =====
@@ -1640,10 +1552,17 @@ const collectTenantSettlementUnits = (tenantId: string): TenantSettlementUnit[] 
     return result;
 };
 
-// 内部折扣设置 - 默认属性标签（由内部企业自行定义，可增删改）
-const defaultUnitAttrTags = ['集团外', '集团内非中台', '中台内', '中台内非智汇云', '智汇云'];
+// 内部折扣设置 - 部门属性（固定两类，不可增删改）
+// 内结部门：内部结算部门，经营分析时是内部收入
+// 经营部门：单独定价的部门，经营分析时归类到外部收入
+type UnitDeptAttr = 'biz' | 'inner';
+const unitDeptAttrOptions: { value: UnitDeptAttr; label: string }[] = [
+    { value: 'biz', label: '经营部门' },
+    { value: 'inner', label: '内结部门' },
+];
+const unitDeptAttrTip = '内结部门：内部结算部门，经营分析时是内部收入。经营部门：单独定价的部门，经营分析时归类到外部收入。';
 
-// 内部折扣设置 - 折扣类型（单选，仅以下三种）
+// 内部折扣设置 - 折扣类型（内结部门固定为「内部折扣」，经营部门可选 SVIP/VIP）
 // 结算单元命中哪种折扣类型，计费时即取产品定义中对应的折扣值
 type UnitDiscountType = 'internal' | 'svip' | 'vip';
 const unitDiscountTypeOptions: { value: UnitDiscountType; label: string }[] = [
@@ -1652,41 +1571,76 @@ const unitDiscountTypeOptions: { value: UnitDiscountType; label: string }[] = [
     { value: 'vip', label: 'VIP折扣' },
 ];
 
-// 内部折扣设置 - 结算单元的属性标签与折扣配置
-// 规则：一个结算单元只能设置一个折扣类型，设置后该结算单元计费时按该折扣类型取值
+// 内部折扣设置 - 单独设置计费的产品（按量计费 / 资源包两类）
+type StandaloneBillingType = 'metered' | 'package';
+const standaloneBillingTabs: { value: StandaloneBillingType; label: string }[] = [
+    { value: 'metered', label: '按量计费' },
+    { value: 'package', label: '资源包' },
+];
+// 单独设置计费的产品条目：discount 为该产品/资源包单独设置的折扣（折）
+type StandaloneProduct = { id: number; name: string; type: StandaloneBillingType; discount: number | null };
+
+// 单独设置计费的产品候选：按量计费取「产品定义」，资源包取「产品套餐」
+const standaloneProductOptions: Record<StandaloneBillingType, { id: number; name: string }[]> = {
+    metered: zhihuiProductsData.map(p => ({ id: p.id, name: `${p.name}（${p.identifier}）` })),
+    package: resourcePackagesData.map(p => ({ id: 10000 + p.id, name: `${p.name}（${p.identifier}）` })),
+};
+
+// 单独设置折扣的优先级说明（列头提示 + 弹窗温馨提示）
+const standaloneDiscountTip = '折扣优先级：单独设置的产品或资源包折扣 > 客户计费标签 > 租户折扣 > 官方折扣。';
+
+// 内部折扣设置 - 结算单元的部门属性与折扣配置
+// 规则：内结部门固定为内部折扣，不可再编辑；经营部门可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
 type UnitDiscountConfig = {
-    tag: string;                        // 属性标签，空字符串代表未配置
-    discount: UnitDiscountType | null;  // 唯一折扣类型，null 代表未设置
+    deptAttr: UnitDeptAttr | '';            // 部门属性，空字符串代表未配置
+    discount: UnitDiscountType | null;      // 折扣类型（内结部门固定 internal；经营部门可选 svip/vip）
+    standaloneProducts: StandaloneProduct[]; // 单独设置计费的产品/资源包，仅经营部门可设置
     updateTime: string;
 };
 const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
-    '智汇云-应用平台部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-18 16:40:12' },
-    '智汇云-商业化产品部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-18 16:40:12' },
-    '智汇云-云平台部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-20 09:12:45' },
-    '智汇云-系统运维部': { tag: '智汇云', discount: 'internal', updateTime: '2025-12-20 09:14:02' },
-    '智汇云-基础架构部': { tag: '中台内非智汇云', discount: 'svip', updateTime: '2025-11-28 15:02:31' },
-    '智汇云-安全技术部': { tag: '中台内非智汇云', discount: 'svip', updateTime: '2025-11-28 15:03:47' },
-    '智汇云-系统部': { tag: '中台内', discount: 'svip', updateTime: '2025-10-16 11:22:08' },
-    '智汇云-数据平台部': { tag: '中台内', discount: 'svip', updateTime: '2025-10-16 11:23:56' },
-    '360人工智能研究院': { tag: '集团内非中台', discount: 'vip', updateTime: '2025-09-30 17:45:19' },
-    '智汇云-交付服务部': { tag: '集团内非中台', discount: 'vip', updateTime: '2025-09-30 17:46:03' },
-    '智汇云-智能工程部': { tag: '集团外', discount: 'vip', updateTime: '2025-09-12 10:08:37' },
-    // 未配置示例：新同步的结算单元，属性标签与折扣均待配置
-    '智汇云-研发效能部': { tag: '', discount: null, updateTime: '--' },
+    // 内结部门：内部结算，折扣固定为「内部折扣」，不再编辑
+    '智汇云-应用平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
+    '智汇云-商业化产品部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
+    '智汇云-云平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-20 09:12:45' },
+    '智汇云-系统运维部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-20 09:14:02' },
+    // 经营部门：可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
+    '智汇云-基础架构部': { deptAttr: 'biz', discount: 'svip', standaloneProducts: [], updateTime: '2025-11-28 15:02:31' },
+    '智汇云-安全技术部': {
+        deptAttr: 'biz', discount: 'svip', updateTime: '2025-11-28 15:03:47',
+        standaloneProducts: [
+            { id: 1, name: '离线数仓 Hive（hive_in）', type: 'metered', discount: 8.5 },
+            { id: 2, name: '对象存储 OSS（oss_in）', type: 'metered', discount: 9 },
+            { id: 10002, name: 'A100-80G-标准版-8卡（13_109_8）', type: 'package', discount: 7.5 },
+        ],
+    },
+    '智汇云-系统部': { deptAttr: 'biz', discount: 'svip', standaloneProducts: [], updateTime: '2025-10-16 11:22:08' },
+    '智汇云-数据平台部': { deptAttr: 'biz', discount: 'svip', standaloneProducts: [], updateTime: '2025-10-16 11:23:56' },
+    '360人工智能研究院': {
+        deptAttr: 'biz', discount: 'vip', updateTime: '2025-09-30 17:45:19',
+        standaloneProducts: [
+            { id: 3, name: '云数据库 MySQL（mysql_in）', type: 'metered', discount: 7 },
+        ],
+    },
+    '智汇云-交付服务部': { deptAttr: 'biz', discount: 'vip', standaloneProducts: [], updateTime: '2025-09-30 17:46:03' },
+    '智汇云-智能工程部': {
+        deptAttr: 'biz', discount: 'vip', updateTime: '2025-09-12 10:08:37',
+        standaloneProducts: [
+            { id: 10001, name: '旗舰版（test0320）', type: 'package', discount: 9 },
+        ],
+    },
+    // 未配置示例：新同步的结算单元，部门属性与折扣均待配置
+    '智汇云-研发效能部': { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' },
 };
 
 // 内部折扣设置 - 折扣类型展示格式化
 const formatDiscount = (v: UnitDiscountType | null) =>
     v == null ? '--' : (unitDiscountTypeOptions.find(o => o.value === v)?.label || '--');
 
-// 内部折扣设置 - 属性标签配色（按标签在标签列表中的顺序循环取色）
-const unitTagColors = [
-    'bg-gray-100 text-gray-600',
-    'bg-amber-50 text-amber-600',
-    'bg-purple-50 text-purple-600',
-    'bg-cyan-50 text-cyan-600',
-    'bg-blue-50 text-blue-600',
-];
+// 内部折扣设置 - 部门属性配色
+const unitDeptAttrColors: Record<UnitDeptAttr, string> = {
+    biz: 'bg-blue-50 text-blue-600',
+    inner: 'bg-amber-50 text-amber-600',
+};
 
 // 租户数据
 const tenantsData = [
@@ -2060,7 +2014,7 @@ export default function AdminPage() {
     const [bizAnalysisMenuExpanded, setBizAnalysisMenuExpanded] = useState(true); // 经营分析菜单展开状态
     const [platformConfigMenuExpanded, setPlatformConfigMenuExpanded] = useState(false); // 密钥管理菜单展开状态
     const [platformSettingMenuExpanded, setPlatformSettingMenuExpanded] = useState(true); // 平台配置菜单展开状态
-    const [currentMenu, setCurrentMenu] = useState("product-define"); // 当前选中的菜单: product-define, product-addon, product-billing, product-package, zhiqi-bill-customer, zhiqi-bill-product, zhiqi-bill-intranet, analysis-product, analysis-department, platform-key, platform-api, platform-portal, platform-region, zhiqi-admin
+    const [currentMenu, setCurrentMenu] = useState("product-define"); // 当前选中的菜单: product-define, product-addon, product-billing, product-package, zhiqi-bill-customer, zhiqi-bill-product, zhiqi-bill-intranet, analysis-product, analysis-department, platform-key, platform-api, platform-portal, platform-region, platform-billing, zhiqi-admin
 
     // ===== 经营分析 - 整体分析 =====
     const [overallBillType, setOverallBillType] = useState("month");     // 账单类型：month / day / hour
@@ -2118,17 +2072,14 @@ export default function AdminPage() {
     const [analysisProductPickerOpen, setAnalysisProductPickerOpen] = useState(false); // 产品下拉是否展开
     const [analysisPage, setAnalysisPage] = useState(1);                     // 当前页
     const [analysisPageSize, setAnalysisPageSize] = useState(10);            // 每页条数
-    const [expandedAnalysisRowIds, setExpandedAnalysisRowIds] = useState<number[]>([]); // 产品分析-已展开查看内外Portal明细的行ID
 
     // 产品分析 - 总收入明细抽屉（趋势 / 收入明细 / 成本明细）
     const [revenueDetailRow, setRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
     const [revenueDetailTab, setRevenueDetailTab] = useState<"trend" | "revenue" | "cost">("revenue");
     // 产品分析 - 「公司内收入」明细抽屉（结算单元账单 / 外部portal使用费用 两部分来源）
     const [innerRevenueDetailRow, setInnerRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
-    // 产品分析 - 「集团内的外部事业部」收入明细抽屉
-    const [outerGroupDetailRow, setOuterGroupDetailRow] = useState<ProductAnalysisRow | null>(null);
-    // 产品分析 - 「外部(360.cn)」收入明细抽屉
-    const [outerPortalDetailRow, setOuterPortalDetailRow] = useState<ProductAnalysisRow | null>(null);
+    // 产品分析 - 「公司外收入」明细抽屉（集团内外部客户 + 外部Portal 合并展示）
+    const [outerRevenueDetailRow, setOuterRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
     // 产品分析 - 结算单元账单金额明细抽屉（公司内非中台收入 / 中台内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
     const [unitBillDetail, setUnitBillDetail] = useState<{ row: ProductAnalysisRow; title: string; amount: number } | null>(null);
 
@@ -2148,7 +2099,7 @@ export default function AdminPage() {
         return filteredAnalysisRows.slice(start, start + analysisPageSize);
     }, [filteredAnalysisRows, analysisPage, analysisPageSize]);
 
-    // 产品分析 - 合计（公司外收入按「集团内外部事业部」「外部(360.cn)」分开统计）
+    // 产品分析 - 合计（公司外收入为「集团内外部客户」与「外部Portal」求和）
     const analysisTotals = useMemo(() => {
         return filteredAnalysisRows.reduce(
             (acc, row) => ({
@@ -2158,8 +2109,7 @@ export default function AdminPage() {
                 midNonZyunRevenue: acc.midNonZyunRevenue + row.midNonZyunRevenue,
                 zyunNonUnitRevenue: acc.zyunNonUnitRevenue + row.zyunNonUnitRevenue,
                 unitRevenue: acc.unitRevenue + row.unitRevenue,
-                outerGroupRevenue: acc.outerGroupRevenue + row.outerGroupRevenue,
-                outerPortalRevenue: acc.outerPortalRevenue + row.outerPortalRevenue,
+                outerRevenue: acc.outerRevenue + row.outerRevenue,
                 outerInnerPriceRevenue: acc.outerInnerPriceRevenue + row.outerInnerPriceRevenue,
                 innerTotalRevenue: acc.innerTotalRevenue + row.innerTotalRevenue,
                 productCost: acc.productCost + row.productCost,
@@ -2169,7 +2119,7 @@ export default function AdminPage() {
             }),
             {
                 totalRevenue: 0, innerRevenue: 0, innerNonMidRevenue: 0, midNonZyunRevenue: 0,
-                zyunNonUnitRevenue: 0, unitRevenue: 0, outerGroupRevenue: 0, outerPortalRevenue: 0,
+                zyunNonUnitRevenue: 0, unitRevenue: 0, outerRevenue: 0,
                 outerInnerPriceRevenue: 0, innerTotalRevenue: 0, productCost: 0,
                 innerProfit: 0, outerProfit: 0, balance: 0,
             }
@@ -2320,7 +2270,7 @@ export default function AdminPage() {
     const [regionZoneForm, setRegionZoneForm] = useState<RegionZoneForm>(emptyRegionZoneForm);
     const [regionZoneFormError, setRegionZoneFormError] = useState('');
 
-    // ===== 平台配置 - 地域配置（服务方 / 地域 / 地域分组）=====
+    // ===== 平台配置 - 地域配置（服务方 / 地域 / 地域标签）=====
     const [regionPageTab, setRegionPageTab] = useState<'zone' | 'config'>('zone');
     const [regionConfigSection, setRegionConfigSection] = useState<'provider' | 'region'>('region');
 
@@ -2367,15 +2317,15 @@ export default function AdminPage() {
     const [regionItemFormError, setRegionItemFormError] = useState('');
     const [regionGroupPickerOpen, setRegionGroupPickerOpen] = useState(false);
 
-    // 地域分组弹窗
+    // 地域标签弹窗
     const [regionGroupDialogOpen, setRegionGroupDialogOpen] = useState(false);
     const [editingRegionGroupId, setEditingRegionGroupId] = useState<number | null>(null);
     const [regionGroupForm, setRegionGroupForm] = useState<{ name: string; regionIds: number[] }>({ name: '', regionIds: [] });
     const [regionGroupFormError, setRegionGroupFormError] = useState('');
     const [expandedGroupIds, setExpandedGroupIds] = useState<number[]>([1]);
 
-    // 左侧分组树选中项：'all' 全部地域 / 'ungrouped' 未分组 / 分组 id
-    const [selectedGroupKey, setSelectedGroupKey] = useState<'all' | 'ungrouped' | number>('all');
+    // 左侧标签树选中项：'all' 全部地域 / 标签 id
+    const [selectedGroupKey, setSelectedGroupKey] = useState<'all' | number>('all');
     const [regionItemSearch, setRegionItemSearch] = useState('');
 
     const filteredRegionZones = regionZones.filter(z => {
@@ -2391,7 +2341,7 @@ export default function AdminPage() {
         return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
     };
 
-    // 根据地域名称查询其所属分组名称（用于新建可用区时选中地域后自动展示分组）
+    // 根据地域名称查询其所属标签名称（用于新建可用区时选中地域后自动展示标签）
     const getGroupNamesByRegionName = (regionName: string): string[] => {
         const r = regionItems.find(x => x.name === regionName);
         if (!r) return [];
@@ -2525,7 +2475,7 @@ export default function AdminPage() {
     // ---- 地域 CRUD ----
     const handleOpenCreateRegionItem = () => {
         setEditingRegionItemId(null);
-        // 若当前选中的是具体分组，默认预选该分组
+        // 若当前选中的是具体标签，默认预选该标签
         const preset = typeof selectedGroupKey === 'number' ? [selectedGroupKey] : [];
         setRegionItemForm({ name: '', code: '', groupIds: preset });
         setRegionItemFormError('');
@@ -2555,7 +2505,7 @@ export default function AdminPage() {
         if (!name) { setRegionItemFormError('请输入地域名称'); return; }
         if (!code) { setRegionItemFormError('请输入地域标识'); return; }
         if (!/^[A-Za-z0-9_-]+$/.test(code)) { setRegionItemFormError('地域标识仅支持英文、数字、_、-'); return; }
-        if (groupIds.length === 0) { setRegionItemFormError('请选择地域分组'); return; }
+        if (groupIds.length === 0) { setRegionItemFormError('请选择地域标签'); return; }
         if (regionItems.some(r => r.name === name && r.id !== editingRegionItemId)) {
             setRegionItemFormError('地域名称已存在'); return;
         }
@@ -2595,13 +2545,13 @@ export default function AdminPage() {
             window.alert(`地域「${r.name}」已被可用区引用，无法删除`);
             return;
         }
-        if (window.confirm(`确认删除地域「${r.name}」？删除后将同时从所属地域分组中移除。`)) {
+        if (window.confirm(`确认删除地域「${r.name}」？删除后将同时从所属地域标签中移除。`)) {
             setRegionItems(prev => prev.filter(x => x.id !== r.id));
             setRegionGroups(prev => prev.map(g => ({ ...g, regionIds: g.regionIds.filter(id => id !== r.id) })));
         }
     };
 
-    // ---- 地域分组 CRUD ----
+    // ---- 地域标签 CRUD ----
     const handleOpenCreateRegionGroup = () => {
         setEditingRegionGroupId(null);
         setRegionGroupForm({ name: '', regionIds: [] });
@@ -2621,9 +2571,9 @@ export default function AdminPage() {
     };
     const handleSaveRegionGroup = () => {
         const name = regionGroupForm.name.trim();
-        if (!name) { setRegionGroupFormError('请输入地域分组名称'); return; }
+        if (!name) { setRegionGroupFormError('请输入地域标签名称'); return; }
         if (regionGroups.some(g => g.name === name && g.id !== editingRegionGroupId)) {
-            setRegionGroupFormError('地域分组名称已存在'); return;
+            setRegionGroupFormError('地域标签名称已存在'); return;
         }
         const now = formatNow();
         if (editingRegionGroupId != null) {
@@ -2638,7 +2588,17 @@ export default function AdminPage() {
         setRegionGroupDialogOpen(false);
     };
     const handleDeleteRegionGroup = (g: RegionGroup) => {
-        if (window.confirm(`确认删除地域分组「${g.name}」？分组内的地域不会被删除。`)) {
+        // 地域至少需绑定一个标签：若标签内存在仅绑定该标签的地域，删除后该地域将无标签，需阻止
+        const onlyHereRegions = g.regionIds.filter(rid => !regionGroups.some(x => x.id !== g.id && x.regionIds.includes(rid)));
+        if (onlyHereRegions.length > 0) {
+            const names = onlyHereRegions
+                .map(rid => regionItems.find(r => r.id === rid)?.name)
+                .filter(Boolean)
+                .join('、');
+            window.alert(`标签「${g.name}」下存在仅绑定此标签的地域（${names}），请先调整地域标签后再删除`);
+            return;
+        }
+        if (window.confirm(`确认删除地域标签「${g.name}」？标签内的地域不会被删除。`)) {
             setRegionGroups(prev => prev.filter(x => x.id !== g.id));
             setSelectedGroupKey(prev => (prev === g.id ? 'all' : prev));
         }
@@ -2648,17 +2608,13 @@ export default function AdminPage() {
     };
     const getRegionNameById = (id: number) => regionItems.find(r => r.id === id);
 
-    // 未分组地域
-    const ungroupedRegionItems = regionItems.filter(r => !regionGroups.some(g => g.regionIds.includes(r.id)));
-
-    // 右侧列表：按左侧选中的分组 + 关键字过滤
+    // 右侧列表：按左侧选中的标签 + 关键字过滤
     const currentGroup = typeof selectedGroupKey === 'number'
         ? regionGroups.find(g => g.id === selectedGroupKey)
         : undefined;
     const visibleRegionItems = (() => {
         let list: RegionItem[];
         if (selectedGroupKey === 'all') list = regionItems;
-        else if (selectedGroupKey === 'ungrouped') list = ungroupedRegionItems;
         else list = regionItems.filter(r => currentGroup?.regionIds.includes(r.id));
         const kw = regionItemSearch.trim().toLowerCase();
         if (!kw) return list;
@@ -2666,21 +2622,296 @@ export default function AdminPage() {
     })();
     const currentGroupTitle = selectedGroupKey === 'all'
         ? '全部地域'
-        : selectedGroupKey === 'ungrouped'
-            ? '未分组地域'
-            : (currentGroup?.name ?? '');
+        : (currentGroup?.name ?? '');
 
-    // 从当前分组中移除某地域
+    // 从当前标签中移除某地域
     const handleRemoveRegionFromGroup = (regionId: number, groupId: number) => {
         const g = regionGroups.find(x => x.id === groupId);
         const r = regionItems.find(x => x.id === regionId);
         if (!g || !r) return;
-        if (window.confirm(`确认将地域「${r.name}」移出分组「${g.name}」？地域本身不会被删除。`)) {
+        // 地域至少需绑定一个标签
+        const hasOtherTag = regionGroups.some(x => x.id !== groupId && x.regionIds.includes(regionId));
+        if (!hasOtherTag) {
+            window.alert(`地域「${r.name}」至少需绑定一个标签，无法移出`);
+            return;
+        }
+        if (window.confirm(`确认将地域「${r.name}」移出标签「${g.name}」？地域本身不会被删除。`)) {
             const now = formatNow();
             setRegionGroups(prev => prev.map(x => x.id === groupId
                 ? { ...x, regionIds: x.regionIds.filter(id => id !== regionId), updateTime: now }
                 : x));
         }
+    };
+
+    // ===== 平台配置 - 计费配置 =====
+    // 四个二级Tab：计量单位 / 计费标签 / 客户计费标签 / 计费小产品
+    type BillingUnit = { id: number; name: string; symbol: string; remark: string; createTime: string; updateTime: string };
+    type BillingTagValue = { id: number; name: string; code: string };
+    type BillingTag = {
+        id: number;
+        name: string;
+        status: '使用中' | '未使用';
+        values: BillingTagValue[];
+        createTime: string;
+        updateTime: string;
+    };
+    type CustomerBillingTag = { id: number; name: string; enterprise: string; tagName: string; status: '使用中' | '未使用'; createTime: string; updateTime: string };
+    type BillingSubProduct = { id: number; name: string; code: string; product: string; status: '使用中' | '未使用'; createTime: string; updateTime: string };
+
+    const [billingPageTab, setBillingPageTab] = useState<'unit' | 'tag' | 'customerTag' | 'subProduct'>('tag');
+
+    const [billingUnits, setBillingUnits] = useState<BillingUnit[]>([
+        { id: 1, name: '核', symbol: 'Core', remark: 'CPU 核数计量', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
+        { id: 2, name: '吉字节', symbol: 'GB', remark: '存储/内存容量计量', createTime: '2024-08-10 13:07:02', updateTime: '2025-03-18 10:22:31' },
+        { id: 3, name: '太字节', symbol: 'TB', remark: '大容量存储计量', createTime: '2024-09-04 18:55:47', updateTime: '2024-09-04 18:55:47' },
+        { id: 4, name: '次', symbol: 'Times', remark: '按调用次数计量', createTime: '2024-11-08 15:51:35', updateTime: '2026-04-02 10:23:59' },
+        { id: 5, name: '条', symbol: 'Piece', remark: '短信/消息条数计量', createTime: '2024-12-18 11:50:39', updateTime: '2024-12-18 11:50:38' },
+        { id: 6, name: '兆比特每秒', symbol: 'Mbps', remark: '带宽计量', createTime: '2025-04-25 14:55:39', updateTime: '2025-09-17 17:28:59' },
+        { id: 7, name: '个', symbol: 'Unit', remark: '实例/资源个数计量', createTime: '2025-06-09 15:44:14', updateTime: '2025-06-09 15:44:13' },
+        { id: 8, name: '小时', symbol: 'Hour', remark: '按时长计量', createTime: '2025-08-06 16:00:53', updateTime: '2025-08-06 16:00:53' },
+    ]);
+
+    const [billingTags, setBillingTags] = useState<BillingTag[]>([
+        {
+            id: 1, name: '公网可用区', status: '使用中', createTime: '2024-09-04 19:20:07', updateTime: '2026-03-10 20:33:34',
+            values: [
+                { id: 1, name: '北京1区', code: 'beijing1' },
+                { id: 2, name: '上海1区', code: 'shanghai1' },
+                { id: 3, name: '广州1区', code: 'guangzhou1' },
+            ],
+        },
+        {
+            id: 2, name: '短信计费标签', status: '使用中', createTime: '2024-09-04 18:55:47', updateTime: '2024-09-04 18:55:46',
+            values: [
+                { id: 1, name: '国内短信', code: 'sms_cn' },
+                { id: 2, name: '国际短信', code: 'sms_intl' },
+            ],
+        },
+        {
+            id: 3, name: 'OBS_Polefs_HDFS地域', status: '使用中', createTime: '2024-11-08 15:51:35', updateTime: '2026-04-02 10:23:59',
+            values: [
+                { id: 1, name: '华北地域', code: 'north' },
+                { id: 2, name: '华东地域', code: 'east' },
+            ],
+        },
+        {
+            id: 4, name: 'TLM计费项标签', status: '未使用', createTime: '2024-12-18 11:50:39', updateTime: '2024-12-18 11:50:38',
+            values: [],
+        },
+        {
+            id: 5, name: 'TAI优先级别', status: '使用中', createTime: '2025-04-25 14:55:39', updateTime: '2025-09-17 17:28:59',
+            values: [
+                { id: 1, name: '高优先级', code: 'high' },
+                { id: 2, name: '中优先级', code: 'middle' },
+                { id: 3, name: '低优先级', code: 'low' },
+            ],
+        },
+        {
+            id: 6, name: 'API市场接口标签', status: '未使用', createTime: '2025-06-09 15:44:14', updateTime: '2025-06-09 15:44:13',
+            values: [],
+        },
+        {
+            id: 7, name: '主子产品分账渠道', status: '未使用', createTime: '2025-06-23 14:37:17', updateTime: '2025-06-23 14:45:23',
+            values: [],
+        },
+        {
+            id: 8, name: '供应商', status: '未使用', createTime: '2025-08-06 16:00:53', updateTime: '2025-08-06 16:00:53',
+            values: [],
+        },
+        {
+            id: 9, name: '内网可用区', status: '使用中', createTime: '2025-11-12 13:09:01', updateTime: '2025-11-12 13:09:00',
+            values: [
+                { id: 1, name: '北京电信', code: 'bjwdt' },
+                { id: 2, name: '上海电信', code: 'shbt' },
+            ],
+        },
+        {
+            id: 10, name: '大数据计算内网计费标签', status: '使用中', createTime: '2025-11-18 15:23:13', updateTime: '2025-11-25 19:22:54',
+            values: [
+                { id: 1, name: '离线计算', code: 'offline' },
+                { id: 2, name: '实时计算', code: 'realtime' },
+            ],
+        },
+        {
+            id: 11, name: '容器计费规格', status: '使用中', createTime: '2026-01-08 10:14:22', updateTime: '2026-02-11 14:02:05',
+            values: [
+                { id: 1, name: '通用型', code: 'general' },
+                { id: 2, name: '计算型', code: 'compute' },
+            ],
+        },
+        {
+            id: 12, name: 'GPU卡型号', status: '未使用', createTime: '2026-02-20 09:31:40', updateTime: '2026-02-20 09:31:40',
+            values: [],
+        },
+    ]);
+
+    const [customerBillingTags, setCustomerBillingTags] = useState<CustomerBillingTag[]>([
+        { id: 1, name: '大客户专属可用区', enterprise: '360集团', tagName: '内网可用区', status: '使用中', createTime: '2025-03-12 10:20:31', updateTime: '2025-11-02 16:41:09' },
+        { id: 2, name: '短信定制标签', enterprise: '外部/公共(360.cn)', tagName: '短信计费标签', status: '使用中', createTime: '2025-05-21 14:08:52', updateTime: '2025-05-21 14:08:52' },
+        { id: 3, name: '存储地域定制', enterprise: '360集团', tagName: 'OBS_Polefs_HDFS地域', status: '未使用', createTime: '2025-09-18 11:36:04', updateTime: '2025-09-18 11:36:04' },
+        { id: 4, name: 'TAI优先级定制', enterprise: '360集团', tagName: 'TAI优先级别', status: '使用中', createTime: '2026-01-15 09:52:17', updateTime: '2026-03-04 18:20:45' },
+    ]);
+
+    const [billingSubProducts, setBillingSubProducts] = useState<BillingSubProduct[]>([
+        { id: 1, name: 'Hive 计算资源', code: 'hive_compute', product: '离线数仓 Hive', status: '使用中', createTime: '2024-10-11 15:22:08', updateTime: '2025-06-30 10:05:44' },
+        { id: 2, name: 'OSS 标准存储', code: 'oss_standard', product: '对象存储 OSS', status: '使用中', createTime: '2024-10-11 15:24:36', updateTime: '2025-08-12 17:33:20' },
+        { id: 3, name: 'OSS 低频存储', code: 'oss_ia', product: '对象存储 OSS', status: '使用中', createTime: '2024-12-02 09:41:17', updateTime: '2024-12-02 09:41:17' },
+        { id: 4, name: 'MySQL 实例规格', code: 'mysql_instance', product: '云数据库 MySQL', status: '使用中', createTime: '2025-02-19 13:50:02', updateTime: '2026-01-22 11:18:39' },
+        { id: 5, name: 'K8s 节点资源', code: 'k8s_node', product: '容器服务 K8s', status: '未使用', createTime: '2025-04-08 16:12:55', updateTime: '2025-04-08 16:12:55' },
+        { id: 6, name: 'Flink 作业资源', code: 'flink_job', product: '实时计算 Flink', status: '未使用', createTime: '2025-07-23 10:29:41', updateTime: '2025-07-23 10:29:41' },
+    ]);
+
+    // 计费标签筛选条件
+    const [billingTagSearch, setBillingTagSearch] = useState('');
+    const [billingTagStatusFilter, setBillingTagStatusFilter] = useState('all');
+    const [billingTagStartDate, setBillingTagStartDate] = useState('');
+    const [billingTagEndDate, setBillingTagEndDate] = useState('');
+
+    // 其他 Tab 的关键字搜索
+    const [billingUnitSearch, setBillingUnitSearch] = useState('');
+    const [customerBillingTagSearch, setCustomerBillingTagSearch] = useState('');
+    const [billingSubProductSearch, setBillingSubProductSearch] = useState('');
+
+    // 计费标签 - 新建/编辑弹窗
+    const [billingTagDialogOpen, setBillingTagDialogOpen] = useState(false);
+    const [editingBillingTagId, setEditingBillingTagId] = useState<number | null>(null);
+    const [billingTagForm, setBillingTagForm] = useState<{ name: string }>({ name: '' });
+    const [billingTagFormError, setBillingTagFormError] = useState('');
+
+    // 计费标签 - 标签值管理弹窗
+    const [billingTagValueDialogTag, setBillingTagValueDialogTag] = useState<BillingTag | null>(null);
+    const [billingTagValueDraft, setBillingTagValueDraft] = useState<BillingTagValue[]>([]);
+    const [billingTagValueError, setBillingTagValueError] = useState('');
+
+    // 计费标签 - 删除确认
+    const [billingTagDeleteTarget, setBillingTagDeleteTarget] = useState<BillingTag | null>(null);
+
+    // 计费标签 - 列表筛选（名称 / 状态 / 创建日期区间）
+    const filteredBillingTags = useMemo(() => {
+        const kw = billingTagSearch.trim().toLowerCase();
+        return billingTags.filter(t => {
+            if (kw && !t.name.toLowerCase().includes(kw)) return false;
+            if (billingTagStatusFilter !== 'all' && t.status !== billingTagStatusFilter) return false;
+            const day = t.createTime.slice(0, 10);
+            if (billingTagStartDate && day < billingTagStartDate) return false;
+            if (billingTagEndDate && day > billingTagEndDate) return false;
+            return true;
+        });
+    }, [billingTags, billingTagSearch, billingTagStatusFilter, billingTagStartDate, billingTagEndDate]);
+
+    // 计量单位 / 客户计费标签 / 计费小产品 列表筛选
+    const filteredBillingUnits = useMemo(() => {
+        const kw = billingUnitSearch.trim().toLowerCase();
+        if (!kw) return billingUnits;
+        return billingUnits.filter(u => u.name.toLowerCase().includes(kw) || u.symbol.toLowerCase().includes(kw));
+    }, [billingUnits, billingUnitSearch]);
+
+    const filteredCustomerBillingTags = useMemo(() => {
+        const kw = customerBillingTagSearch.trim().toLowerCase();
+        if (!kw) return customerBillingTags;
+        return customerBillingTags.filter(t =>
+            t.name.toLowerCase().includes(kw) ||
+            t.enterprise.toLowerCase().includes(kw) ||
+            t.tagName.toLowerCase().includes(kw));
+    }, [customerBillingTags, customerBillingTagSearch]);
+
+    const filteredBillingSubProducts = useMemo(() => {
+        const kw = billingSubProductSearch.trim().toLowerCase();
+        if (!kw) return billingSubProducts;
+        return billingSubProducts.filter(p =>
+            p.name.toLowerCase().includes(kw) ||
+            p.code.toLowerCase().includes(kw) ||
+            p.product.toLowerCase().includes(kw));
+    }, [billingSubProducts, billingSubProductSearch]);
+
+    // 计费标签 - 打开新建
+    const handleOpenCreateBillingTag = () => {
+        setEditingBillingTagId(null);
+        setBillingTagForm({ name: '' });
+        setBillingTagFormError('');
+        setBillingTagDialogOpen(true);
+    };
+
+    // 计费标签 - 打开编辑
+    const handleOpenEditBillingTag = (tag: BillingTag) => {
+        setEditingBillingTagId(tag.id);
+        setBillingTagForm({ name: tag.name });
+        setBillingTagFormError('');
+        setBillingTagDialogOpen(true);
+    };
+
+    // 计费标签 - 保存（名称必填且不可重名）
+    const handleSaveBillingTag = () => {
+        const name = billingTagForm.name.trim();
+        if (!name) {
+            setBillingTagFormError('请输入标签名称');
+            return;
+        }
+        if (billingTags.some(t => t.name === name && t.id !== editingBillingTagId)) {
+            setBillingTagFormError('标签名称已存在');
+            return;
+        }
+        const now = formatNow();
+        if (editingBillingTagId != null) {
+            setBillingTags(prev => prev.map(t => t.id === editingBillingTagId ? { ...t, name, updateTime: now } : t));
+        } else {
+            const nextId = billingTags.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+            setBillingTags(prev => [
+                { id: nextId, name, status: '未使用' as const, values: [], createTime: now, updateTime: now },
+                ...prev,
+            ]);
+        }
+        setBillingTagDialogOpen(false);
+    };
+
+    // 计费标签 - 打开标签值管理（草稿态编辑，确定后统一写回）
+    const handleOpenBillingTagValues = (tag: BillingTag) => {
+        setBillingTagValueDialogTag(tag);
+        setBillingTagValueDraft(tag.values.map(v => ({ ...v })));
+        setBillingTagValueError('');
+    };
+
+    // 标签值 - 新增一行
+    const handleAddBillingTagValue = () => {
+        const nextId = billingTagValueDraft.reduce((m, v) => Math.max(m, v.id), 0) + 1;
+        setBillingTagValueDraft(prev => [...prev, { id: nextId, name: '', code: '' }]);
+    };
+
+    // 标签值 - 修改某行字段
+    const handleChangeBillingTagValue = (id: number, field: 'name' | 'code', value: string) => {
+        setBillingTagValueDraft(prev => prev.map(v => v.id === id ? { ...v, [field]: value } : v));
+    };
+
+    // 标签值 - 删除某行
+    const handleRemoveBillingTagValue = (id: number) => {
+        setBillingTagValueDraft(prev => prev.filter(v => v.id !== id));
+    };
+
+    // 标签值 - 保存（每行名称与标识均必填，标识不可重复）
+    const handleSaveBillingTagValues = () => {
+        if (!billingTagValueDialogTag) return;
+        const cleaned = billingTagValueDraft.map(v => ({ ...v, name: v.name.trim(), code: v.code.trim() }));
+        if (cleaned.some(v => !v.name || !v.code)) {
+            setBillingTagValueError('标签值名称与标识均不能为空');
+            return;
+        }
+        const codes = cleaned.map(v => v.code);
+        if (new Set(codes).size !== codes.length) {
+            setBillingTagValueError('标签值标识不能重复');
+            return;
+        }
+        const now = formatNow();
+        setBillingTags(prev => prev.map(t => t.id === billingTagValueDialogTag.id
+            ? { ...t, values: cleaned, status: cleaned.length > 0 ? '使用中' : '未使用', updateTime: now }
+            : t));
+        setBillingTagValueDialogTag(null);
+    };
+
+    // 计费标签 - 确认删除（使用中的标签不允许删除）
+    const handleConfirmDeleteBillingTag = () => {
+        if (!billingTagDeleteTarget) return;
+        setBillingTags(prev => prev.filter(t => t.id !== billingTagDeleteTarget.id));
+        setBillingTagDeleteTarget(null);
     };
 
     // Portal 名称不再单独配置：开启独立Portal的企业，其「企业名称」即为 Portal 名称，避免两个字段冗余
@@ -2901,16 +3132,6 @@ export default function AdminPage() {
         e => e.internal && e.id !== editingEnterpriseId
     ) || null;
 
-    const handleOpenCreateEnterprise = () => {
-        setEditingEnterpriseId(null);
-        setEnterpriseForm(emptyEnterpriseForm);
-        setEnterpriseFormError('');
-        setTenantKeyword('');
-        setTenantDropdownOpen(false);
-        setBizDeptPickerOpen(false);
-        setEnterpriseDialogOpen(true);
-    };
-
     const handleOpenEditEnterprise = (enterprise: EnterpriseConfig) => {
         setEditingEnterpriseId(enterprise.id);
         setEnterpriseForm({
@@ -2931,14 +3152,17 @@ export default function AdminPage() {
         setEnterpriseDialogOpen(true);
     };
 
-    // 切换「是否是内部企业」：非内部企业不支持配置经营部门，切换为「否」时清空已选经营部门
+    // 切换「是否是内部企业」：非内部企业无需配置所属租户与经营部门，切换为「否」时清空两者
     const handleChangeEnterpriseInternal = (internal: boolean) => {
         setEnterpriseForm(prev => ({
             ...prev,
             internal,
+            tenantId: internal ? prev.tenantId : '',
+            tenantName: internal ? prev.tenantName : '',
             bizDeptId: internal ? prev.bizDeptId : '',
             bizDeptName: internal ? prev.bizDeptName : '',
         }));
+        if (!internal) setTenantKeyword('');
         setBizDeptPickerOpen(false);
         setEnterpriseFormError('');
     };
@@ -2958,10 +3182,10 @@ export default function AdminPage() {
 
     const handleSaveEnterprise = () => {
         if (!enterpriseForm.name.trim()) {
-            setEnterpriseFormError('请输入企业名称');
+            setEnterpriseFormError('请输入Portal名称');
             return;
         }
-        // 内部企业全局唯一：已存在内部企业时不可再创建/设置第二个
+        // 内部企业全局唯一：已存在内部企业时不可再设置第二个
         if (enterpriseForm.internal && existedInternalEnterprise) {
             setEnterpriseFormError(`已存在内部企业「${existedInternalEnterprise.name}」，内部企业只能有一个`);
             return;
@@ -2971,21 +3195,16 @@ export default function AdminPage() {
             setEnterpriseFormError('内部企业必须选择所属租户');
             return;
         }
-        // 开启独立Portal时，Portal域名必填（Portal名称即企业名称，无需单独填写）
+        // 开启独立Portal时，Portal域名必填
         if (enterpriseForm.enablePortal && !enterpriseForm.portalDomain.trim()) {
             setEnterpriseFormError('开启独立Portal时，Portal域名必填');
             return;
         }
         setEnterpriseFormError('');
         const now = formatNow();
-        if (editingEnterpriseId != null) {
-            setEnterpriseConfigs(prev => prev.map(e => e.id === editingEnterpriseId
-                ? { ...e, ...enterpriseForm, updateTime: now }
-                : e));
-        } else {
-            const nextId = enterpriseConfigs.length ? Math.max(...enterpriseConfigs.map(e => e.id)) + 1 : 1;
-            setEnterpriseConfigs(prev => [...prev, { id: nextId, ...enterpriseForm, createTime: now, updateTime: now }]);
-        }
+        setEnterpriseConfigs(prev => prev.map(e => e.id === editingEnterpriseId
+            ? { ...e, ...enterpriseForm, updateTime: now }
+            : e));
         setEnterpriseDialogOpen(false);
     };
 
@@ -3006,26 +3225,28 @@ export default function AdminPage() {
         [enterpriseConfigs]
     );
 
-    // 属性标签：由内部企业自定义，支持新增/重命名/删除
-    const [unitAttrTags, setUnitAttrTags] = useState<string[]>(defaultUnitAttrTags);
-    const [tagManagerOpen, setTagManagerOpen] = useState(false);
-    const [newTagName, setNewTagName] = useState('');
-    const [tagError, setTagError] = useState('');
-
     // 结算单元折扣配置（key 为结算单元名称）
     const [unitDiscounts, setUnitDiscounts] = useState<Record<string, UnitDiscountConfig>>(initialUnitDiscounts);
 
     // 筛选条件
     const [discountSearch, setDiscountSearch] = useState('');
-    const [discountTagFilter, setDiscountTagFilter] = useState('all'); // all / 标签名 / __unset__(未配置)
+    const [discountAttrFilter, setDiscountAttrFilter] = useState('all'); // all / biz / inner / __unset__(未配置)
     const [discountDeptFilter, setDiscountDeptFilter] = useState('all'); // all / 部门id / __unlinked__(未关联部门)
 
     // 编辑弹窗（支持单个编辑与批量编辑）
     const [discountDialogUnits, setDiscountDialogUnits] = useState<string[] | null>(null);
-    const [discountForm, setDiscountForm] = useState<{ tag: string; discount: UnitDiscountType | '' }>({ tag: '', discount: '' });
+    const [discountForm, setDiscountForm] = useState<{ deptAttr: UnitDeptAttr | ''; discount: UnitDiscountType | '' }>({ deptAttr: '', discount: '' });
     const [discountFormError, setDiscountFormError] = useState('');
     // 批量选中的结算单元
     const [selectedDiscountUnits, setSelectedDiscountUnits] = useState<string[]>([]);
+
+    // 单独设置计费的产品弹窗
+    const [standaloneProductsUnit, setStandaloneProductsUnit] = useState<string | null>(null); // 当前查看的结算单元名
+    const [standaloneProductsTab, setStandaloneProductsTab] = useState<StandaloneBillingType>('metered');
+    const [standaloneProductsData, setStandaloneProductsData] = useState<StandaloneProduct[]>([]);
+    // 新增计费设置表单
+    const [standaloneAddForm, setStandaloneAddForm] = useState<{ type: StandaloneBillingType; productId: string; discount: string } | null>(null);
+    const [standaloneAddError, setStandaloneAddError] = useState('');
 
     // 当前租户（内部企业所属租户）下同步的全部结算单元
     const tenantUnitRows = useMemo(() => {
@@ -3051,68 +3272,55 @@ export default function AdminPage() {
         return tenantUnitRows
             .map(r => ({
                 ...r,
-                config: unitDiscounts[r.unit] || { tag: '', discount: null, updateTime: '--' },
+                config: unitDiscounts[r.unit] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' },
             }))
             .filter(r => {
                 if (kw && ![r.unit, r.deptPath].some(v => (v || '').toLowerCase().includes(kw))) return false;
-                if (discountTagFilter === '__unset__' && r.config.tag) return false;
-                if (discountTagFilter !== 'all' && discountTagFilter !== '__unset__' && r.config.tag !== discountTagFilter) return false;
+                if (discountAttrFilter === '__unset__' && r.config.deptAttr) return false;
+                if (discountAttrFilter !== 'all' && discountAttrFilter !== '__unset__' && r.config.deptAttr !== discountAttrFilter) return false;
                 if (discountDeptFilter === '__unlinked__' && r.deptId) return false;
                 if (discountDeptFilter !== 'all' && discountDeptFilter !== '__unlinked__' && r.deptId !== discountDeptFilter) return false;
                 return true;
             });
-    }, [tenantUnitRows, unitDiscounts, discountSearch, discountTagFilter, discountDeptFilter]);
+    }, [tenantUnitRows, unitDiscounts, discountSearch, discountAttrFilter, discountDeptFilter]);
 
-    // 标签配色（按标签在自定义标签列表中的下标循环取色）
-    const getTagColor = (tag: string) => {
-        const idx = unitAttrTags.indexOf(tag);
-        return idx < 0 ? 'bg-gray-100 text-gray-500' : unitTagColors[idx % unitTagColors.length];
-    };
+    // 部门属性配色
+    const getDeptAttrColor = (attr: UnitDeptAttr | '') =>
+        attr === '' ? 'bg-gray-100 text-gray-500' : unitDeptAttrColors[attr];
 
-    // 标签使用次数（删除标签前提示影响范围）
-    const getTagUsedCount = (tag: string) =>
-        Object.values(unitDiscounts).filter(c => c.tag === tag).length;
+    // 部门属性展示
+    const getDeptAttrLabel = (attr: UnitDeptAttr | '') =>
+        attr === '' ? '--' : (unitDeptAttrOptions.find(o => o.value === attr)?.label || '--');
 
-    // 新增标签
-    const handleAddUnitTag = () => {
-        const name = newTagName.trim();
-        if (!name) { setTagError('请输入标签名称'); return; }
-        if (unitAttrTags.includes(name)) { setTagError('标签名称已存在'); return; }
-        setUnitAttrTags(prev => [...prev, name]);
-        setNewTagName('');
-        setTagError('');
-    };
-
-    // 删除标签：同步清空已使用该标签的结算单元
-    const handleDeleteUnitTag = (tag: string) => {
-        setUnitAttrTags(prev => prev.filter(t => t !== tag));
-        setUnitDiscounts(prev => {
-            const next = { ...prev };
-            Object.keys(next).forEach(k => {
-                if (next[k].tag === tag) next[k] = { ...next[k], tag: '' };
-            });
-            return next;
-        });
-        if (discountTagFilter === tag) setDiscountTagFilter('all');
-    };
+    // 判断结算单元是否为「内结部门」（不可再编辑折扣）
+    const isInnerDept = (unit: string) => unitDiscounts[unit]?.deptAttr === 'inner';
 
     // 打开折扣配置弹窗（units 为 1 个即单条编辑，多个即批量编辑）
-    const handleOpenDiscountDialog = (units: string[]) => {
+    // mode：'both' 部门属性+折扣一起编辑；'attr' 仅部门属性；'discount' 仅折扣
+    const [discountDialogMode, setDiscountDialogMode] = useState<'both' | 'attr' | 'discount'>('both');
+    const handleOpenDiscountDialog = (units: string[], mode: 'both' | 'attr' | 'discount' = 'both') => {
         if (units.length === 0) return;
         const base = units.length === 1 ? unitDiscounts[units[0]] : undefined;
         setDiscountForm({
-            tag: base?.tag || '',
+            deptAttr: base?.deptAttr || '',
             discount: base?.discount ?? '',
         });
+        setDiscountDialogMode(mode);
         setDiscountFormError('');
         setDiscountDialogUnits(units);
     };
 
-    // 保存折扣配置：一个结算单元只能设置一个折扣类型（内部折扣 / SVIP折扣 / VIP折扣，单选）
+    // 保存折扣配置（部门属性 / 折扣，支持批量）
     const handleSaveDiscount = () => {
         if (!discountDialogUnits) return;
+        const deptAttr = discountForm.deptAttr;
+        if (!deptAttr) {
+            setDiscountFormError('请选择部门属性');
+            return;
+        }
+        // 经营部门需选择折扣类型（SVIP/VIP）
         const discount = discountForm.discount;
-        if (!discount) {
+        if (deptAttr === 'biz' && !discount) {
             setDiscountFormError('请选择折扣');
             return;
         }
@@ -3120,14 +3328,83 @@ export default function AdminPage() {
         setUnitDiscounts(prev => {
             const next = { ...prev };
             discountDialogUnits.forEach(u => {
-                // 一个结算单元仅保留一个折扣值，重复设置即覆盖
-                next[u] = { tag: discountForm.tag, discount, updateTime: now };
+                const old = prev[u] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' };
+                // 内结部门固定为内部折扣，且清空单独设置的产品；经营部门按所选折扣类型取值，单独设置的产品保持不变
+                if (deptAttr === 'inner') {
+                    next[u] = { deptAttr, discount: 'internal', standaloneProducts: [], updateTime: now };
+                } else {
+                    next[u] = { deptAttr, discount: discount as UnitDiscountType, standaloneProducts: old.standaloneProducts, updateTime: now };
+                }
             });
             return next;
         });
         setDiscountFormError('');
         setDiscountDialogUnits(null);
         setSelectedDiscountUnits([]);
+    };
+
+    // ===== 单独设置计费的产品 =====
+    // 打开弹窗：载入该结算单元已单独设置的产品/资源包
+    const handleOpenStandaloneProducts = (unit: string) => {
+        setStandaloneProductsData(unitDiscounts[unit]?.standaloneProducts || []);
+        setStandaloneProductsTab('metered');
+        setStandaloneAddForm(null);
+        setStandaloneAddError('');
+        setStandaloneProductsUnit(unit);
+    };
+
+    // 关闭弹窗时把改动回写到结算单元配置
+    const handleCloseStandaloneProducts = () => {
+        if (standaloneProductsUnit) {
+            const unit = standaloneProductsUnit;
+            const list = standaloneProductsData;
+            setUnitDiscounts(prev => {
+                const old = prev[unit];
+                if (!old) return prev;
+                // 内容无变化则不更新时间
+                if (JSON.stringify(old.standaloneProducts) === JSON.stringify(list)) return prev;
+                return { ...prev, [unit]: { ...old, standaloneProducts: list, updateTime: formatNow() } };
+            });
+        }
+        setStandaloneProductsUnit(null);
+        setStandaloneAddForm(null);
+        setStandaloneAddError('');
+    };
+
+    // 新增一条单独计费设置
+    const handleAddStandaloneProduct = () => {
+        if (!standaloneAddForm) return;
+        const { type, productId, discount } = standaloneAddForm;
+        if (!productId) {
+            setStandaloneAddError('请选择产品');
+            return;
+        }
+        const id = Number(productId);
+        if (standaloneProductsData.some(p => p.id === id)) {
+            setStandaloneAddError('该产品已单独设置计费，请勿重复添加');
+            return;
+        }
+        const v = Number(discount);
+        if (discount.trim() === '' || Number.isNaN(v) || v <= 0 || v > 10) {
+            setStandaloneAddError('折扣须为 0~10 之间的数字');
+            return;
+        }
+        const name = standaloneProductOptions[type].find(o => o.id === id)?.name || '';
+        setStandaloneProductsData(prev => [...prev, { id, name, type, discount: v }]);
+        setStandaloneAddForm(null);
+        setStandaloneAddError('');
+        setStandaloneProductsTab(type);
+    };
+
+    // 删除一条单独计费设置
+    const handleDeleteStandaloneProduct = (id: number) => {
+        setStandaloneProductsData(prev => prev.filter(p => p.id !== id));
+    };
+
+    // 修改某条单独计费设置的折扣
+    const handleUpdateStandaloneDiscount = (id: number, value: string) => {
+        const v = value.trim() === '' ? null : Number(value);
+        setStandaloneProductsData(prev => prev.map(p => (p.id === id ? { ...p, discount: v } : p)));
     };
 
     const [activeTab, setActiveTab] = useState("packages");
@@ -4384,7 +4661,7 @@ export default function AdminPage() {
                     <div className="mt-0.5">
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['platform-portal', 'platform-region'].includes(currentMenu)
+                                ['platform-portal', 'platform-region', 'platform-billing'].includes(currentMenu)
                                     ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
@@ -4424,6 +4701,16 @@ export default function AdminPage() {
                                 >
                                     <span>地域可用区</span>
                                     <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
+                                <div
+                                    onClick={() => setCurrentMenu('platform-billing')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'platform-billing'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>计费配置</span>
                                 </div>
                             </div>
                         )}
@@ -6123,16 +6410,16 @@ export default function AdminPage() {
                                             {pagedOverallRows.map((row) => (
                                                 <tr key={row.id} className="hover:bg-gray-50">
                                                     <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{row.period}</td>
-                                                    <AnalysisAmountCell value={row.totalRevenue} link />
-                                                    <AnalysisAmountCell value={row.innerRevenue} link />
-                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} link />
-                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} link />
+                                                    <AnalysisAmountCell value={row.totalRevenue} />
+                                                    <AnalysisAmountCell value={row.innerRevenue} />
+                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} />
+                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} />
                                                     <AnalysisAmountCell value={row.zyunNonUnitRevenue} />
                                                     <AnalysisAmountCell value={row.unitRevenue} />
-                                                    <AnalysisAmountCell value={row.outerRevenue} link />
+                                                    <AnalysisAmountCell value={row.outerRevenue} />
                                                     <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
                                                     <AnalysisAmountCell value={row.innerTotalRevenue} />
-                                                    <AnalysisAmountCell value={row.productCost} link />
+                                                    <AnalysisAmountCell value={row.productCost} />
                                                     <AnalysisAmountCell value={row.innerProfit} />
                                                     <AnalysisAmountCell value={row.outerProfit} />
                                                     <td className="bg-orange-50/70 px-3 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
@@ -6342,90 +6629,51 @@ export default function AdminPage() {
                             {/* 数据表格 */}
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[2260px]">
+                                        <table className="w-full min-w-[2140px]">
                                         <thead>
-                                            {/* 第一行表头：橙色底，「公司外收入」跨两列 */}
+                                            {/* 表头：橙色底 */}
                                             <tr className="border-b border-orange-300 bg-orange-100">
-                                                <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
-                                                <AnalysisTh label="所属产线" align="left" width="90px" rowSpan={2} />
-                                                <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" rowSpan={2} />
+                                                <AnalysisTh label="账期" align="left" width="80px" />
+                                                <AnalysisTh label="所属产线" align="left" width="90px" />
+                                                <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" />
                                                 <AnalysisTh
                                                     label="产品名称"
                                                     align="left"
                                                     width="150px"
-                                                    rowSpan={2}
                                                     highlight
-                                                    tip="基于产品创建时「内部portal」与「外部portal」的关联关系，同一产品合并为一行展示；点击展开可分别查看内、外Portal产品各列数据，外层产品行为各Portal对应列之和（「内结算毛利率」「外部毛利率」两列除外）。"
+                                                    tip="每个产品在本账期内合并展示为一条产品数据，不区分内外Portal。"
                                                 />
-                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含公司内收入与公司外收入。" width="110px" rowSpan={2} highlight />
-                                                <AnalysisTh label="公司内收入(元)" tip="来自公司内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="110px" rowSpan={2} highlight />
-                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" rowSpan={2} />
-                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" rowSpan={2} />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" rowSpan={2} />
-                                                <AnalysisTh label="本结算单元收入(元)" width="110px" rowSpan={2} />
+                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含公司内收入与公司外收入。" width="110px" highlight />
+                                                <AnalysisTh label="公司内收入(元)" tip="来自公司内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="110px" highlight />
+                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" />
+                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" />
+                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" />
+                                                <AnalysisTh label="本结算单元收入(元)" width="110px" />
                                                 <AnalysisTh
                                                     label="公司外收入(元)"
                                                     align="center"
-                                                    colSpan={2}
                                                     highlight
-                                                    tip="来自公司外部客户的收入合计，拆分为「集团内的外部事业部」（内部portal下标记为外部的客户）与「外部(360.cn)」（非内部portal的收入）两部分分开统计。"
+                                                    tip="来自公司外部客户的收入合计，等于「集团内的外部客户」与「外部Portal」两部分收入之和。"
                                                 />
-                                                <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" rowSpan={2} />
-                                                <AnalysisTh label="内结算总收入(元)" width="110px" rowSpan={2} />
-                                                <AnalysisTh label="产品成本(元)" tip="该产品在本账期内分摊的资源成本合计。" width="110px" rowSpan={2} />
-                                                <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" rowSpan={2} />
-                                                <AnalysisTh label="外部利润(元)" tip="公司外收入 - 外部收入对应的内结算价收入。" width="105px" rowSpan={2} />
-                                                <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" rowSpan={2} />
-                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 公司外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" rowSpan={2} />
-                                                <AnalysisTh label="收支差额(元)" width="110px" rowSpan={2} />
-                                            </tr>
-                                            {/* 第二行表头：公司外收入的两个子列 */}
-                                            <tr className="border-b border-orange-300 bg-orange-100">
-                                                <AnalysisTh
-                                                    label="集团内的外部事业部"
-                                                    width="120px"
-                                                    highlight
-                                                    tip="内部portal下、客户属性标记为「外部」的客户所产生的收入。"
-                                                />
-                                                <AnalysisTh
-                                                    label="外部(360.cn)"
-                                                    width="120px"
-                                                    highlight
-                                                    tip="非内部portal（即外部portal / 360.cn 官网）产生的收入。"
-                                                />
+                                                <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" />
+                                                <AnalysisTh label="内结算总收入(元)" width="110px" />
+                                                <AnalysisTh label="产品成本(元)" tip="该产品在本账期内分摊的资源成本合计。" width="110px" />
+                                                <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" />
+                                                <AnalysisTh label="外部利润(元)" tip="公司外收入 - 外部收入对应的内结算价收入。" width="105px" />
+                                                <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" />
+                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 公司外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" />
+                                                <AnalysisTh label="收支差额(元)" width="110px" />
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
                                             {pagedAnalysisRows.map((row) => {
-                                                const portalRows = getAnalysisPortalRows(row);
-                                                const isMerged = portalRows.length > 1;
-                                                const isExpanded = expandedAnalysisRowIds.includes(row.id);
                                                 return (
-                                                <React.Fragment key={row.id}>
-                                                <tr className="hover:bg-gray-50">
+                                                <tr key={row.id} className="hover:bg-gray-50">
                                                     <td className="px-3 py-3 text-sm text-gray-900">{row.period}</td>
                                                     <td className="px-3 py-3 text-sm text-gray-900">{row.productLine}</td>
                                                     <td className="px-3 py-3 text-sm text-gray-900">{row.settlementUnit}</td>
                                                     <td className="px-3 py-3 text-sm bg-orange-50/70">
-                                                        <div className="flex items-center">
-                                                            {isMerged ? (
-                                                                <button
-                                                                    onClick={() => setExpandedAnalysisRowIds((prev) => prev.includes(row.id) ? prev.filter((id) => id !== row.id) : [...prev, row.id])}
-                                                                    className="mr-1 p-0.5 hover:bg-orange-100 rounded transition-colors flex-shrink-0"
-                                                                    title={isExpanded ? "收起" : "展开查看内外Portal数据"}
-                                                                >
-                                                                    <svg className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                    </svg>
-                                                                </button>
-                                                            ) : (
-                                                                <span className="w-[22px] flex-shrink-0"></span>
-                                                            )}
-                                                            <span className="text-blue-600 hover:text-blue-700 cursor-pointer">{cleanProductName(row.productName)}</span>
-                                                            {isMerged && (
-                                                                <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-blue-50 text-blue-600 border border-blue-100 flex-shrink-0 whitespace-nowrap">内外Portal关联</span>
-                                                            )}
-                                                        </div>
+                                                        <span className="text-blue-600 hover:text-blue-700 cursor-pointer">{cleanProductName(row.productName)}</span>
                                                     </td>
                                                     <AnalysisAmountCell value={row.totalRevenue} link highlight onClick={() => { setRevenueDetailRow(row); setRevenueDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.innerRevenue} link highlight onClick={() => setInnerRevenueDetailRow(row)} />
@@ -6433,8 +6681,7 @@ export default function AdminPage() {
                                                     <AnalysisAmountCell value={row.midNonZyunRevenue} link onClick={() => setUnitBillDetail({ row, title: "中台内非智汇云收入", amount: row.midNonZyunRevenue })} />
                                                     <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue })} />
                                                     <AnalysisAmountCell value={row.unitRevenue} link onClick={() => setUnitBillDetail({ row, title: "本结算单元收入", amount: row.unitRevenue })} />
-                                                    <AnalysisAmountCell value={row.outerGroupRevenue} link highlight onClick={() => setOuterGroupDetailRow(row)} />
-                                                    <AnalysisAmountCell value={row.outerPortalRevenue} link highlight onClick={() => setOuterPortalDetailRow(row)} />
+                                                    <AnalysisAmountCell value={row.outerRevenue} link highlight onClick={() => setOuterRevenueDetailRow(row)} />
                                                     <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
                                                     <AnalysisAmountCell value={row.innerTotalRevenue} />
                                                     <AnalysisAmountCell value={row.productCost} link />
@@ -6448,60 +6695,9 @@ export default function AdminPage() {
                                                     </td>
                                                     <AnalysisAmountCell value={row.balance} />
                                                 </tr>
-                                                {isExpanded && (
-                                                    <>
-                                                        <tr className="bg-blue-50/40">
-                                                            <td colSpan={20} className="px-6 py-2">
-                                                                <div className="text-xs text-gray-500">
-                                                                    该产品在 <span className="font-medium text-gray-700">{portalRows.length}</span> 个Portal下关联，下列为各Portal独立数据（上方产品行 = 各Portal对应列相加，「内结算毛利率」「外部毛利率」两列除外，按各自口径单独计算）：
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                        {portalRows.map((portal, idx) => (
-                                                            <tr key={idx} className="bg-gray-50/70 hover:bg-gray-100">
-                                                                <td className="px-3 py-3 text-sm text-gray-500">{row.period}</td>
-                                                                <td className="px-3 py-3 text-sm text-gray-500">{row.productLine}</td>
-                                                                <td className="px-3 py-3 text-sm text-gray-500">{row.settlementUnit}</td>
-                                                                <td className="px-3 py-3 text-sm bg-orange-50/40">
-                                                                    <div className="flex items-center pl-5">
-                                                                        <svg className="w-3.5 h-3.5 text-gray-400 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                                                        </svg>
-                                                                        <span className="text-gray-600">{portal.portalName}</span>
-                                                                        <span className="ml-1 text-xs text-gray-400 font-mono">{portal.productIdentifier}</span>
-                                                                        <span className={`ml-1 px-1 py-0.5 text-[10px] leading-none rounded flex-shrink-0 whitespace-nowrap ${portal.internal ? "bg-purple-50 text-purple-600 border border-purple-100" : "bg-teal-50 text-teal-600 border border-teal-100"}`}>
-                                                                            {portal.internal ? "内部Portal" : "外部Portal"}
-                                                                        </span>
-                                                                    </div>
-                                                                </td>
-                                                                <AnalysisAmountCell value={portal.totalRevenue} highlight />
-                                                                <AnalysisAmountCell value={portal.innerRevenue} highlight />
-                                                                <AnalysisAmountCell value={portal.innerNonMidRevenue} />
-                                                                <AnalysisAmountCell value={portal.midNonZyunRevenue} />
-                                                                <AnalysisAmountCell value={portal.zyunNonUnitRevenue} />
-                                                                <AnalysisAmountCell value={portal.unitRevenue} />
-                                                                <AnalysisAmountCell value={portal.outerGroupRevenue} highlight />
-                                                                <AnalysisAmountCell value={portal.outerPortalRevenue} highlight />
-                                                                <AnalysisAmountCell value={portal.outerInnerPriceRevenue} />
-                                                                <AnalysisAmountCell value={portal.innerTotalRevenue} />
-                                                                <AnalysisAmountCell value={portal.productCost} />
-                                                                <AnalysisAmountCell value={portal.innerProfit} />
-                                                                <AnalysisAmountCell value={portal.outerProfit} />
-                                                                <td className="px-3 py-3 text-right text-sm text-gray-500 whitespace-nowrap">
-                                                                    {portal.innerMargin.toFixed(2)}%
-                                                                </td>
-                                                                <td className="px-3 py-3 text-right text-sm text-gray-500 whitespace-nowrap">
-                                                                    {portal.outerMargin.toFixed(2)}%
-                                                                </td>
-                                                                <AnalysisAmountCell value={portal.balance} />
-                                                            </tr>
-                                                        ))}
-                                                    </>
-                                                )}
-                                                </React.Fragment>
                                                 );
                                             })}
-                                            {/* 合计行：公司外收入两个子项分开统计 */}
+                                            {/* 合计行：公司外收入为「集团内外部客户」与「外部Portal」求和 */}
                                             {pagedAnalysisRows.length > 0 && (
                                                 <tr className="bg-gray-50 font-medium">
                                                     <td className="px-3 py-3 text-sm text-gray-900" colSpan={4}>合计</td>
@@ -6511,8 +6707,7 @@ export default function AdminPage() {
                                                     <AnalysisAmountCell value={analysisTotals.midNonZyunRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.zyunNonUnitRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.unitRevenue} />
-                                                    <AnalysisAmountCell value={analysisTotals.outerGroupRevenue} highlight />
-                                                    <AnalysisAmountCell value={analysisTotals.outerPortalRevenue} highlight />
+                                                    <AnalysisAmountCell value={analysisTotals.outerRevenue} highlight />
                                                     <AnalysisAmountCell value={analysisTotals.outerInnerPriceRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.innerTotalRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.productCost} />
@@ -6525,7 +6720,7 @@ export default function AdminPage() {
                                             )}
                                             {pagedAnalysisRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={20} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={19} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -6658,11 +6853,11 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                            {/* 公司内收入明细抽屉（来源一：集团内部结算单元账单 / 来源二：内部结算单元账号在外部portal使用费用） */}
+                                                        {/* 公司内收入明细抽屉（集团内部结算单元账单 + 内部结算单元账号在外部portal使用费用 合并展示） */}
                             {innerRevenueDetailRow && (
                                 <div className="fixed inset-0 z-[100]">
                                     <div className="absolute inset-0 bg-black/50" onClick={() => setInnerRevenueDetailRow(null)} />
-                                    <div className="absolute right-0 top-0 bottom-0 w-[850px] bg-white shadow-xl flex flex-col">
+                                    <div className="absolute right-0 top-0 bottom-0 w-[900px] bg-white shadow-xl flex flex-col">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                             <h3 className="text-base font-semibold text-gray-900">
                                                 公司内收入明细 <span className="font-normal text-gray-600">{cleanProductName(innerRevenueDetailRow.productName)}</span>
@@ -6674,148 +6869,98 @@ export default function AdminPage() {
                                             </button>
                                         </div>
                                         <div className="flex-1 overflow-y-auto p-6">
-                                            {/* 来源一：集团内部结算单元账单 */}
-                                            <div className="mb-4">
-                                                <div className="mb-2 flex items-center gap-1">
-                                                    <span className="text-sm font-semibold text-gray-900">集团内部结算单元账单</span>
-                                                    <span className="group/tip relative inline-flex flex-shrink-0">
-                                                        <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                            集团内各结算单元之间通过内网结算产生的账单金额。
-                                                            <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                                <table className="w-full">
-                                                    <thead>
-                                                        <tr className="border-b border-gray-200">
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {getInnerRevenueUnitBillRows(innerRevenueDetailRow).map((r, i) => (
-                                                            <tr key={i} className="border-b border-gray-100">
-                                                                <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
-                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
-                                                                <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
-                                                                <td className="py-3 px-4">
-                                                                    <span className="group/tip relative inline-flex">
-                                                                        <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
-                                                                        <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                            点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 &gt; 结算单元概览，并选中对应的结算单元。
-                                                                            <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                                                        </span>
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                        {getInnerRevenueUnitBillRows(innerRevenueDetailRow).length === 0 && (
-                                                            <tr>
-                                                                <td colSpan={4} className="py-6 text-center text-sm text-gray-400">暂无结算单元账单数据</td>
-                                                            </tr>
-                                                        )}
-                                                    </tbody>
-                                                </table>
+                                            {/* 提示文案 */}
+                                            <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
+                                                <div className="font-semibold text-gray-900">公司内收入包含两部分：</div>
+                                                <div>集团内部结算单元账单：内部企业标记为内结部门的收入；</div>
+                                                <div>内结部门在外部Portal使用的费用：内结部门账号在外部Portal上使用产生的费用，关联回对应结算单元，计入公司内收入。</div>
                                             </div>
-
-                                            {/* 来源二：内部结算单元账号在外部portal上使用产生的费用 */}
-                                            <div>
-                                                <div className="mb-2 flex items-center gap-1">
-                                                    <span className="text-sm font-semibold text-gray-900">内部结算单元账号在外部portal使用费用</span>
-                                                    <span className="group/tip relative inline-flex flex-shrink-0">
-                                                        <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                            集团内结算单元的账号在外部portal上使用产生的费用，关联回对应结算单元，计入公司内收入。
-                                                            <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                                <table className="w-full">
-                                                    <thead>
-                                                        <tr className="border-b border-gray-200">
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">外部portal账号</th>
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">费用金额(元)</th>
-                                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {getInnerRevenuePortalUsageRows(innerRevenueDetailRow).map((r, i) => (
-                                                            <tr key={i} className="border-b border-gray-100">
-                                                                <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
-                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
-                                                                <td className="py-3 px-4 text-sm text-gray-700">{r.portalAccount}</td>
-                                                                <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
-                                                                <td className="py-3 px-4">
-                                                                    <span className="group/tip relative inline-flex">
-                                                                        <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
-                                                                        <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                            点击带账期、结算单元和账号，新开页到【产品账单】，定位到 产品账单 &gt; 客户概览，并选中对应的账号。
-                                                                            <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                                                        </span>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {getInnerRevenueMergedRows(innerRevenueDetailRow).map((r, i) => (
+                                                        <tr key={i} className="border-b border-gray-100">
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                            <td className="py-3 px-4">
+                                                                <span className="group/tip relative inline-flex">
+                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                        {r.type === "internal"
+                                                                            ? "点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 > 结算单元概览，并选中对应的结算单元。"
+                                                                            : "点击带账期、结算单元和账号，新开页到【产品账单】，定位到 产品账单 > 客户概览，并选中对应的账号。"}
+                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
                                                                     </span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                        {getInnerRevenuePortalUsageRows(innerRevenueDetailRow).length === 0 && (
-                                                            <tr>
-                                                                <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂未关联外部portal使用费用</td>
-                                                            </tr>
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {getInnerRevenueMergedRows(innerRevenueDetailRow).length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂无公司内收入明细数据</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* 集团内的外部事业部 收入明细抽屉 */}
-                            {outerGroupDetailRow && (
+                            {/* 公司外收入明细抽屉（集团下外部结算单元账单 + 外部Portal名称(域名) 合并展示） */}
+                            {outerRevenueDetailRow && (
                                 <div className="fixed inset-0 z-[100]">
-                                    <div className="absolute inset-0 bg-black/50" onClick={() => setOuterGroupDetailRow(null)} />
-                                    <div className="absolute right-0 top-0 bottom-0 w-[760px] bg-white shadow-xl flex flex-col">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setOuterRevenueDetailRow(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[900px] bg-white shadow-xl flex flex-col">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                             <h3 className="text-base font-semibold text-gray-900">
-                                                集团内的外部事业部收入明细 <span className="font-normal text-gray-600">{cleanProductName(outerGroupDetailRow.productName)}</span>
+                                                公司外收入明细 <span className="font-normal text-gray-600">{cleanProductName(outerRevenueDetailRow.productName)}</span>
                                             </h3>
-                                            <button onClick={() => setOuterGroupDetailRow(null)} className="text-gray-400 hover:text-gray-600">
+                                            <button onClick={() => setOuterRevenueDetailRow(null)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
                                             </button>
                                         </div>
                                         <div className="flex-1 overflow-y-auto p-6">
+                                            {/* 提示文案 */}
+                                            <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
+                                                <div className="font-semibold text-gray-900">公司外收入包含两部分：</div>
+                                                <div>集团下外部结算单元账单：内部企业标记为经营部门的部门的收入；</div>
+                                                <div>外部Portal名称(域名)收入：外部Portal(360.cn)的收入。</div>
+                                            </div>
                                             <table className="w-full">
                                                 <thead>
                                                     <tr className="border-b border-gray-200">
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">内外属性</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">来源名称</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {getOuterGroupDetailRows(outerGroupDetailRow).map((r, i) => (
+                                                    {getOuterRevenueDetailRows(outerRevenueDetailRow).map((r, i) => (
                                                         <tr key={i} className="border-b border-gray-100">
                                                             <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.attribute}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.sourceName}</td>
                                                             <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
                                                             <td className="py-3 px-4">
                                                                 <span className="group/tip relative inline-flex">
                                                                     <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
                                                                     <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                        点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 &gt; 结算单元概览，并选中对应的结算单元。
+                                                                        点击带账期和收入来源，新开页到对应账单页面，定位并选中对应的记录。
                                                                         <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
                                                                     </span>
                                                                 </span>
@@ -6865,55 +7010,6 @@ export default function AdminPage() {
                                                                     <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
                                                                     <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
                                                                         点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 &gt; 结算单元概览，并选中对应的结算单元。
-                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                                                    </span>
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 外部(360.cn) 收入明细抽屉 */}
-                            {outerPortalDetailRow && (
-                                <div className="fixed inset-0 z-[100]">
-                                    <div className="absolute inset-0 bg-black/50" onClick={() => setOuterPortalDetailRow(null)} />
-                                    <div className="absolute right-0 top-0 bottom-0 w-[760px] bg-white shadow-xl flex flex-col">
-                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold text-gray-900">
-                                                外部(360.cn)收入明细 <span className="font-normal text-gray-600">{cleanProductName(outerPortalDetailRow.productName)}</span>
-                                            </h3>
-                                            <button onClick={() => setOuterPortalDetailRow(null)} className="text-gray-400 hover:text-gray-600">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div className="flex-1 overflow-y-auto p-6">
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-gray-200">
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">租户名称</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {getOuterPortalDetailRows(outerPortalDetailRow).map((r, i) => (
-                                                        <tr key={i} className="border-b border-gray-100">
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.tenantName}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
-                                                            <td className="py-3 px-4">
-                                                                <span className="group/tip relative inline-flex">
-                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
-                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                        点击带账期和客户，新开页到【产品账单】，定位到 产品账单 &gt; 客户概览，并选中对应的客户。
                                                                         <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
                                                                     </span>
                                                                 </span>
@@ -7297,16 +7393,10 @@ export default function AdminPage() {
                                                 type="text"
                                                 value={enterpriseSearch}
                                                 onChange={(e) => setEnterpriseSearch(e.target.value)}
-                                                placeholder="企业名称/租户ID/经营部门/Portal域名"
+                                                placeholder="Portal名称/租户ID/经营部门/Portal域名"
                                                 className="w-72 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                             />
                                         </div>
-                                        <button
-                                            onClick={handleOpenCreateEnterprise}
-                                            className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                                        >
-                                            + 新建企业
-                                        </button>
                                     </div>
 
                                     {/* 列表：备注说明并入「企业名称」列下方；所属租户与经营部门合并一列，紧随「是否是内部企业」之后；Portal 名称即企业名称，故仅展示 Portal 域名 */}
@@ -7315,10 +7405,10 @@ export default function AdminPage() {
                                             <thead>
                                                 <tr className="bg-gray-50 border-y border-gray-200">
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[220px]">企业名称</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-28">是否是内部企业</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-28">内部企业</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[200px]">所属租户 / 经营部门</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-32">是否开启独立Portal</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-32">开启独立Portal</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[220px]">Portal名称</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[200px]">Portal域名</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
@@ -7334,7 +7424,30 @@ export default function AdminPage() {
                                                     filteredEnterpriseConfigs.map((ent, idx) => (
                                                         <tr key={ent.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                             <td className="py-3 px-4 text-sm text-gray-600 align-top">{idx + 1}</td>
-                                                            {/* 企业名称：备注说明以灰色小字展示在名称下方 */}
+                                                            <td className="py-3 px-4 align-top">
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.internal ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                                    {ent.internal ? '是' : '否'}
+                                                                </span>
+                                                            </td>
+                                                            {/* 所属租户 / 经营部门合并一列：仅内部企业存在经营部门 */}
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                {ent.internal ? (
+                                                                    ent.bizDeptName || ent.tenantId ? (
+                                                                        <div className="leading-tight">
+                                                                            <div>{ent.tenantId ? `${ent.tenantName}（${ent.tenantId}）` : '--'}</div>
+                                                                            <div className="mt-1 text-xs text-gray-400">
+                                                                                经营部门：{ent.bizDeptName || '--'}
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : '--'
+                                                                ) : '--'}
+                                                            </td>
+                                                            <td className="py-3 px-4 align-top">
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.enablePortal ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                                    {ent.enablePortal ? '是' : '否'}
+                                                                </span>
+                                                            </td>
+                                                            {/* Portal名称：备注说明以灰色小字展示在名称下方 */}
                                                             <td className="py-3 px-4 text-sm text-gray-700 align-top">
                                                                 <div className="flex items-center gap-1.5">
                                                                     <span>{ent.name}</span>
@@ -7345,27 +7458,6 @@ export default function AdminPage() {
                                                                 {ent.remark && (
                                                                     <div className="mt-1 text-xs text-gray-400 leading-[1.6]">{ent.remark}</div>
                                                                 )}
-                                                            </td>
-                                                            <td className="py-3 px-4 align-top">
-                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.internal ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
-                                                                    {ent.internal ? '是' : '否'}
-                                                                </span>
-                                                            </td>
-                                                            {/* 所属租户 / 经营部门合并一列：仅内部企业存在经营部门 */}
-                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
-                                                                {ent.bizDeptName || ent.tenantId ? (
-                                                                    <div className="leading-tight">
-                                                                        <div>{ent.tenantId ? `${ent.tenantName}（${ent.tenantId}）` : '--'}</div>
-                                                                        <div className="mt-1 text-xs text-gray-400">
-                                                                            经营部门：{ent.internal ? (ent.bizDeptName || '--') : '--'}
-                                                                        </div>
-                                                                    </div>
-                                                                ) : '--'}
-                                                            </td>
-                                                            <td className="py-3 px-4 align-top">
-                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ent.enablePortal ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
-                                                                    {ent.enablePortal ? '是' : '否'}
-                                                                </span>
                                                             </td>
                                                             {/* Portal域名 */}
                                                             <td className="py-3 px-4 text-sm text-gray-700 align-top">
@@ -7424,7 +7516,7 @@ export default function AdminPage() {
                                         <span className="font-medium">
                                             {internalEnterprise?.tenantId ? `「${internalEnterprise.tenantName}（${internalEnterprise.tenantId}）」` : ''}
                                         </span>
-                                        下的全部 ops 结算单元，不支持在此新增或删除结算单元。一个组织部门可关联多个结算单元，一个结算单元只能关联一个组织部门；属性标签由内部企业自行定义；<span className="font-medium">一个结算单元只能设置一个折扣（内部折扣 / SVIP折扣 / VIP折扣，单选）</span>，设置后该结算单元计费时即按所选折扣类型取值。
+                                        下的全部 ops 结算单元，不支持在此新增或删除结算单元。一个组织部门可关联多个结算单元，一个结算单元只能关联一个组织部门；<span className="font-medium">部门属性</span>分为<span className="font-medium">经营部门</span>与<span className="font-medium">内结部门</span>：内结部门固定为内部折扣，不可再编辑；经营部门可通过 SVIP/VIP 折扣设置折扣，也可<span className="font-medium">单独设置折扣</span>。
                                     </p>
                                 </div>
 
@@ -7456,28 +7548,32 @@ export default function AdminPage() {
                                                 ))}
                                                 <option value="__unlinked__">未关联组织部门</option>
                                             </select>
-                                            {/* 属性标签筛选 */}
+                                            {/* 部门属性筛选 */}
                                             <select
-                                                value={discountTagFilter}
-                                                onChange={(e) => setDiscountTagFilter(e.target.value)}
+                                                value={discountAttrFilter}
+                                                onChange={(e) => setDiscountAttrFilter(e.target.value)}
                                                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                             >
-                                                <option value="all">全部属性标签</option>
-                                                {unitAttrTags.map(t => (
-                                                    <option key={t} value={t}>{t}</option>
+                                                <option value="all">全部部门属性</option>
+                                                {unitDeptAttrOptions.map(o => (
+                                                    <option key={o.value} value={o.value}>{o.label}</option>
                                                 ))}
-                                                <option value="__unset__">未配置标签</option>
+                                                <option value="__unset__">未配置部门属性</option>
                                             </select>
                                         </div>
+                                        {/* 批量操作：部门属性、折扣可批量设置；单独设置折扣不支持批量 */}
                                         <div className="flex items-center gap-3">
                                             <button
-                                                onClick={() => { setTagManagerOpen(true); setNewTagName(''); setTagError(''); }}
-                                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                                                onClick={() => handleOpenDiscountDialog(selectedDiscountUnits, 'attr')}
+                                                disabled={selectedDiscountUnits.length === 0}
+                                                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${selectedDiscountUnits.length === 0
+                                                    ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                                             >
-                                                管理属性标签
+                                                批量设置部门属性{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
                                             </button>
                                             <button
-                                                onClick={() => handleOpenDiscountDialog(selectedDiscountUnits)}
+                                                onClick={() => handleOpenDiscountDialog(selectedDiscountUnits, 'discount')}
                                                 disabled={selectedDiscountUnits.length === 0}
                                                 className={`px-4 py-2 text-sm rounded-lg transition-colors ${selectedDiscountUnits.length === 0
                                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -7509,10 +7605,37 @@ export default function AdminPage() {
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[200px]">结算单元名称</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[240px]">归属组织部门</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">属性标签</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-32">折扣</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">
+                                                        <span className="inline-flex items-center gap-1">
+                                                            部门属性
+                                                            <span className="group/tip relative inline-flex flex-shrink-0">
+                                                                <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                    {unitDeptAttrTip}
+                                                                    <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                                </span>
+                                                            </span>
+                                                        </span>
+                                                    </th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">折扣</th>
+                                                    {/* 单独设置折扣：附折扣优先级说明 */}
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-44">
+                                                        <span className="inline-flex items-center gap-1">
+                                                            单独设置折扣
+                                                            <span className="group/tip relative inline-flex flex-shrink-0">
+                                                                <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[300px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                    {standaloneDiscountTip}
+                                                                    <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                                </span>
+                                                            </span>
+                                                        </span>
+                                                    </th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">更新时间</th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-20">操作</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -7546,29 +7669,60 @@ export default function AdminPage() {
                                                                     <span className="text-xs text-gray-400">未关联组织部门</span>
                                                                 )}
                                                             </td>
+                                                            {/* 部门属性：本列单独配置 */}
                                                             <td className="py-3 px-4 align-top">
-                                                                {row.config.tag ? (
-                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getTagColor(row.config.tag)}`}>
-                                                                        {row.config.tag}
-                                                                    </span>
-                                                                ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    {row.config.deptAttr ? (
+                                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getDeptAttrColor(row.config.deptAttr)}`}>
+                                                                            {getDeptAttrLabel(row.config.deptAttr)}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-xs text-gray-400">--</span>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => handleOpenDiscountDialog([row.unit], 'attr')}
+                                                                        title="设置部门属性"
+                                                                        className="text-gray-300 hover:text-blue-600 transition-colors"
+                                                                    >
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                            {/* 折扣：本列单独配置；内结部门固定内部折扣不可编辑 */}
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                <div className="flex items-center gap-2">
+                                                                    {row.config.discount == null
+                                                                        ? <span className="text-xs text-gray-400">未设置</span>
+                                                                        : formatDiscount(row.config.discount)}
+                                                                    {!isInnerDept(row.unit) && (
+                                                                        <button
+                                                                            onClick={() => handleOpenDiscountDialog([row.unit], 'discount')}
+                                                                            title="设置折扣"
+                                                                            className="text-gray-300 hover:text-blue-600 transition-colors"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            {/* 单独设置折扣：展示单独设置的产品数，标蓝可点击查看明细；不支持批量设置 */}
+                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                {isInnerDept(row.unit) ? (
                                                                     <span className="text-xs text-gray-400">--</span>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => handleOpenStandaloneProducts(row.unit)}
+                                                                        className="text-[#006bff] hover:text-blue-700 hover:underline"
+                                                                    >
+                                                                        {row.config.standaloneProducts.length}
+                                                                    </button>
                                                                 )}
                                                             </td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700 align-top">
-                                                                {row.config.discount == null
-                                                                    ? <span className="text-xs text-gray-400">未设置</span>
-                                                                    : formatDiscount(row.config.discount)}
-                                                            </td>
                                                             <td className="py-3 px-4 text-sm text-gray-600 align-top">{row.config.updateTime}</td>
-                                                            <td className="py-3 px-4 align-top">
-                                                                <button
-                                                                    onClick={() => handleOpenDiscountDialog([row.unit])}
-                                                                    className="text-blue-600 hover:text-blue-700 text-sm"
-                                                                >
-                                                                    设置
-                                                                </button>
-                                                            </td>
                                                         </tr>
                                                     ))
                                                 )}
@@ -7586,68 +7740,6 @@ export default function AdminPage() {
                             </div>
                             )}
 
-                            {/* 属性标签管理弹窗：标签由内部企业自定义 */}
-                            {tagManagerOpen && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-black/40" onClick={() => setTagManagerOpen(false)} />
-                                    <div className="relative w-[520px] max-w-[92vw] bg-white rounded-lg shadow-xl">
-                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold text-gray-900">管理属性标签</h3>
-                                            <button onClick={() => setTagManagerOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div className="px-6 py-5">
-                                            <p className="text-xs text-gray-400 mb-3">属性标签由内部企业自行定义，删除标签后使用该标签的结算单元将变为「未配置标签」。</p>
-                                            <div className="space-y-2 max-h-[320px] overflow-auto">
-                                                {unitAttrTags.length === 0 ? (
-                                                    <div className="py-8 text-center text-sm text-gray-400">暂无标签</div>
-                                                ) : unitAttrTags.map(tag => (
-                                                    <div key={tag} className="flex items-center justify-between px-3 py-2 border border-gray-100 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getTagColor(tag)}`}>{tag}</span>
-                                                            <span className="text-xs text-gray-400">已用于 {getTagUsedCount(tag)} 个结算单元</span>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => handleDeleteUnitTag(tag)}
-                                                            className="text-red-500 hover:text-red-600 text-sm"
-                                                        >
-                                                            删除
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="mt-4 flex items-center gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={newTagName}
-                                                    onChange={(e) => { setNewTagName(e.target.value); setTagError(''); }}
-                                                    placeholder="请输入新标签名称"
-                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                />
-                                                <button
-                                                    onClick={handleAddUnitTag}
-                                                    className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
-                                                >
-                                                    新增标签
-                                                </button>
-                                            </div>
-                                            {tagError && <p className="mt-2 text-xs text-red-500">{tagError}</p>}
-                                        </div>
-                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
-                                            <button
-                                                onClick={() => setTagManagerOpen(false)}
-                                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                                            >
-                                                完成
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* 折扣配置弹窗（单条 / 批量） */}
                             {discountDialogUnits && (
                                 <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -7655,7 +7747,11 @@ export default function AdminPage() {
                                     <div className="relative w-[560px] max-w-[92vw] bg-white rounded-lg shadow-xl">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                             <h3 className="text-base font-semibold text-gray-900">
-                                                {discountDialogUnits.length > 1 ? `批量设置折扣（${discountDialogUnits.length} 个结算单元）` : '设置折扣'}
+                                                {discountDialogMode === 'attr'
+                                                    ? (discountDialogUnits.length > 1 ? `批量设置部门属性（${discountDialogUnits.length} 个结算单元）` : '设置部门属性')
+                                                    : discountDialogMode === 'discount'
+                                                        ? (discountDialogUnits.length > 1 ? `批量设置折扣（${discountDialogUnits.length} 个结算单元）` : '设置折扣')
+                                                        : (discountDialogUnits.length > 1 ? `批量设置（${discountDialogUnits.length} 个结算单元）` : '折扣设置')}
                                             </h3>
                                             <button onClick={() => setDiscountDialogUnits(null)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -7665,47 +7761,80 @@ export default function AdminPage() {
                                         </div>
 
                                         <div className="px-6 py-5 space-y-4">
-                                            {/* 结算单元（只读，来源 ops 同步） */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">结算单元</label>
-                                                <div className="flex flex-wrap gap-1.5 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 max-h-[104px] overflow-auto">
-                                                    {discountDialogUnits.map(u => (
-                                                        <span key={u} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-600">{u}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                             {/* 结算单元（只读，来源 ops 同步） */}
+                                             <div>
+                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">结算单元</label>
+                                                 <div className="flex flex-wrap gap-1.5 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 max-h-[104px] overflow-auto">
+                                                     {discountDialogUnits.map(u => (
+                                                         <span key={u} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-600">{u}</span>
+                                                     ))}
+                                                 </div>
+                                             </div>
 
-                                            {/* 属性标签 */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">属性标签</label>
+                                             {/* 批量模式说明 */}
+                                             {discountDialogMode === 'attr' && (
+                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置部门属性，选择「内结部门」将自动清空该结算单元已设置的单独计费产品。</p>
+                                             )}
+                                             {discountDialogMode === 'discount' && discountDialogUnits.length > 1 && (
+                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置折扣，不影响各结算单元已单独设置的计费产品。</p>
+                                             )}
+
+                                             {/* 部门属性 */}
+                                             {discountDialogMode !== 'discount' && (
+                                             <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">部门属性 <span className="text-red-500">*</span></label>
                                                 <select
-                                                    value={discountForm.tag}
-                                                    onChange={(e) => { setDiscountForm({ ...discountForm, tag: e.target.value }); setDiscountFormError(''); }}
+                                                    value={discountForm.deptAttr}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value as UnitDeptAttr | '';
+                                                        setDiscountForm({
+                                                            ...discountForm,
+                                                            deptAttr: v,
+                                                            // 切换为内结部门时清空经营部门专属的折扣
+                                                            discount: v === 'inner' ? '' : discountForm.discount,
+                                                        });
+                                                        setDiscountFormError('');
+                                                    }}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                                 >
-                                                    <option value="">请选择属性标签</option>
-                                                    {unitAttrTags.map(t => (
-                                                        <option key={t} value={t}>{t}</option>
-                                                    ))}
-                                                </select>
-                                                <p className="mt-1.5 text-xs text-gray-400">属性标签由内部企业自定义，可在「管理属性标签」中增删。</p>
-                                            </div>
-
-                                            {/* 折扣配置：一个结算单元只能设置一个折扣（单选） */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">折扣 <span className="text-red-500">*</span></label>
-                                                <select
-                                                    value={discountForm.discount}
-                                                    onChange={(e) => { setDiscountForm({ ...discountForm, discount: e.target.value as UnitDiscountType | '' }); setDiscountFormError(''); }}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                >
-                                                    <option value="">请选择折扣</option>
-                                                    {unitDiscountTypeOptions.map(o => (
+                                                    <option value="">请选择部门属性</option>
+                                                    {unitDeptAttrOptions.map(o => (
                                                         <option key={o.value} value={o.value}>{o.label}</option>
                                                     ))}
                                                 </select>
-                                                <p className="mt-1.5 text-xs text-gray-400">一个结算单元只能设置一个折扣（单选）。设置后该结算单元计费时按所选折扣类型对应的产品折扣值计算，重复设置将覆盖原值。</p>
+                                                <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">{unitDeptAttrTip}</p>
                                             </div>
+                                            )}
+
+                                            {/* 折扣配置：内结部门固定内部折扣；经营部门可选 SVIP/VIP */}
+                                            {discountDialogMode !== 'attr' && (                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    折扣 {discountForm.deptAttr === 'biz' && <span className="text-red-500">*</span>}
+                                                </label>
+                                                {discountForm.deptAttr === 'inner' ? (
+                                                    <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
+                                                        内部折扣
+                                                        <span className="text-xs text-gray-400">（内结部门固定为内部折扣，不可编辑）</span>
+                                                    </div>
+                                                ) : discountForm.deptAttr === 'biz' ? (
+                                                    <select
+                                                        value={discountForm.discount}
+                                                        onChange={(e) => { setDiscountForm({ ...discountForm, discount: e.target.value as UnitDiscountType | '' }); setDiscountFormError(''); }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                    >
+                                                        <option value="">请选择折扣</option>
+                                                        {unitDiscountTypeOptions.filter(o => o.value !== 'internal').map(o => (
+                                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <div className="flex items-center px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-400">
+                                                        请先选择部门属性
+                                                    </div>
+                                                )}
+                                                <p className="mt-1.5 text-xs text-gray-400">经营部门可通过 SVIP / VIP 客户计费标签设置折扣；内结部门固定为内部折扣，不可再编辑。</p>
+                                            </div>
+                                            )}
 
                                             {discountFormError && (
                                                 <div className="px-3 py-2 rounded-lg bg-red-50 text-sm text-red-500">{discountFormError}</div>
@@ -7730,15 +7859,176 @@ export default function AdminPage() {
                                 </div>
                             )}
 
+                            {/* 单独设置计费的产品弹窗 */}
+                            {standaloneProductsUnit && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/40" onClick={handleCloseStandaloneProducts} />
+                                    <div className="relative bg-white rounded-lg shadow-xl w-[900px] max-w-[94vw] max-h-[86vh] flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">单独设置计费的产品</h3>
+                                            <button onClick={handleCloseStandaloneProducts} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div className="px-6 py-4 flex-1 overflow-auto">
+                                            {/* 温馨提示 */}
+                                            <p className="text-sm text-red-500 leading-[1.7]">
+                                                温馨提示：如果为客户设置了标签，同时也单独为客户设置了某些产品的折扣，那么计费时优先取单独设置的折扣。
+                                            </p>
+                                            <p className="mt-1 text-xs text-gray-400 leading-[1.7]">{standaloneDiscountTip}</p>
+
+                                            {/* 结算单元 + 新增按钮 */}
+                                            <div className="mt-3 flex items-center justify-between">
+                                                <div className="text-sm text-gray-600">
+                                                    结算单元：<span className="text-gray-900">{standaloneProductsUnit}</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => { setStandaloneAddForm({ type: standaloneProductsTab, productId: '', discount: '' }); setStandaloneAddError(''); }}
+                                                    className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                                >
+                                                    新增计费设置
+                                                </button>
+                                            </div>
+
+                                            {/* 计费类型 Tab */}
+                                            <div className="mt-4 flex items-center gap-6 border-b border-gray-200">
+                                                {standaloneBillingTabs.map(tab => (
+                                                    <button
+                                                        key={tab.value}
+                                                        onClick={() => { setStandaloneProductsTab(tab.value); setStandaloneAddForm(null); setStandaloneAddError(''); }}
+                                                        className={`relative pb-2.5 text-sm transition-colors ${standaloneProductsTab === tab.value ? 'text-[#006bff] font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+                                                    >
+                                                        {tab.label}
+                                                        {standaloneProductsTab === tab.value && (
+                                                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* 新增表单 */}
+                                            {standaloneAddForm && standaloneAddForm.type === standaloneProductsTab && (
+                                                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                                    <div className="flex items-end gap-3">
+                                                        <div className="flex-1">
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                                {standaloneProductsTab === 'metered' ? '选择产品' : '选择资源包'} <span className="text-red-500">*</span>
+                                                            </label>
+                                                            <select
+                                                                value={standaloneAddForm.productId}
+                                                                onChange={(e) => { setStandaloneAddForm({ ...standaloneAddForm, productId: e.target.value }); setStandaloneAddError(''); }}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                                            >
+                                                                <option value="">请选择</option>
+                                                                {standaloneProductOptions[standaloneProductsTab].map(o => (
+                                                                    <option key={o.id} value={String(o.id)}>{o.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="w-40">
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">折扣（0~10）</label>
+                                                            <input
+                                                                type="number"
+                                                                min={0}
+                                                                max={10}
+                                                                step="0.01"
+                                                                value={standaloneAddForm.discount}
+                                                                onChange={(e) => { setStandaloneAddForm({ ...standaloneAddForm, discount: e.target.value }); setStandaloneAddError(''); }}
+                                                                placeholder="如 9.75"
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={handleAddStandaloneProduct}
+                                                            className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                                        >
+                                                            确定
+                                                        </button>
+                                                        <button
+                                                            onClick={() => { setStandaloneAddForm(null); setStandaloneAddError(''); }}
+                                                            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-white transition-colors whitespace-nowrap"
+                                                        >
+                                                            取消
+                                                        </button>
+                                                    </div>
+                                                    {standaloneAddError && (
+                                                        <div className="mt-2 text-xs text-red-500">{standaloneAddError}</div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* 产品列表 */}
+                                            <table className="w-full mt-4">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-20">序号</th>
+                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600">单独设置价格的产品名称</th>
+                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-40">折扣</th>
+                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-32">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {standaloneProductsData.filter(p => p.type === standaloneProductsTab).length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={4} className="py-10 text-center text-sm text-gray-400">暂无单独设置的{standaloneProductsTab === 'metered' ? '按量计费产品' : '资源包'}</td>
+                                                        </tr>
+                                                    ) : (
+                                                        standaloneProductsData.filter(p => p.type === standaloneProductsTab).map((p, idx) => (
+                                                            <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                <td className="py-3 px-4 text-sm text-gray-700">{idx + 1}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-900">{p.name}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <input
+                                                                            type="number"
+                                                                            min={0}
+                                                                            max={10}
+                                                                            step="0.01"
+                                                                            value={p.discount ?? ''}
+                                                                            onChange={(e) => handleUpdateStandaloneDiscount(p.id, e.target.value)}
+                                                                            placeholder="--"
+                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
+                                                                        />
+                                                                        <span className="text-xs text-gray-500">折</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm">
+                                                                    <button
+                                                                        onClick={() => handleDeleteStandaloneProduct(p.id)}
+                                                                        className="text-red-500 hover:text-red-600"
+                                                                    >
+                                                                        删除
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                            <button
+                                                onClick={handleCloseStandaloneProducts}
+                                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                            >
+                                                完成
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* 新建/编辑企业抽屉（右侧滑出） */}
                             {enterpriseDialogOpen && (
                                 <div className="fixed inset-0 z-50">
                                     <div className="absolute inset-0 bg-black/40" onClick={() => setEnterpriseDialogOpen(false)} />
                                     <div className="absolute right-0 top-0 bottom-0 w-[880px] max-w-[94vw] bg-white shadow-xl flex flex-col">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold text-gray-900">
-                                                {editingEnterpriseId != null ? '编辑企业' : '新建企业'}
-                                            </h3>
+                                            <h3 className="text-base font-semibold text-gray-900">编辑企业</h3>
                                             <button
                                                 onClick={() => setEnterpriseDialogOpen(false)}
                                                 className="text-gray-400 hover:text-gray-600"
@@ -7750,23 +8040,11 @@ export default function AdminPage() {
                                         </div>
 
                                         <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                    企业名称 <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={enterpriseForm.name}
-                                                    onChange={(e) => setEnterpriseForm({ ...enterpriseForm, name: e.target.value })}
-                                                    placeholder="请输入企业名称，如：360集团"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                />
-                                            </div>
 
-                                            {/* 1. 是否是内部企业（全局唯一，只能有一个） */}
+                                            {/* 1. 内部企业（全局唯一，只能有一个） */}
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                    是否是内部企业 <span className="text-red-500">*</span>
+                                                    内部企业 <span className="text-red-500">*</span>
                                                 </label>
                                                 <div className="flex items-center gap-6">
                                                     {[{ v: true, l: '是' }, { v: false, l: '否' }].map(opt => {
@@ -7801,11 +8079,12 @@ export default function AdminPage() {
                                                 </p>
                                             </div>
 
-                                            {/* 2. 所属租户 + 经营部门（同一行） */}
+                                            {/* 2. 所属租户 + 经营部门（同一行），仅内部企业展示 */}
+                                            {enterpriseForm.internal && (
                                             <div className="grid grid-cols-2 gap-4 items-start">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                    所属租户 {enterpriseForm.internal && <span className="text-red-500">*</span>}
+                                                    所属租户 <span className="text-red-500">*</span>
                                                 </label>
                                                 <div className="relative">
                                                     <input
@@ -7848,9 +8127,7 @@ export default function AdminPage() {
                                                 {enterpriseForm.tenantId ? (
                                                     <p className="mt-1.5 text-xs text-gray-500">已选择：{enterpriseForm.tenantName}（租户ID：{enterpriseForm.tenantId}）</p>
                                                 ) : (
-                                                    <p className="mt-1.5 text-xs text-gray-400">
-                                                        {enterpriseForm.internal ? '内部企业必须选择所属租户' : '非内部企业可不选择所属租户'}
-                                                    </p>
+                                                    <p className="mt-1.5 text-xs text-gray-400">内部企业必须选择所属租户</p>
                                                 )}
                                             </div>
 
@@ -7860,17 +8137,15 @@ export default function AdminPage() {
                                                 <div className="relative">
                                                     <button
                                                         type="button"
-                                                        disabled={!enterpriseForm.internal || !enterpriseForm.tenantId}
+                                                        disabled={!enterpriseForm.tenantId}
                                                         onClick={() => setBizDeptPickerOpen(v => !v)}
-                                                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm focus:outline-none ${enterpriseForm.internal && enterpriseForm.tenantId ? 'border-gray-300 bg-white hover:border-blue-500' : 'border-gray-200 bg-gray-50 cursor-not-allowed'}`}
+                                                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm focus:outline-none ${enterpriseForm.tenantId ? 'border-gray-300 bg-white hover:border-blue-500' : 'border-gray-200 bg-gray-50 cursor-not-allowed'}`}
                                                     >
                                                         <span className={enterpriseForm.bizDeptName ? 'text-gray-700' : 'text-gray-400'}>
-                                                            {!enterpriseForm.internal
-                                                                ? '仅内部企业可选择经营部门'
-                                                                : enterpriseForm.bizDeptName || (enterpriseForm.tenantId ? '请选择经营部门' : '请先选择所属租户')}
+                                                            {enterpriseForm.bizDeptName || (enterpriseForm.tenantId ? '请选择经营部门' : '请先选择所属租户')}
                                                         </span>
                                                         <span className="flex items-center gap-2">
-                                                            {enterpriseForm.internal && enterpriseForm.bizDeptName && (
+                                                            {enterpriseForm.bizDeptName && (
                                                                 <span
                                                                     role="button"
                                                                     onClick={(e) => {
@@ -7946,10 +8221,11 @@ export default function AdminPage() {
                                                 </p>
                                             </div>
                                             </div>
+                                            )}
 
-                                            {/* 3. 是否开启独立Portal */}
+                                            {/* 3. 开启独立Portal */}
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">是否开启独立Portal</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">开启独立Portal</label>
                                                 <div className="flex items-center gap-6">
                                                     {[{ v: true, l: '是' }, { v: false, l: '否' }].map(opt => (
                                                         <label key={String(opt.v)} className="flex items-center gap-1.5 cursor-pointer">
@@ -7966,19 +8242,33 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
 
-                                            {/* 4. Portal域名（Portal名称即企业名称，无需单独配置） */}
+                                            {/* 4. Portal名称 + Portal域名（同一行） */}
                                             {enterpriseForm.enablePortal && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                        Portal域名 <span className="text-red-500">*</span>
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={enterpriseForm.portalDomain}
-                                                        onChange={(e) => setEnterpriseForm({ ...enterpriseForm, portalDomain: e.target.value })}
-                                                        placeholder="如：zyun.360.cn"
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                    />
+                                                <div className="grid grid-cols-2 gap-4 items-start">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                            Portal名称 <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={enterpriseForm.name}
+                                                            onChange={(e) => setEnterpriseForm({ ...enterpriseForm, name: e.target.value })}
+                                                            placeholder="请输入Portal名称"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                            Portal域名 <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={enterpriseForm.portalDomain}
+                                                            onChange={(e) => setEnterpriseForm({ ...enterpriseForm, portalDomain: e.target.value })}
+                                                            placeholder="如：zyun.360.cn"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -8101,7 +8391,7 @@ export default function AdminPage() {
                                         </button>
                                     </div>
 
-                                    {/* 列表：所属分组并入「地域」列下方展示；Portal配置按每个Portal拆分为名称/标识两列，便于横向对比 */}
+                                    {/* 列表：所属标签并入「地域」列下方展示；Portal配置按每个Portal拆分为名称/标识两列，便于横向对比 */}
                                     <div className="overflow-x-auto">
                                         <table className="w-full min-w-[1080px]">
                                             <thead>
@@ -8110,7 +8400,7 @@ export default function AdminPage() {
                                                     <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">服务方</th>
                                                     <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">
                                                         <span className="inline-flex items-center">
-                                                            <span>地域 / 所属分组</span>
+                                                            <span>地域 / 所属标签</span>
                                                             <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                                         </span>
                                                     </th>
@@ -8149,12 +8439,12 @@ export default function AdminPage() {
                                                             <tr key={zone.id} className="border-b border-gray-100 hover:bg-gray-50 align-top">
                                                                 <td className="py-3 px-4 text-sm text-gray-600 border-r border-gray-100">{idx + 1}</td>
                                                                 <td className="py-3 px-4 text-sm text-gray-700 border-r border-gray-100 whitespace-nowrap">{zone.cloudServer}</td>
-                                                                {/* 地域 + 所属分组（分组展示在地域下方，节省页面空间） */}
+                                                                {/* 地域 + 所属标签（标签展示在地域下方，节省页面空间） */}
                                                                 <td className="py-3 px-4 text-sm border-r border-gray-100">
                                                                     <div className="text-gray-700">{zone.region}</div>
                                                                     <div className="mt-1 flex flex-wrap gap-1">
                                                                         {zoneGroups.length === 0 ? (
-                                                                            <span className="text-xs text-gray-400">未分组</span>
+                                                                            <span className="text-xs text-gray-400">--</span>
                                                                         ) : zoneGroups.map(name => (
                                                                             <span key={name} className="px-1.5 py-0.5 text-[11px] leading-none rounded bg-blue-50 text-[#006bff]">{name}</span>
                                                                         ))}
@@ -8268,18 +8558,18 @@ export default function AdminPage() {
                                     </div>
                                 )}
 
-                                {/* 地域管理：左侧分组树 + 右侧地域列表 */}
+                                {/* 地域管理：左侧标签树 + 右侧地域列表 */}
                                 {regionConfigSection === 'region' && (
                                     <div className="flex gap-4 items-start">
-                                        {/* 左侧：地域分组 */}
+                                        {/* 左侧：地域标签 */}
                                         <div className="w-64 flex-shrink-0 bg-white rounded-lg border border-gray-200">
                                             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-900">地域分组</span>
+                                                <span className="text-sm font-medium text-gray-900">地域标签</span>
                                                 <button
                                                     onClick={handleOpenCreateRegionGroup}
                                                     className="text-xs text-[#006bff] hover:text-blue-600"
                                                 >
-                                                    + 新建分组
+                                                    + 新建标签
                                                 </button>
                                             </div>
                                             <div className="py-2 max-h-[560px] overflow-auto">
@@ -8297,7 +8587,7 @@ export default function AdminPage() {
                                                     <span className="text-xs text-gray-400">{regionItems.length}</span>
                                                 </button>
 
-                                                {/* 分组列表 */}
+                                                {/* 标签列表 */}
                                                 {regionGroups.map(g => {
                                                     const expanded = expandedGroupIds.includes(g.id);
                                                     const active = selectedGroupKey === g.id;
@@ -8323,19 +8613,19 @@ export default function AdminPage() {
                                                                     <span className="text-xs text-gray-400 flex-shrink-0">{g.regionIds.length}</span>
                                                                 </button>
                                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                                                    <button onClick={(e) => { e.stopPropagation(); handleOpenEditRegionGroup(g); }} title="编辑分组" className="p-1 text-gray-400 hover:text-[#006bff]">
+                                                                    <button onClick={(e) => { e.stopPropagation(); handleOpenEditRegionGroup(g); }} title="编辑标签" className="p-1 text-gray-400 hover:text-[#006bff]">
                                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                                         </svg>
                                                                     </button>
-                                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteRegionGroup(g); }} title="删除分组" className="p-1 text-gray-400 hover:text-red-500">
+                                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteRegionGroup(g); }} title="删除标签" className="p-1 text-gray-400 hover:text-red-500">
                                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                                         </svg>
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            {/* 分组下的地域 */}
+                                                            {/* 标签下的地域 */}
                                                             {expanded && (
                                                                 <div className="pl-8 pr-2 pb-1">
                                                                     {g.regionIds.length === 0 ? (
@@ -8364,19 +8654,6 @@ export default function AdminPage() {
                                                     );
                                                 })}
 
-                                                {/* 未分组 */}
-                                                <button
-                                                    onClick={() => setSelectedGroupKey('ungrouped')}
-                                                    className={`w-full flex items-center justify-between px-4 py-2 text-sm transition-colors ${selectedGroupKey === 'ungrouped' ? 'bg-blue-50 text-[#006bff] font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
-                                                >
-                                                    <span className="flex items-center gap-2">
-                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                                        </svg>
-                                                        未分组
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">{ungroupedRegionItems.length}</span>
-                                                </button>
                                             </div>
                                         </div>
 
@@ -8414,7 +8691,7 @@ export default function AdminPage() {
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域名称</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域标识</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属分组</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属标签</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">操作</th>
                                                     </tr>
@@ -8431,7 +8708,7 @@ export default function AdminPage() {
                                                                 <td className="py-3 px-4 text-sm text-gray-700 font-mono">{r.code}</td>
                                                                 <td className="py-3 px-4 text-sm">
                                                                     {groups.length === 0 ? (
-                                                                        <span className="text-gray-400">未分组</span>
+                                                                        <span className="text-gray-400">--</span>
                                                                     ) : groups.map(g => (
                                                                         <span key={g.id} className="inline-block mr-1 px-2 py-0.5 text-xs rounded bg-blue-50 text-[#006bff]">{g.name}</span>
                                                                     ))}
@@ -8440,7 +8717,12 @@ export default function AdminPage() {
                                                                 <td className="py-3 px-4 text-sm whitespace-nowrap">
                                                                     <button onClick={() => handleOpenEditRegionItem(r)} className="text-blue-600 hover:text-blue-700 mr-3">编辑</button>
                                                                     {typeof selectedGroupKey === 'number' && (
-                                                                        <button onClick={() => handleRemoveRegionFromGroup(r.id, selectedGroupKey)} className="text-gray-500 hover:text-gray-700 mr-3">移出分组</button>
+                                                                        <button
+                                                                            onClick={() => handleRemoveRegionFromGroup(r.id, selectedGroupKey)}
+                                                                            disabled={groups.length <= 1}
+                                                                            title={groups.length <= 1 ? '地域至少需绑定一个标签' : ''}
+                                                                            className={`mr-3 ${groups.length <= 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700'}`}
+                                                                        >移出标签</button>
                                                                     )}
                                                                     <button onClick={() => handleDeleteRegionItem(r)} className="text-red-500 hover:text-red-600">删除</button>
                                                                 </td>
@@ -8491,7 +8773,7 @@ export default function AdminPage() {
                                                 </select>
                                             </div>
 
-                                            {/* 地域：选中后自动展示所属分组 */}
+                                            {/* 地域：选中后自动展示所属标签 */}
                                             <div className="flex items-start gap-3">
                                                 <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
                                                     <span className="text-red-500 mr-0.5">*</span>地域:
@@ -8507,12 +8789,12 @@ export default function AdminPage() {
                                                             <option key={opt} value={opt}>{opt}</option>
                                                         ))}
                                                     </select>
-                                                    {/* 选中地域后，在筛选框下自动展示其所属分组名称 */}
+                                                    {/* 选中地域后，在筛选框下自动展示其所属标签名称 */}
                                                     {regionZoneForm.region && (
                                                         <div className="mt-2 flex items-center flex-wrap gap-1.5">
-                                                            <span className="text-xs text-gray-500">所属分组：</span>
+                                                            <span className="text-xs text-gray-500">所属标签：</span>
                                                             {getGroupNamesByRegionName(regionZoneForm.region).length === 0 ? (
-                                                                <span className="text-xs text-gray-400">未分组</span>
+                                                                <span className="text-xs text-gray-400">--</span>
                                                             ) : getGroupNamesByRegionName(regionZoneForm.region).map(name => (
                                                                 <span key={name} className="px-2 py-0.5 text-xs rounded bg-blue-50 text-[#006bff]">{name}</span>
                                                             ))}
@@ -8684,10 +8966,10 @@ export default function AdminPage() {
                                                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                                 />
                                             </div>
-                                            {/* 地域分组：多选 */}
+                                            {/* 地域标签：多选 */}
                                             <div className="flex items-start gap-3">
                                                 <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
-                                                    <span className="text-red-500 mr-0.5">*</span>地域分组:
+                                                    <span className="text-red-500 mr-0.5">*</span>地域标签:
                                                 </label>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="relative">
@@ -8698,7 +8980,7 @@ export default function AdminPage() {
                                                         >
                                                             <span className="flex-1 min-w-0 flex flex-wrap gap-1">
                                                                 {regionItemForm.groupIds.length === 0 ? (
-                                                                    <span className="text-gray-400">请选择地域分组（可多选，必填）</span>
+                                                                    <span className="text-gray-400">请选择地域标签（可多选，必填）</span>
                                                                 ) : regionItemForm.groupIds.map(gid => {
                                                                     const g = regionGroups.find(x => x.id === gid);
                                                                     if (!g) return null;
@@ -8721,7 +9003,7 @@ export default function AdminPage() {
                                                         {regionGroupPickerOpen && (
                                                             <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-auto py-1">
                                                                 {regionGroups.length === 0 ? (
-                                                                    <div className="px-3 py-4 text-sm text-gray-400 text-center">暂无地域分组</div>
+                                                                    <div className="px-3 py-4 text-sm text-gray-400 text-center">暂无地域标签</div>
                                                                 ) : regionGroups.map(g => (
                                                                     <label key={g.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50">
                                                                         <input
@@ -8737,7 +9019,7 @@ export default function AdminPage() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="mt-1.5 text-xs text-gray-400">可多选；至少选择一个地域分组</div>
+                                                    <div className="mt-1.5 text-xs text-gray-400">可多选；至少选择一个地域标签</div>
                                                 </div>
                                             </div>
                                             {regionItemFormError && <div className="pl-[108px] text-xs text-red-500">{regionItemFormError}</div>}
@@ -8750,12 +9032,12 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                            {/* 新建/编辑地域分组弹窗 */}
+                            {/* 新建/编辑地域标签弹窗 */}
                             {regionGroupDialogOpen && (
                                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                                     <div className="bg-white rounded-lg shadow-xl w-[560px] max-h-[85vh] flex flex-col">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
-                                            <h3 className="text-base font-semibold text-gray-900">{editingRegionGroupId != null ? '编辑地域分组' : '新建地域分组'}</h3>
+                                            <h3 className="text-base font-semibold text-gray-900">{editingRegionGroupId != null ? '编辑地域标签' : '新建地域标签'}</h3>
                                             <button onClick={() => setRegionGroupDialogOpen(false)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -8765,7 +9047,7 @@ export default function AdminPage() {
                                         <div className="flex-1 overflow-auto px-6 py-6 space-y-5">
                                             <div className="flex items-center gap-3">
                                                 <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
-                                                    <span className="text-red-500 mr-0.5">*</span>分组名称:
+                                                    <span className="text-red-500 mr-0.5">*</span>标签名称:
                                                 </label>
                                                 <input
                                                     type="text"
@@ -8800,6 +9082,406 @@ export default function AdminPage() {
                                         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
                                             <button onClick={() => setRegionGroupDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
                                             <button onClick={handleSaveRegionGroup} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 平台配置 - 计费配置页面 */}
+                    {currentMenu === 'platform-billing' && (
+                        <div className="flex-1 bg-gray-50 overflow-auto">
+                            {/* 页面标题 */}
+                            <div className="px-6 pt-4 bg-white border-b border-gray-200">
+                                <h2 className="text-base font-medium text-gray-900">计费配置</h2>
+                            </div>
+
+                            <div className="p-6">
+                                <div className="bg-white rounded-lg border border-gray-200">
+                                    {/* 二级 Tab：计量单位 / 计费标签 / 客户计费标签 / 计费小产品 */}
+                                    <div className="flex items-center gap-1 px-5 border-b border-gray-200">
+                                        {([
+                                            { key: 'unit', label: '计量单位' },
+                                            { key: 'tag', label: '计费标签' },
+                                            { key: 'customerTag', label: '客户计费标签' },
+                                            { key: 'subProduct', label: '计费小产品' },
+                                        ] as const).map(t => (
+                                            <button
+                                                key={t.key}
+                                                onClick={() => setBillingPageTab(t.key)}
+                                                className={`px-4 py-3 text-sm font-medium transition-colors relative ${billingPageTab === t.key ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                            >
+                                                {t.label}
+                                                {billingPageTab === t.key && (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* 计费标签 */}
+                                    {billingPageTab === 'tag' && (
+                                        <>
+                                            {/* 筛选栏：名称搜索 / 状态 / 创建日期区间 */}
+                                            <div className="flex items-center gap-3 px-5 py-4">
+                                                <input
+                                                    type="text"
+                                                    value={billingTagSearch}
+                                                    onChange={(e) => setBillingTagSearch(e.target.value)}
+                                                    placeholder="标签名称搜索"
+                                                    className="w-52 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                <select
+                                                    value={billingTagStatusFilter}
+                                                    onChange={(e) => setBillingTagStatusFilter(e.target.value)}
+                                                    className="w-40 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                >
+                                                    <option value="all">全部</option>
+                                                    <option value="使用中">使用中</option>
+                                                    <option value="未使用">未使用</option>
+                                                </select>
+                                                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5">
+                                                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <input
+                                                        type="date"
+                                                        value={billingTagStartDate}
+                                                        onChange={(e) => setBillingTagStartDate(e.target.value)}
+                                                        className="w-32 text-sm text-gray-700 focus:outline-none"
+                                                    />
+                                                    <span className="text-sm text-gray-400">至</span>
+                                                    <input
+                                                        type="date"
+                                                        value={billingTagEndDate}
+                                                        onChange={(e) => setBillingTagEndDate(e.target.value)}
+                                                        className="w-32 text-sm text-gray-700 focus:outline-none"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={handleOpenCreateBillingTag}
+                                                    className="ml-auto px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                                >
+                                                    + 新建标签
+                                                </button>
+                                            </div>
+
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-y border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">标签名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">
+                                                            <span className="inline-flex items-center gap-1">
+                                                                状态
+                                                                <span
+                                                                    title="标签已配置标签值并被计费项引用时为「使用中」，否则为「未使用」；使用中的标签不可删除"
+                                                                    className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-300 text-[10px] text-gray-400 cursor-help"
+                                                                >
+                                                                    ?
+                                                                </span>
+                                                            </span>
+                                                        </th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-52">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredBillingTags.length === 0 ? (
+                                                        <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                    ) : filteredBillingTags.map((t, idx) => {
+                                                        const inUse = t.status === '使用中';
+                                                        return (
+                                                            <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-900">
+                                                                    <div>{t.name}</div>
+                                                                    {t.values.length > 0 && (
+                                                                        <div className="mt-1 flex flex-wrap gap-1">
+                                                                            {t.values.slice(0, 3).map(v => (
+                                                                                <span key={v.id} className="px-1.5 py-0.5 text-[11px] leading-none rounded bg-blue-50 text-[#006bff]">{v.name}</span>
+                                                                            ))}
+                                                                            {t.values.length > 3 && (
+                                                                                <span className="px-1.5 py-0.5 text-[11px] leading-none rounded bg-gray-100 text-gray-500">+{t.values.length - 3}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{t.createTime}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{t.updateTime}</td>
+                                                                <td className="py-3 px-4 text-sm">
+                                                                    <span className={inUse ? 'text-gray-700' : 'text-gray-400'}>{t.status}</span>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm whitespace-nowrap">
+                                                                    <button onClick={() => handleOpenEditBillingTag(t)} className="text-blue-600 hover:text-blue-700 mr-3">编辑</button>
+                                                                    <button onClick={() => handleOpenBillingTagValues(t)} className="text-blue-600 hover:text-blue-700 mr-3">标签值管理</button>
+                                                                    {inUse ? (
+                                                                        <span title="使用中的标签不可删除" className="text-gray-300 cursor-not-allowed">删除</span>
+                                                                    ) : (
+                                                                        <button onClick={() => setBillingTagDeleteTarget(t)} className="text-red-500 hover:text-red-600">删除</button>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </>
+                                    )}
+
+                                    {/* 计量单位 */}
+                                    {billingPageTab === 'unit' && (
+                                        <>
+                                            <div className="flex items-center justify-between px-5 py-4">
+                                                <input
+                                                    type="text"
+                                                    value={billingUnitSearch}
+                                                    onChange={(e) => setBillingUnitSearch(e.target.value)}
+                                                    placeholder="搜索单位名称/符号"
+                                                    className="w-52 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                <span className="text-xs text-gray-400">共 {filteredBillingUnits.length} 个计量单位</span>
+                                            </div>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-y border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">单位名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">单位符号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">说明</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredBillingUnits.length === 0 ? (
+                                                        <tr><td colSpan={5} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                    ) : filteredBillingUnits.map((u, idx) => (
+                                                        <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{u.name}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-500 font-mono">{u.symbol}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{u.remark}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{u.updateTime}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </>
+                                    )}
+
+                                    {/* 客户计费标签 */}
+                                    {billingPageTab === 'customerTag' && (
+                                        <>
+                                            <div className="flex items-center justify-between px-5 py-4">
+                                                <input
+                                                    type="text"
+                                                    value={customerBillingTagSearch}
+                                                    onChange={(e) => setCustomerBillingTagSearch(e.target.value)}
+                                                    placeholder="搜索名称/企业/关联标签"
+                                                    className="w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                <span className="text-xs text-gray-400">共 {filteredCustomerBillingTags.length} 条</span>
+                                            </div>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-y border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">标签名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属企业</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">关联计费标签</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">状态</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredCustomerBillingTags.length === 0 ? (
+                                                        <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                    ) : filteredCustomerBillingTags.map((t, idx) => (
+                                                        <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{t.name}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{t.enterprise}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{t.tagName}</td>
+                                                            <td className="py-3 px-4 text-sm">
+                                                                <span className={t.status === '使用中' ? 'text-gray-700' : 'text-gray-400'}>{t.status}</span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{t.updateTime}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </>
+                                    )}
+
+                                    {/* 计费小产品 */}
+                                    {billingPageTab === 'subProduct' && (
+                                        <>
+                                            <div className="flex items-center justify-between px-5 py-4">
+                                                <input
+                                                    type="text"
+                                                    value={billingSubProductSearch}
+                                                    onChange={(e) => setBillingSubProductSearch(e.target.value)}
+                                                    placeholder="搜索小产品名称/标识/所属产品"
+                                                    className="w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                <span className="text-xs text-gray-400">共 {filteredBillingSubProducts.length} 条</span>
+                                            </div>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-y border-gray-200">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">小产品名称</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">小产品标识</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属产品</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">状态</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredBillingSubProducts.length === 0 ? (
+                                                        <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                    ) : filteredBillingSubProducts.map((p, idx) => (
+                                                        <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-900">{p.name}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-500 font-mono">{p.code}</td>
+                                                            <td className="py-3 px-4 text-sm text-gray-700">{p.product}</td>
+                                                            <td className="py-3 px-4 text-sm">
+                                                                <span className={p.status === '使用中' ? 'text-gray-700' : 'text-gray-400'}>{p.status}</span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{p.updateTime}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 新建 / 编辑计费标签抽屉（右侧滑出） */}
+                            {billingTagDialogOpen && (
+                                <div className="fixed inset-0 z-50">
+                                    <div className="absolute inset-0 bg-black/40" onClick={() => setBillingTagDialogOpen(false)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[560px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                            <h3 className="text-base font-semibold text-gray-900">{editingBillingTagId != null ? '编辑标签' : '新建标签'}</h3>
+                                            <button
+                                                onClick={() => setBillingTagDialogOpen(false)}
+                                                className="text-gray-400 hover:text-gray-600"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    标签名称 <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={billingTagForm.name}
+                                                    onChange={(e) => { setBillingTagForm({ name: e.target.value }); setBillingTagFormError(''); }}
+                                                    placeholder="请输入标签名称"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                {billingTagFormError && <div className="mt-1.5 text-xs text-red-500">{billingTagFormError}</div>}
+                                            </div>
+                                            <p className="text-xs text-gray-400 leading-[1.8]">新建后请前往「标签值管理」维护标签值，配置标签值后状态将变为「使用中」。</p>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                                            <button onClick={() => setBillingTagDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleSaveBillingTag} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 标签值管理抽屉（右侧滑出） */}
+                            {billingTagValueDialogTag && (
+                                <div className="fixed inset-0 z-50">
+                                    <div className="absolute inset-0 bg-black/40" onClick={() => setBillingTagValueDialogTag(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[680px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                                            <div>
+                                                <h3 className="text-base font-semibold text-gray-900">标签值管理</h3>
+                                                <p className="mt-1 text-sm text-gray-500">标签「{billingTagValueDialogTag.name}」的标签值配置</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setBillingTagValueDialogTag(null)}
+                                                className="text-gray-400 hover:text-gray-600 mt-0.5"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="px-6 py-5 flex-1 overflow-auto">
+                                            <div className="flex items-center gap-2 pb-2 text-xs text-gray-500">
+                                                <span className="flex-1">标签值名称</span>
+                                                <span className="flex-1">标签值标识</span>
+                                                <span className="w-12 text-center">操作</span>
+                                            </div>
+                                            {billingTagValueDraft.length === 0 ? (
+                                                <div className="py-8 text-center text-sm text-gray-400">暂无标签值，请点击下方按钮添加</div>
+                                            ) : billingTagValueDraft.map(v => (
+                                                <div key={v.id} className="flex items-center gap-2 py-1.5">
+                                                    <input
+                                                        type="text"
+                                                        value={v.name}
+                                                        onChange={(e) => { handleChangeBillingTagValue(v.id, 'name', e.target.value); setBillingTagValueError(''); }}
+                                                        placeholder="请输入名称"
+                                                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={v.code}
+                                                        onChange={(e) => { handleChangeBillingTagValue(v.id, 'code', e.target.value); setBillingTagValueError(''); }}
+                                                        placeholder="请输入标识"
+                                                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 font-mono focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleRemoveBillingTagValue(v.id)}
+                                                        title="删除该标签值"
+                                                        className="w-12 flex justify-center text-gray-400 hover:text-red-500"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button
+                                                onClick={handleAddBillingTagValue}
+                                                className="mt-3 w-full py-2 border border-dashed border-gray-300 rounded-lg text-sm text-[#006bff] hover:bg-blue-50 transition-colors"
+                                            >
+                                                + 添加标签值
+                                            </button>
+                                            {billingTagValueError && <div className="mt-2 text-xs text-red-500">{billingTagValueError}</div>}
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                                            <button onClick={() => setBillingTagValueDialogTag(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleSaveBillingTagValues} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 删除计费标签确认弹窗 */}
+                            {billingTagDeleteTarget && (
+                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-lg shadow-xl w-[400px]">
+                                        <div className="px-6 py-5">
+                                            <h3 className="text-base font-semibold text-gray-900 mb-1">确认删除标签</h3>
+                                            <p className="text-sm text-gray-500 leading-[1.8]">确认删除计费标签「{billingTagDeleteTarget.name}」吗？删除后不可恢复。</p>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                                            <button onClick={() => setBillingTagDeleteTarget(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
+                                            <button onClick={handleConfirmDeleteBillingTag} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors">确认删除</button>
                                         </div>
                                     </div>
                                 </div>
