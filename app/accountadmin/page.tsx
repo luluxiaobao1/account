@@ -479,18 +479,17 @@ interface DepartmentAnalysisRow {
 }
 
 const departmentAnalysisData: DepartmentAnalysisRow[] = [
-    { id: 1, opsUnit: "智汇云-基础架构部", bizTree: "技术中台", totalRevenue: 0, totalCost: 105200 },
-    { id: 2, opsUnit: "智汇云-系统部", bizTree: "技术中台", totalRevenue: 0, totalCost: 1584.62 },
-    { id: 3, opsUnit: "智汇云-应用平台部", bizTree: "技术中台", totalRevenue: 0, totalCost: 37400 },
-    { id: 4, opsUnit: "智汇云-云平台部", bizTree: "技术中台", totalRevenue: 0, totalCost: 1657600 },
-    { id: 5, opsUnit: "智汇云-智能工程部", bizTree: "技术中台", totalRevenue: -76300, totalCost: 0 },
-    { id: 6, opsUnit: "智汇云-系统运维部", bizTree: "技术中台", totalRevenue: 0, totalCost: 892400 },
-    { id: 7, opsUnit: "智汇云-数据平台部", bizTree: "技术中台", totalRevenue: 2431.08, totalCost: 45900 },
-    { id: 8, opsUnit: "智汇云-安全技术部", bizTree: "安全中台", totalRevenue: 0, totalCost: 268300 },
-    { id: 9, opsUnit: "360人工智能研究院", bizTree: "人工智能研究院", totalRevenue: 431280, totalCost: 392150 },
-    { id: 10, opsUnit: "智汇云-商业化产品部", bizTree: "商业化", totalRevenue: 1207200, totalCost: 923100 },
-    { id: 11, opsUnit: "智汇云-交付服务部", bizTree: "商业化", totalRevenue: 0, totalCost: 78650.35 },
-    { id: 12, opsUnit: "智汇云-研发效能部", bizTree: "技术中台", totalRevenue: 0, totalCost: 5420.77 },
+    { id: 1, opsUnit: "智汇云-应用平台部", bizTree: "技术中台", totalRevenue: 4280000, totalCost: 37400 },
+    { id: 2, opsUnit: "智汇云-应用平台部-视频云", bizTree: "技术中台", totalRevenue: 1560000, totalCost: 8600 },
+    { id: 3, opsUnit: "智汇云-云平台部-弹性计算", bizTree: "技术中台", totalRevenue: 42139500, totalCost: 1089600 },
+    { id: 4, opsUnit: "智汇云-云平台部-裸金属", bizTree: "技术中台", totalRevenue: 14374000, totalCost: 568000 },
+    { id: 5, opsUnit: "智汇云-系统部-存储", bizTree: "技术中台", totalRevenue: 7218900, totalCost: 1084.62 },
+    { id: 6, opsUnit: "智汇云-系统部-大数据", bizTree: "技术中台", totalRevenue: 9834600, totalCost: 500 },
+    { id: 7, opsUnit: "智汇云-基础架构部-Serverless", bizTree: "技术中台", totalRevenue: 0, totalCost: 65200 },
+    { id: 8, opsUnit: "智汇云-基础架构部-中间件", bizTree: "技术中台", totalRevenue: 0, totalCost: 40000 },
+    { id: 9, opsUnit: "智汇云-智能部", bizTree: "技术中台", totalRevenue: -76300, totalCost: 0 },
+    { id: 10, opsUnit: "智汇云-安全技术部", bizTree: "安全中台", totalRevenue: 0, totalCost: 268300 },
+    { id: 11, opsUnit: "360人工智能研究院", bizTree: "人工智能研究院", totalRevenue: 431280, totalCost: 392150 },
 ];
 
 // 部门分析 - 业务树选项
@@ -554,6 +553,65 @@ const getDeptDetailRows = (
             amount,
         };
     });
+};
+
+// 部门分析 - 收入构造点明细（按产品拆分）
+// 各结算单元对应的产品及收入构成，来源为「账单」，名称为产品名称
+interface DeptRevenueDetailRow {
+    period: string;
+    revenueSource: string;   // 收入来源（统一为「账单」）
+    sourceName: string;      // 来源名称（各产品名称）
+    amount: number;          // 金额(元)
+}
+
+// 各结算单元对应的产品收入构成（mock 数据）
+const deptProductRevenueMap: Record<string, { productName: string; amount: number }[]> = {
+    "智汇云-应用平台部": [
+        { productName: "企业协同效率平台-智汇云统一门户", amount: 1850000 },
+        { productName: "应用性能监控 APM/基础版(计量)(apm)", amount: 920000 },
+        { productName: "消息推送服务/标准版(计量)(push)", amount: 640000 },
+        { productName: "API网关/专业版(计量)(apigw)", amount: 870000 },
+    ],
+    "智汇云-应用平台部-视频云": [
+        { productName: "音视频通话 RTC/基础版(计量)(rtc)", amount: 720000 },
+        { productName: "视频直播/标准版(计量)(live)", amount: 480000 },
+        { productName: "视频点播 VOD/基础版(计量)(vod)", amount: 360000 },
+    ],
+    "智汇云-云平台部-弹性计算": [
+        { productName: "云服务器 ECS_裸金属CPU(计量)(cloud_server)", amount: 12943000 },
+        { productName: "托管集群服务 MCS_容器服务(cluster)", amount: 13492800 },
+        { productName: "内容分发 CDN_流量(计量)(cdn_flow)", amount: 6543200 },
+        { productName: "对象存储 OSS_标准存储(计量)(oss_storage)", amount: 2499000 },
+        { productName: "负载均衡 SLB/标准版(计量)(slb)", amount: 5221500 },
+        { productName: "弹性公网IP EIP/标准版(计量)(eip)", amount: 1490000 },
+    ],
+    "智汇云-云平台部-裸金属": [
+        { productName: "云服务器 ECS_裸金属GPU(计量)(cloud_server)", amount: 13682200 },
+        { productName: "云服务器 ECS_GPU容器(计量)(gpu_container)", amount: 691800 },
+    ],
+    "智汇云-系统部-存储": [
+        { productName: "块存储 EBS_高效云盘(计量)(ebs_disk)", amount: 2489600 },
+        { productName: "块存储 EBS_SSD云盘(计量)(ebs_ssd)", amount: 3125000 },
+        { productName: "文件存储 NAS/标准版(计量)(nas)", amount: 936000 },
+        { productName: "数据备份服务/基础版(计量)(backup)", amount: 668300 },
+    ],
+    "智汇云-系统部-大数据": [
+        { productName: "离线数仓 Hive/标准版(计量)(hive)", amount: 4250000 },
+        { productName: "实时计算 Flink/基础版(计量)(flink)", amount: 2830100 },
+        { productName: "消息队列 Kafka/标准版(计量)(kafka)", amount: 1754500 },
+        { productName: "数据集成 DataX/基础版(计量)(datax)", amount: 1000000 },
+    ],
+};
+
+const getDeptRevenueDetailRows = (unit: DepartmentAnalysisRow, period: string): DeptRevenueDetailRow[] => {
+    const products = deptProductRevenueMap[unit.opsUnit];
+    if (!products || products.length === 0) return [];
+    return products.map((p) => ({
+        period: period.replace("-", ""),
+        revenueSource: "账单",
+        sourceName: p.productName,
+        amount: p.amount,
+    }));
 };
 
 // 产品分析 - 总收入明细（收入明细 Tab）数据：按「收入类型/收入来源」拆分，金额之和等于总收入
@@ -1431,13 +1489,15 @@ const tenantOrgTrees: Record<string, OrgDeptNode[]> = {
     '100000001': [
         {
             id: 'd-1', name: '技术中台', children: [
-                { id: 'd-1-1', name: '智汇云事业部', units: ['智汇云-应用平台部', '智汇云-商业化产品部'], children: [
-                    { id: 'd-1-1-1', name: '云平台部', units: ['智汇云-云平台部', '智汇云-系统运维部'] },
-                    { id: 'd-1-1-2', name: '基础架构部', units: ['智汇云-基础架构部'] },
-                    { id: 'd-1-1-3', name: '产品运营部' },
-                ] },
-                { id: 'd-1-2', name: '系统部', units: ['智汇云-系统部'] },
-                { id: 'd-1-3', name: '效能平台部' },
+                {
+                    id: 'd-1-0', name: '智汇云', children: [
+                        { id: 'd-1-0-1', name: '应用平台部', units: ['智汇云-应用平台部', '智汇云-应用平台部-视频云'] },
+                        { id: 'd-1-0-2', name: '云平台部', units: ['智汇云-云平台部-弹性计算', '智汇云-云平台部-裸金属'] },
+                        { id: 'd-1-0-3', name: '系统部', units: ['智汇云-系统部-存储', '智汇云-系统部-大数据'] },
+                        { id: 'd-1-0-4', name: '基础架构部', units: ['智汇云-基础架构部-Serverless', '智汇云-基础架构部-中间件'] },
+                        { id: 'd-1-0-5', name: '智能部', units: ['智汇云-智能部'] },
+                    ]
+                },
             ]
         },
         {
@@ -2133,6 +2193,11 @@ export default function AdminPage() {
     };
     // 说明：部门分析的数据聚合依赖「企业配置」中的经营部门，见下方 enterpriseConfigs 之后的 deptAggregatedRows
 
+    // 部门分析 - 收入构造点明细抽屉（按产品拆分，右侧滑出）
+    const [deptRevenueDrawerUnit, setDeptRevenueDrawerUnit] = useState<DepartmentAnalysisRow | null>(null);
+    const openDeptRevenueDrawer = (unit: DepartmentAnalysisRow) => {
+        setDeptRevenueDrawerUnit(unit);
+    };
 
     // ===== 平台配置 - 地域可用区 =====
     // 单个 Portal 下的可用区配置：地域下「每个已开启独立Portal的Portal」都固定存在一条配置，
@@ -3597,7 +3662,7 @@ export default function AdminPage() {
     // 产品表单默认值（创建/编辑共用）
     const emptyProductForm = {
         name: '',           // 产品名称
-        shortName: '',      // 产品简介
+        shortName: '',      // 产品简称
         // 加入推荐
         hotOfficial: false, // 官网热门产品
         hotConsole: false,  // 控制台热门产品
@@ -3610,7 +3675,10 @@ export default function AdminPage() {
         tags: [] as string[], // 产品标签
         tagInput: '',       // 标签输入
         icon: null as File | null, // 产品图标
-        url: '',            // URL地址
+        url: '',            // URL地址（单Portal时通用；所有portal时作为相对地址/默认地址）
+        urlDistinct: false, // 所有portal时：是否区分内/外部Portal的URL地址（默认否）
+        urlInner: '',       // 所有portal时（urlDistinct=true）：内部Portal URL
+        urlOuter: '',       // 所有portal时（urlDistinct=true）：外部Portal URL
         introUrl: '',       // 介绍页地址
         portal: '',          // 上架Portal：portal名称（对应企业配置）或 ALL_PORTAL_VALUE（所有portal，一个产品）
         linkedPublicProduct: '', // 关联的外部/公共portal产品标识符，仅选中「内部portal」时必填
@@ -3621,8 +3689,15 @@ export default function AdminPage() {
         billingEnabled: true,     // 计费开通
         docEnabled: false,        // 产品文档
         docType: 'apicloud',      // 产品文档类型
-        docUrl: '',               // 产品文档链接
+        docDistinct: false,       // 所有portal时：是否区分内/外部Portal的产品文档地址（默认否）
+        docUrl: '',               // 产品文档链接（单Portal或通用/相对地址）
+        docUrlInner: '',          // 产品文档链接-内部Portal（docDistinct=true）
+        docUrlOuter: '',          // 产品文档链接-外部Portal（docDistinct=true）
         apiDocEnabled: false,     // API文档
+        apiDocDistinct: false,    // 所有portal时：是否区分内/外部Portal的API文档地址（默认否）
+        apiDocUrl: '',            // API文档链接（单Portal或通用/相对地址）
+        apiDocUrlInner: '',       // API文档链接-内部Portal（apiDocDistinct=true）
+        apiDocUrlOuter: '',       // API文档链接-外部Portal（apiDocDistinct=true）
         showInConsole: true,      // 是否在控制台展示
         showInWebsite: true,      // 是否在官网展示
         resourceGroupAuth: false, // 资源组授权
@@ -3679,8 +3754,19 @@ export default function AdminPage() {
             portal: product.portal,
             linkedPublicProduct: isInner && linkedProduct ? linkedProduct.identifier : '',
             visibilityTenants: product.visibility === '所有企业可见' ? [] : internalPortalTenant,
+            urlDistinct: product.portal === ALL_PORTAL_VALUE,
+            urlInner: product.portal === ALL_PORTAL_VALUE ? `https://zyun.qihoo.net/${product.identifier}` : '',
+            urlOuter: product.portal === ALL_PORTAL_VALUE ? `https://zyun.360.cn/${product.identifier}` : '',
             docEnabled: true,
-            docUrl: 'https://apicloud.360.cn/user/apistore',
+            docDistinct: product.portal === ALL_PORTAL_VALUE,
+            docUrl: product.portal === ALL_PORTAL_VALUE ? '' : 'https://apicloud.360.cn/user/apistore',
+            docUrlInner: product.portal === ALL_PORTAL_VALUE ? `https://doc.qihoo.net/${product.identifier}` : '',
+            docUrlOuter: product.portal === ALL_PORTAL_VALUE ? 'https://apicloud.360.cn/user/apistore' : '',
+            apiDocEnabled: true,
+            apiDocDistinct: product.portal === ALL_PORTAL_VALUE,
+            apiDocUrl: product.portal === ALL_PORTAL_VALUE ? '' : `https://apicloud.360.cn/api/${product.identifier}`,
+            apiDocUrlInner: product.portal === ALL_PORTAL_VALUE ? `https://doc.qihoo.net/api/${product.identifier}` : '',
+            apiDocUrlOuter: product.portal === ALL_PORTAL_VALUE ? `https://apicloud.360.cn/api/${product.identifier}` : '',
         });
         setCreateProductDialogOpen(true);
     };
@@ -7332,7 +7418,13 @@ export default function AdminPage() {
                                                             <tr key={`${row.key}-${m.id}`} className="bg-gray-50/60">
                                                                 <td className="px-4 py-3 pl-11 text-[13px] text-gray-400">结算单元</td>
                                                                 <td className="px-4 py-3 text-[13px] text-gray-600">{m.opsUnit}</td>
-                                                                <DeptAmountCell value={m.totalRevenue} link onClick={() => openDeptDetail(m, "revenue")} />
+                                                                <DeptAmountCell value={m.totalRevenue} link onClick={() => {
+                                                                    if (m.totalRevenue > 0 && deptProductRevenueMap[m.opsUnit]) {
+                                                                        openDeptRevenueDrawer(m);
+                                                                    } else {
+                                                                        openDeptDetail(m, "revenue");
+                                                                    }
+                                                                }} />
                                                                 <DeptAmountCell value={m.totalCost} link onClick={() => openDeptDetail(m, "cost")} />
                                                                 <DeptAmountCell value={m.totalRevenue - m.totalCost} />
                                                             </tr>
@@ -7469,6 +7561,72 @@ export default function AdminPage() {
                                         <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
                                             <button
                                                 onClick={() => setDeptDetailUnit(null)}
+                                                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                                            >
+                                                关闭
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 部门分析 - 收入构造点明细抽屉（按产品拆分，右侧滑出） */}
+                            {deptRevenueDrawerUnit && (
+                                <div className="fixed inset-0 z-[110]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setDeptRevenueDrawerUnit(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[860px] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                                            <div>
+                                                <h3 className="text-base font-semibold text-gray-900">
+                                                    收入构造点明细
+                                                </h3>
+                                                <p className="mt-0.5 text-[13px] text-gray-500">{deptRevenueDrawerUnit.opsUnit}</p>
+                                            </div>
+                                            <button onClick={() => setDeptRevenueDrawerUnit(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-auto px-6 py-4">
+                                            <table className="w-full min-w-[760px]">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200 bg-gray-50">
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">账期</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">收入来源</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">来源名称</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">金额(元)</th>
+                                                        <th className="px-3 py-2.5 text-left text-sm font-medium text-gray-700">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {getDeptRevenueDetailRows(deptRevenueDrawerUnit, deptPeriod).map((r, i) => (
+                                                        <tr key={i} className="hover:bg-gray-50">
+                                                            <td className="px-3 py-3 text-sm text-gray-600 whitespace-nowrap">{r.period}</td>
+                                                            <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">{r.revenueSource}</td>
+                                                            <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap max-w-[280px] truncate" title={r.sourceName}>{r.sourceName}</td>
+                                                            <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{formatExactAmount(r.amount)}</td>
+                                                            <td className="px-3 py-3">
+                                                                <button className="text-sm text-blue-600 hover:text-blue-700">账单详情</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {getDeptRevenueDetailRows(deptRevenueDrawerUnit, deptPeriod).length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={5} className="px-3 py-12 text-center text-sm text-gray-400">暂无收入明细数据</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
+                                            <div className="text-sm text-gray-500">
+                                                合计：<span className="font-medium text-gray-900">{formatExactAmount(deptRevenueDrawerUnit.totalRevenue)}</span> 元
+                                            </div>
+                                            <button
+                                                onClick={() => setDeptRevenueDrawerUnit(null)}
                                                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
                                             >
                                                 关闭
@@ -12849,20 +13007,31 @@ export default function AdminPage() {
                                 >
                                     取消
                                 </button>
-                                <button
-                                    onClick={() => {
-                                        // TODO: 保存产品
-                                        setCreateProductDialogOpen(false);
-                                    }}
-                                    disabled={!newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url || !newProduct.portal || (isInternalPortalSelected(newProduct.portal) && !newProduct.linkedPublicProduct)}
-                                    className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${
-                                        !newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !newProduct.url || !newProduct.portal || (isInternalPortalSelected(newProduct.portal) && !newProduct.linkedPublicProduct)
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    }`}
-                                >
-                                    确定
-                                </button>
+                                {(() => {
+                                    // URL 校验：所有portal时，依据 urlDistinct 开关校验；单Portal时 url 必填
+                                    const urlFilled = newProduct.portal === ALL_PORTAL_VALUE
+                                        ? (newProduct.urlDistinct
+                                            ? !!(newProduct.urlInner.trim() || newProduct.urlOuter.trim())
+                                            : !!newProduct.url.trim())
+                                        : !!newProduct.url.trim();
+                                    const saveDisabled = !newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !urlFilled || !newProduct.portal || (isInternalPortalSelected(newProduct.portal) && !newProduct.linkedPublicProduct);
+                                    return (
+                                        <button
+                                            onClick={() => {
+                                                // TODO: 保存产品
+                                                setCreateProductDialogOpen(false);
+                                            }}
+                                            disabled={saveDisabled}
+                                            className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${
+                                                saveDisabled
+                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
+                                        >
+                                            确定
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                         
@@ -13024,330 +13193,636 @@ export default function AdminPage() {
                                 </div>
                             </div>
 
-                            {/* 产品名称 & 产品简介 */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        产品名称 <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        maxLength={20}
-                                        value={newProduct.name}
-                                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                                        placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                    />
+                            {/* ── 基础配置 模块 ── */}
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                    <span className="text-sm font-semibold text-gray-800">基础配置</span>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        产品简介 <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={newProduct.shortName}
-                                            onChange={(e) => setNewProduct({ ...newProduct, shortName: e.target.value })}
-                                            placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
-                                            className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                        />
-                                        {/* 说明提示 icon */}
-                                        <div className="relative flex-shrink-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => setDescTipOpen(!descTipOpen)}
-                                                onBlur={() => setTimeout(() => setDescTipOpen(false), 150)}
-                                                className={`p-1 rounded-full transition-colors ${descTipOpen ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-blue-600'}`}
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                            </button>
-                                            {descTipOpen && (
-                                                <div className="absolute right-0 top-7 z-20 w-64 bg-gray-800 text-white text-xs leading-relaxed rounded-lg px-3 py-2 shadow-lg">
-                                                    注：收藏产品后，在导航收藏列表里展示产品的简介，建议和产品的英文名称保持一致
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 产品标识符 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品标识符 <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newProduct.identifier}
-                                    onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })}
-                                    placeholder="请输入产品标识符"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono"
-                                />
-                            </div>
-
-                            {/* 加入推荐 */}
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-                                <div className="text-sm font-medium text-gray-900">加入推荐</div>
-
-                                {/* 官网热门产品 */}
-                                <div className="flex items-center gap-3">
-                                    <span className="w-28 text-sm text-gray-700 text-right">官网热门产品：</span>
-                                    <button
-                                        onClick={() => setNewProduct({ ...newProduct, hotOfficial: !newProduct.hotOfficial })}
-                                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotOfficial ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                    >
-                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotOfficial ? 'translate-x-5' : ''}`} />
-                                    </button>
-                                    <span className="text-xs text-gray-500">开启后，该产品展示在 官网&gt;产品列表&gt;热门产品 模块</span>
-                                </div>
-
-                                {/* 控制台热门产品 */}
-                                <div className="flex items-center gap-3">
-                                    <span className="w-28 text-sm text-gray-700 text-right">控制台热门产品：</span>
-                                    <button
-                                        onClick={() => setNewProduct({ ...newProduct, hotConsole: !newProduct.hotConsole })}
-                                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotConsole ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                    >
-                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotConsole ? 'translate-x-5' : ''}`} />
-                                    </button>
-                                    <span className="text-xs text-gray-500">开启后，该产品展示在 控制台&gt;产品管理&gt;热门产品 模块</span>
-                                </div>
-
-                                {/* 推广标签 */}
-                                <div className="flex items-center gap-3">
-                                    <span className="w-28 text-sm text-gray-700 text-right">推广标签：</span>
-                                    <div className="flex items-center gap-6">
-                                        {[
-                                            { value: 'hot', label: 'Hot' },
-                                            { value: 'new', label: 'New' },
-                                            { value: 'none', label: '不设置' },
-                                        ].map(option => (
-                                            <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="promoTag"
-                                                    value={option.value}
-                                                    checked={newProduct.promoTag === option.value}
-                                                    onChange={(e) => setNewProduct({ ...newProduct, promoTag: e.target.value })}
-                                                    className="w-4 h-4 text-blue-600"
-                                                />
-                                                <span className={`text-sm ${newProduct.promoTag === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                <div className="p-4 space-y-4">
+                                    {/* 产品名称 & 产品简称 */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                产品名称 <span className="text-red-500">*</span>
                                             </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* 产品分类 & 所属产线 */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        产品分类 <span className="text-red-500">*</span>
-                                    </label>
-                                    {/* 已选分类标签 */}
-                                    <div className="min-h-[38px] w-full px-2 py-1.5 border border-gray-300 rounded-lg flex flex-wrap items-center gap-1.5">
-                                        {newProduct.categories.map((cat, index) => (
-                                            <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
-                                                {cat}
-                                                <button
-                                                    onClick={() => setNewProduct({ ...newProduct, categories: newProduct.categories.filter((_, i) => i !== index) })}
-                                                    className="text-gray-400 hover:text-gray-600"
-                                                >
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </span>
-                                        ))}
-                                        <select
-                                            value=""
-                                            onChange={(e) => {
-                                                if (e.target.value && !newProduct.categories.includes(e.target.value)) {
-                                                    setNewProduct({ ...newProduct, categories: [...newProduct.categories, e.target.value] });
-                                                }
-                                            }}
-                                            className="flex-1 min-w-[90px] bg-transparent text-sm text-gray-500 focus:outline-none"
-                                        >
-                                            <option value="">请选择</option>
-                                            <option value="计算 / 奇云计算">计算 / 奇云计算</option>
-                                            <option value="计算 / 弹性计算">计算 / 弹性计算</option>
-                                            <option value="存储 / 对象存储">存储 / 对象存储</option>
-                                            <option value="存储 / 文件存储">存储 / 文件存储</option>
-                                            <option value="数据库 / 关系型数据库">数据库 / 关系型数据库</option>
-                                            <option value="容器 / 容器服务">容器 / 容器服务</option>
-                                            <option value="中间件 / 消息队列">中间件 / 消息队列</option>
-                                            <option value="大数据 / 数据计算">大数据 / 数据计算</option>
-                                            <option value="网络 / 负载均衡">网络 / 负载均衡</option>
-                                            <option value="安全 / 主机安全">安全 / 主机安全</option>
-                                            <option value="AI / 智能应用">AI / 智能应用</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        所属产线
-                                    </label>
-                                    <select
-                                        value={newProduct.productLine}
-                                        onChange={(e) => setNewProduct({ ...newProduct, productLine: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                    >
-                                        <option value="其他">其他</option>
-                                        <option value="云存储">云存储</option>
-                                        <option value="云计算">云计算</option>
-                                        <option value="云数据库">云数据库</option>
-                                        <option value="大数据平台">大数据平台</option>
-                                        <option value="AI平台">AI平台</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            {/* 产品描述 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品描述 <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    maxLength={40}
-                                    value={newProduct.description}
-                                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                                    placeholder="请输入"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                />
-                                <div className="text-xs text-gray-400 mt-1 text-right">{newProduct.description.length}/40</div>
-                            </div>
-                            
-                            {/* 产品标签 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品标签 <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {newProduct.tags.map((tag, index) => (
-                                        <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">
-                                            {tag}
-                                            <button
-                                                onClick={() => setNewProduct({ ...newProduct, tags: newProduct.tags.filter((_, i) => i !== index) })}
-                                                className="hover:text-blue-800"
-                                            >
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    ))}
-                                    {newProduct.tags.length < 3 && (
-                                        <div className="flex items-center gap-1">
                                             <input
                                                 type="text"
-                                                maxLength={5}
-                                                value={newProduct.tagInput}
-                                                onChange={(e) => setNewProduct({ ...newProduct, tagInput: e.target.value })}
-                                                onKeyPress={(e) => {
-                                                    if (e.key === 'Enter' && newProduct.tagInput.trim()) {
-                                                        setNewProduct({ 
-                                                            ...newProduct, 
-                                                            tags: [...newProduct.tags, newProduct.tagInput.trim()],
-                                                            tagInput: '' 
-                                                        });
-                                                    }
-                                                }}
-                                                placeholder="输入标签"
-                                                className="w-20 px-2 py-1 border border-dashed border-gray-300 rounded text-xs focus:outline-none focus:border-blue-500"
+                                                maxLength={20}
+                                                value={newProduct.name}
+                                                onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                                                placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                             />
-                                            <button
-                                                onClick={() => {
-                                                    if (newProduct.tagInput.trim()) {
-                                                        setNewProduct({ 
-                                                            ...newProduct, 
-                                                            tags: [...newProduct.tags, newProduct.tagInput.trim()],
-                                                            tagInput: '' 
-                                                        });
-                                                    }
-                                                }}
-                                                className="text-xs text-blue-600 hover:text-blue-700"
-                                            >
-                                                +添加标签
-                                            </button>
                                         </div>
-                                    )}
-                                    {/* 提示与操作同行 */}
-                                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        支持中英文、数字。5个字符以内，最多添加3个标签
-                                    </span>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                产品简称 <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newProduct.shortName}
+                                                    onChange={(e) => setNewProduct({ ...newProduct, shortName: e.target.value })}
+                                                    placeholder="可包含中文、英文字母、数字、下划线(_)、中划线"
+                                                    className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                                {/* 说明提示 icon */}
+                                                <div className="relative flex-shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDescTipOpen(!descTipOpen)}
+                                                        onBlur={() => setTimeout(() => setDescTipOpen(false), 150)}
+                                                        className={`p-1 rounded-full transition-colors ${descTipOpen ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-blue-600'}`}
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    </button>
+                                                    {descTipOpen && (
+                                                        <div className="absolute right-0 top-7 z-20 w-64 bg-gray-800 text-white text-xs leading-relaxed rounded-lg px-3 py-2 shadow-lg">
+                                                            注：收藏产品后，在导航收藏列表里展示产品的简称，建议和产品的英文名称保持一致
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 产品标识符 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            产品标识符 <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newProduct.identifier}
+                                            onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })}
+                                            placeholder="请输入产品标识符"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono"
+                                        />
+                                    </div>
+
+                                    {/* 产品分类 & 所属产线 */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                产品分类 <span className="text-red-500">*</span>
+                                            </label>
+                                            {/* 已选分类标签 */}
+                                            <div className="min-h-[38px] w-full px-2 py-1.5 border border-gray-300 rounded-lg flex flex-wrap items-center gap-1.5">
+                                                {newProduct.categories.map((cat, index) => (
+                                                    <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                                                        {cat}
+                                                        <button
+                                                            onClick={() => setNewProduct({ ...newProduct, categories: newProduct.categories.filter((_, i) => i !== index) })}
+                                                            className="text-gray-400 hover:text-gray-600"
+                                                        >
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                                <select
+                                                    value=""
+                                                    onChange={(e) => {
+                                                        if (e.target.value && !newProduct.categories.includes(e.target.value)) {
+                                                            setNewProduct({ ...newProduct, categories: [...newProduct.categories, e.target.value] });
+                                                        }
+                                                    }}
+                                                    className="flex-1 min-w-[90px] bg-transparent text-sm text-gray-500 focus:outline-none"
+                                                >
+                                                    <option value="">请选择</option>
+                                                    <option value="计算 / 奇云计算">计算 / 奇云计算</option>
+                                                    <option value="计算 / 弹性计算">计算 / 弹性计算</option>
+                                                    <option value="存储 / 对象存储">存储 / 对象存储</option>
+                                                    <option value="存储 / 文件存储">存储 / 文件存储</option>
+                                                    <option value="数据库 / 关系型数据库">数据库 / 关系型数据库</option>
+                                                    <option value="容器 / 容器服务">容器 / 容器服务</option>
+                                                    <option value="中间件 / 消息队列">中间件 / 消息队列</option>
+                                                    <option value="大数据 / 数据计算">大数据 / 数据计算</option>
+                                                    <option value="网络 / 负载均衡">网络 / 负载均衡</option>
+                                                    <option value="安全 / 主机安全">安全 / 主机安全</option>
+                                                    <option value="AI / 智能应用">AI / 智能应用</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                所属产线
+                                            </label>
+                                            <select
+                                                value={newProduct.productLine}
+                                                onChange={(e) => setNewProduct({ ...newProduct, productLine: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                            >
+                                                <option value="其他">其他</option>
+                                                <option value="云存储">云存储</option>
+                                                <option value="云计算">云计算</option>
+                                                <option value="云数据库">云数据库</option>
+                                                <option value="大数据平台">大数据平台</option>
+                                                <option value="AI平台">AI平台</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* 产品描述 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            产品描述 <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            maxLength={40}
+                                            value={newProduct.description}
+                                            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                                            placeholder="请输入"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                        />
+                                        <div className="text-xs text-gray-400 mt-1 text-right">{newProduct.description.length}/40</div>
+                                    </div>
+
+                                    {/* 产品图标 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            产品图标 <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center bg-white flex-shrink-0">
+                                                {newProduct.icon ? (
+                                                    <div className="text-xs text-gray-500">已上传</div>
+                                                ) : (
+                                                    <svg className="w-8 h-8 text-[#626F84]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8a2 2 0 100-4 2 2 0 000 4zM12 20a2 2 0 100-4 2 2 0 000 4zM6 14a2 2 0 100-4 2 2 0 000 4zM18 14a2 2 0 100-4 2 2 0 000 4zM12 8v8M8 12h8" />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <label className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer flex-shrink-0">
+                                                上传图标
+                                                <input
+                                                    type="file"
+                                                    accept=".svg"
+                                                    className="hidden"
+                                                    onChange={(e) => setNewProduct({ ...newProduct, icon: e.target.files?.[0] ?? null })}
+                                                />
+                                            </label>
+                                            <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                SVG 格式且背景色透明，图标颜色为 #626F84
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* URL地址 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            URL地址 <span className="text-red-500">*</span>
+                                        </label>
+                                        {newProduct.portal === ALL_PORTAL_VALUE ? (
+                                            <div className="space-y-2.5">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm text-gray-600">是否区分URL地址：</span>
+                                                    <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setNewProduct({ ...newProduct, urlDistinct: false, urlInner: '', urlOuter: '' })}
+                                                            className={`px-3 py-1 text-xs rounded-md transition-colors ${!newProduct.urlDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                                                        >
+                                                            否
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setNewProduct({ ...newProduct, urlDistinct: true, url: '' })}
+                                                            className={`px-3 py-1 text-xs rounded-md transition-colors ${newProduct.urlDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                                                        >
+                                                            是
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {newProduct.urlDistinct ? (
+                                                    <>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">内部Portal地址：</span>
+                                                            <input
+                                                                type="text"
+                                                                value={newProduct.urlInner}
+                                                                onChange={(e) => setNewProduct({ ...newProduct, urlInner: e.target.value })}
+                                                                placeholder="https://zyun.qihoo.net/product/xxx 或 /product/xxx"
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">外部Portal地址：</span>
+                                                            <input
+                                                                type="text"
+                                                                value={newProduct.urlOuter}
+                                                                onChange={(e) => setNewProduct({ ...newProduct, urlOuter: e.target.value })}
+                                                                placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx"
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                            />
+                                                        </div>
+                                                        <p className="flex items-start gap-1 text-xs text-gray-400 ml-[116px]">
+                                                            <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            分别为内部Portal和外部Portal配置独立地址；至少填写一项
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">相对地址：</span>
+                                                            <input
+                                                                type="text"
+                                                                value={newProduct.url}
+                                                                onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })}
+                                                                placeholder="/product/xxx"
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                            />
+                                                        </div>
+                                                        <p className="flex items-start gap-1 text-xs text-gray-400 ml-[116px]">
+                                                            <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            内部Portal和外部Portal使用相同的相对地址，如 /product/xxx
+                                                        </p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1.5">
+                                                <input
+                                                    type="text"
+                                                    value={newProduct.url}
+                                                    onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })}
+                                                    placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
+                                                <p className="flex items-center gap-1 text-xs text-gray-400">
+                                                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    支持输入完整 URL（内部或外部Portal地址）或相对地址（如 /product/xxx）
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 介绍页地址 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            介绍页地址
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newProduct.introUrl}
+                                            onChange={(e) => setNewProduct({ ...newProduct, introUrl: e.target.value })}
+                                            placeholder="请输入"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* 产品图标 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    产品图标 <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center bg-white flex-shrink-0">
-                                        {newProduct.icon ? (
-                                            <div className="text-xs text-gray-500">已上传</div>
-                                        ) : (
-                                            <svg className="w-8 h-8 text-[#626F84]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8a2 2 0 100-4 2 2 0 000 4zM12 20a2 2 0 100-4 2 2 0 000 4zM6 14a2 2 0 100-4 2 2 0 000 4zM18 14a2 2 0 100-4 2 2 0 000 4zM12 8v8M8 12h8" />
-                                            </svg>
+                            {/* ── 文档配置 模块 ── */}
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                    <span className="text-sm font-semibold text-gray-800">文档配置</span>
+                                    <span className="ml-2 text-xs text-gray-400">产品文档与API文档地址支持输入内部Portal、外部Portal的完整地址，也可输入相对地址</span>
+                                </div>
+                                <div className="p-4 space-y-5">
+                                    {/* 产品文档 */}
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">产品文档：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, docEnabled: !newProduct.docEnabled })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.docEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.docEnabled ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                            <span className="text-xs text-gray-500">开启后，产品详情页展示产品文档入口</span>
+                                        </div>
+                                        {newProduct.docEnabled && (
+                                            <div className="ml-[140px] mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="docType"
+                                                        value="apicloud"
+                                                        checked={newProduct.docType === 'apicloud'}
+                                                        onChange={(e) => setNewProduct({ ...newProduct, docType: e.target.value })}
+                                                        className="w-4 h-4 text-blue-600"
+                                                    />
+                                                    <span className="text-sm font-medium text-blue-600">APIcloud文档链接</span>
+                                                </label>
+                                                {newProduct.portal === ALL_PORTAL_VALUE ? (
+                                                    /* 上架所有Portal时：先显示"是否区分地址"开关 */
+                                                    <div className="space-y-2.5">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm text-gray-600">是否区分地址：</span>
+                                                            <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setNewProduct({ ...newProduct, docDistinct: false, docUrlInner: '', docUrlOuter: '' })}
+                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${!newProduct.docDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                                                                >
+                                                                    否
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setNewProduct({ ...newProduct, docDistinct: true, docUrl: '' })}
+                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${newProduct.docDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                                                                >
+                                                                    是
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {newProduct.docDistinct ? (
+                                                            <>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">内部Portal文档：</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={newProduct.docUrlInner}
+                                                                        onChange={(e) => setNewProduct({ ...newProduct, docUrlInner: e.target.value })}
+                                                                        placeholder="https://doc.qihoo.net/xxx 或 /doc/xxx"
+                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">外部Portal文档：</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={newProduct.docUrlOuter}
+                                                                        onChange={(e) => setNewProduct({ ...newProduct, docUrlOuter: e.target.value })}
+                                                                        placeholder="https://apicloud.360.cn/user/apistore 或 /doc/xxx"
+                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                    />
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">相对地址：</span>
+                                                                <input
+                                                                    type="text"
+                                                                    value={newProduct.docUrl}
+                                                                    onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })}
+                                                                    placeholder="/doc/xxx"
+                                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={newProduct.docUrl}
+                                                        onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })}
+                                                        placeholder="https://apicloud.360.cn/user/apistore 或 /doc/xxx"
+                                                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                    />
+                                                )}
+                                                <p className="flex items-start gap-1 text-xs text-gray-400">
+                                                    <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    支持输入内部Portal或外部Portal的文档地址，也可输入相对地址（如 /doc/xxx）
+                                                </p>
+                                            </div>
                                         )}
                                     </div>
-                                    <label className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer flex-shrink-0">
-                                        上传图标
-                                        <input
-                                            type="file"
-                                            accept=".svg"
-                                            className="hidden"
-                                            onChange={(e) => setNewProduct({ ...newProduct, icon: e.target.files?.[0] ?? null })}
-                                        />
-                                    </label>
-                                    {/* 提示与操作同行 */}
-                                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        SVG 格式且背景色透明，图标颜色为 #626F84
-                                    </span>
+
+                                    {/* 分隔线：产品文档 与 API文档 之间用横线区分 */}
+                                    <div className="border-t border-dashed border-gray-200" />
+
+                                    {/* API文档 */}
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">API文档：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, apiDocEnabled: !newProduct.apiDocEnabled })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.apiDocEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.apiDocEnabled ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                            <span className="text-xs text-gray-500">开启后，产品详情页展示API文档入口</span>
+                                        </div>
+                                        {newProduct.apiDocEnabled && (
+                                            <div className="ml-[140px] mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                                                {newProduct.portal === ALL_PORTAL_VALUE ? (
+                                                    /* 上架所有Portal时：先显示"是否区分地址"开关 */
+                                                    <div className="space-y-2.5">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm text-gray-600">是否区分地址：</span>
+                                                            <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setNewProduct({ ...newProduct, apiDocDistinct: false, apiDocUrlInner: '', apiDocUrlOuter: '' })}
+                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${!newProduct.apiDocDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                                                                >
+                                                                    否
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setNewProduct({ ...newProduct, apiDocDistinct: true, apiDocUrl: '' })}
+                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${newProduct.apiDocDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                                                                >
+                                                                    是
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {newProduct.apiDocDistinct ? (
+                                                            <>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">内部Portal文档：</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={newProduct.apiDocUrlInner}
+                                                                        onChange={(e) => setNewProduct({ ...newProduct, apiDocUrlInner: e.target.value })}
+                                                                        placeholder="https://doc.qihoo.net/api/xxx 或 /api-doc/xxx"
+                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">外部Portal文档：</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={newProduct.apiDocUrlOuter}
+                                                                        onChange={(e) => setNewProduct({ ...newProduct, apiDocUrlOuter: e.target.value })}
+                                                                        placeholder="https://apicloud.360.cn/api/xxx 或 /api-doc/xxx"
+                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                    />
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">相对地址：</span>
+                                                                <input
+                                                                    type="text"
+                                                                    value={newProduct.apiDocUrl}
+                                                                    onChange={(e) => setNewProduct({ ...newProduct, apiDocUrl: e.target.value })}
+                                                                    placeholder="/api-doc/xxx"
+                                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={newProduct.apiDocUrl}
+                                                        onChange={(e) => setNewProduct({ ...newProduct, apiDocUrl: e.target.value })}
+                                                        placeholder="https://apicloud.360.cn/api/xxx 或 /api-doc/xxx"
+                                                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                    />
+                                                )}
+                                                <p className="flex items-start gap-1 text-xs text-gray-400">
+                                                    <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    支持输入内部Portal或外部Portal的API文档地址，也可输入相对地址（如 /api-doc/xxx）
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            
-                            {/* URL地址 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    URL地址 <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newProduct.url}
-                                    onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })}
-                                    placeholder="请输入"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                />
+
+                            {/* ── 推广配置 模块 ── */}
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                    <span className="text-sm font-semibold text-gray-800">推广配置</span>
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    {/* 加入推荐 */}
+                                    <div className="space-y-3">
+                                        <div className="text-sm font-medium text-gray-700">加入推荐</div>
+
+                                        {/* 官网热门产品 */}
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-28 text-sm text-gray-700 text-right">官网热门产品：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, hotOfficial: !newProduct.hotOfficial })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotOfficial ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotOfficial ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                            <span className="text-xs text-gray-500">开启后，该产品展示在 官网&gt;产品列表&gt;热门产品 模块</span>
+                                        </div>
+
+                                        {/* 控制台热门产品 */}
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-28 text-sm text-gray-700 text-right">控制台热门产品：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, hotConsole: !newProduct.hotConsole })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotConsole ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotConsole ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                            <span className="text-xs text-gray-500">开启后，该产品展示在 控制台&gt;产品管理&gt;热门产品 模块</span>
+                                        </div>
+
+                                        {/* 推广标签 */}
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-28 text-sm text-gray-700 text-right">推广标签：</span>
+                                            <div className="flex items-center gap-6">
+                                                {[
+                                                    { value: 'hot', label: 'Hot' },
+                                                    { value: 'new', label: 'New' },
+                                                    { value: 'none', label: '不设置' },
+                                                ].map(option => (
+                                                    <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="promoTag"
+                                                            value={option.value}
+                                                            checked={newProduct.promoTag === option.value}
+                                                            onChange={(e) => setNewProduct({ ...newProduct, promoTag: e.target.value })}
+                                                            className="w-4 h-4 text-blue-600"
+                                                        />
+                                                        <span className={`text-sm ${newProduct.promoTag === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-dashed border-gray-200" />
+
+                                    {/* 产品标签 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            产品标签 <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {newProduct.tags.map((tag, index) => (
+                                                <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">
+                                                    {tag}
+                                                    <button
+                                                        onClick={() => setNewProduct({ ...newProduct, tags: newProduct.tags.filter((_, i) => i !== index) })}
+                                                        className="hover:text-blue-800"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            ))}
+                                            {newProduct.tags.length < 3 && (
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="text"
+                                                        maxLength={5}
+                                                        value={newProduct.tagInput}
+                                                        onChange={(e) => setNewProduct({ ...newProduct, tagInput: e.target.value })}
+                                                        onKeyPress={(e) => {
+                                                            if (e.key === 'Enter' && newProduct.tagInput.trim()) {
+                                                                setNewProduct({
+                                                                    ...newProduct,
+                                                                    tags: [...newProduct.tags, newProduct.tagInput.trim()],
+                                                                    tagInput: ''
+                                                                });
+                                                            }
+                                                        }}
+                                                        placeholder="输入标签"
+                                                        className="w-20 px-2 py-1 border border-dashed border-gray-300 rounded text-xs focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    <button
+                                                        onClick={() => {
+                                                            if (newProduct.tagInput.trim()) {
+                                                                setNewProduct({
+                                                                    ...newProduct,
+                                                                    tags: [...newProduct.tags, newProduct.tagInput.trim()],
+                                                                    tagInput: ''
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="text-xs text-blue-600 hover:text-blue-700"
+                                                    >
+                                                        +添加标签
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                支持中英文、数字。5个字符以内，最多添加3个标签
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            {/* 介绍页地址 */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    介绍页地址
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newProduct.introUrl}
-                                    onChange={(e) => setNewProduct({ ...newProduct, introUrl: e.target.value })}
-                                    placeholder="请输入"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                            
-                            {/* 分隔线 */}
-                            <div className="border-t border-gray-200 pt-5">
+
+                            {/* ── 高级配置 模块 ── */}
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                    <span className="text-sm font-semibold text-gray-800">高级配置</span>
+                                </div>
+                                <div className="p-4">
                                 {/* 产品审核开通 */}
                                 <div className="mb-5">
                                     <div className="flex items-center gap-1 mb-1.5">
@@ -13405,52 +13880,6 @@ export default function AdminPage() {
                                         <span className="text-xs text-gray-500">开启后，该产品在计费相关页面的产品列表里展示</span>
                                     </div>
                                     
-                                    {/* 产品文档 */}
-                                    <div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">产品文档：</span>
-                                            <button
-                                                onClick={() => setNewProduct({ ...newProduct, docEnabled: !newProduct.docEnabled })}
-                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.docEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                            >
-                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.docEnabled ? 'translate-x-5' : ''}`} />
-                                            </button>
-                                        </div>
-                                        {newProduct.docEnabled && (
-                                            <div className="ml-[140px] mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                                <label className="flex items-center gap-1.5 cursor-pointer mb-2">
-                                                    <input
-                                                        type="radio"
-                                                        name="docType"
-                                                        value="apicloud"
-                                                        checked={newProduct.docType === 'apicloud'}
-                                                        onChange={(e) => setNewProduct({ ...newProduct, docType: e.target.value })}
-                                                        className="w-4 h-4 text-blue-600"
-                                                    />
-                                                    <span className="text-sm font-medium text-blue-600">APIcloud文档链接</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={newProduct.docUrl}
-                                                    onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })}
-                                                    placeholder="https://apicloud.360.cn/user/apistore"
-                                                    className="w-72 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* API文档 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">API文档：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, apiDocEnabled: !newProduct.apiDocEnabled })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.apiDocEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.apiDocEnabled ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                    </div>
-
                                     {/* 是否在控制台展示 */}
                                     <div className="flex items-center gap-3">
                                         <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在控制台展示：</span>
@@ -13587,6 +14016,7 @@ export default function AdminPage() {
                                         <span className="text-xs text-gray-500">开启后，当前产品需区分可用区信息，智汇云提供查询接口</span>
                                     </div>
                                 </div>
+                            </div>
                             </div>
                         </div>
                     </div>
