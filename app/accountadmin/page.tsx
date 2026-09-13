@@ -264,7 +264,7 @@ interface ProductAnalysisRow {
 
 const productAnalysisData: ProductAnalysisRow[] = [
     {
-        id: 1, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部",
+        id: 1, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部-弹性计算",
         productName: "云服务器 ECS_裸金属CPU(计量)(cloud_server)",
         totalRevenue: 42139500, innerRevenue: 38257000, innerNonMidRevenue: 12768600,
         midNonZyunRevenue: 114800, zyunNonUnitRevenue: 12430583.01, unitRevenue: 12943000,
@@ -274,7 +274,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: 16.51, outerMargin: 23.55, balance: 7722500,
     },
     {
-        id: 2, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部",
+        id: 2, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-基础架构部-中间件",
         productName: "托管集群服务 MCS_容器服务(cluster)",
         totalRevenue: 25950500, innerRevenue: 25721900, innerNonMidRevenue: 60100,
         midNonZyunRevenue: 0, zyunNonUnitRevenue: 25661800, unitRevenue: 0,
@@ -284,7 +284,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: -0.45, outerMargin: 27.54, balance: -52600,
     },
     {
-        id: 3, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部",
+        id: 3, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部-裸金属",
         productName: "云服务器 ECS_裸金属GPU(计量)(cloud_server)",
         totalRevenue: 14374000, innerRevenue: 14374000, innerNonMidRevenue: 530900,
         midNonZyunRevenue: 150500, zyunNonUnitRevenue: 10400, unitRevenue: 13682200,
@@ -294,7 +294,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: -0.18, outerMargin: 0, balance: -25600,
     },
     {
-        id: 4, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-智能工程部",
+        id: 4, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-基础架构部-Serverless",
         productName: "托管集群服务 MCS_A机器(cluster)",
         totalRevenue: 13662800, innerRevenue: 13545000, innerNonMidRevenue: 11921900,
         midNonZyunRevenue: 1623300, zyunNonUnitRevenue: 6977500, unitRevenue: 0,
@@ -304,7 +304,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: 0.05, outerMargin: 6.43, balance: 147000,
     },
     {
-        id: 5, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-云平台部",
+        id: 5, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-系统部-存储",
         productName: "对象存储 OSS_标准存储(计量)(oss_storage)",
         totalRevenue: 9834600, innerRevenue: 8912300, innerNonMidRevenue: 3421000,
         midNonZyunRevenue: 88900, zyunNonUnitRevenue: 2903400, unitRevenue: 2499000,
@@ -314,7 +314,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: 18.42, outerMargin: 23.62, balance: 1989400,
     },
     {
-        id: 6, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-系统部",
+        id: 6, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-系统部-存储",
         productName: "块存储 EBS_高效云盘(计量)(ebs_disk)",
         totalRevenue: 7218900, innerRevenue: 7010400, innerNonMidRevenue: 2145700,
         midNonZyunRevenue: 62300, zyunNonUnitRevenue: 2312800, unitRevenue: 2489600,
@@ -324,7 +324,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: 8.86, outerMargin: 23.79, balance: 684800,
     },
     {
-        id: 7, period: "202608", productLine: "网络服务", settlementUnit: "智汇云-云平台部",
+        id: 7, period: "202608", productLine: "网络服务", settlementUnit: "智汇云-应用平台部-视频云",
         productName: "内容分发 CDN_流量(计量)(cdn_flow)",
         totalRevenue: 6543200, innerRevenue: 4321800, innerNonMidRevenue: 1876500,
         midNonZyunRevenue: 145200, zyunNonUnitRevenue: 1200100, unitRevenue: 1100000,
@@ -334,7 +334,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: 6.77, outerMargin: 23.55, balance: 930500,
     },
     {
-        id: 8, period: "202608", productLine: "数据库", settlementUnit: "智汇云-智能工程部",
+        id: 8, period: "202608", productLine: "数据库", settlementUnit: "智汇云-系统部-大数据",
         productName: "云数据库 PGSQL_基础版(计量)(pgsql)",
         totalRevenue: 5127400, innerRevenue: 5127400, innerNonMidRevenue: 1023400,
         midNonZyunRevenue: 34500, zyunNonUnitRevenue: 2145600, unitRevenue: 1923900,
@@ -344,7 +344,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: 4.63, outerMargin: 0, balance: 237200,
     },
     {
-        id: 9, period: "202608", productLine: "大模型", settlementUnit: "360人工智能研究院",
+        id: 9, period: "202608", productLine: "大模型", settlementUnit: "智汇云-智能部",
         productName: "大模型服务 LLM_推理(计量)(llm_infer)",
         totalRevenue: 4312800, innerRevenue: 3105600, innerNonMidRevenue: 1502300,
         midNonZyunRevenue: 210400, zyunNonUnitRevenue: 892900, unitRevenue: 500000,
@@ -354,7 +354,7 @@ const productAnalysisData: ProductAnalysisRow[] = [
         innerMargin: 2.66, outerMargin: 23.53, balance: 391300,
     },
     {
-        id: 10, period: "202608", productLine: "安全服务", settlementUnit: "安全技术中台",
+        id: 10, period: "202608", productLine: "安全服务", settlementUnit: "智汇云-应用平台部",
         productName: "Web应用防火墙 WAF_标准版(waf)",
         totalRevenue: 2876500, innerRevenue: 2210300, innerNonMidRevenue: 780200,
         midNonZyunRevenue: 45600, zyunNonUnitRevenue: 684500, unitRevenue: 700000,
@@ -373,16 +373,27 @@ const analysisBillTypes = [
     { value: "hour", label: "小时账单" },
 ];
 
+// 整体分析 - 统计粒度选项（报表/趋势下文案不同）
+const overallBillTypeOptions = [
+    { value: "month", reportLabel: "月报表", trendLabel: "月趋势" },
+    { value: "day", reportLabel: "日报表", trendLabel: "日趋势" },
+    { value: "hour", reportLabel: "小时报表", trendLabel: "小时趋势" },
+];
+
 // 产品分析 - 所属产线选项
 const analysisProductLines = ["弹性计算", "存储服务", "网络服务", "数据库", "大模型", "安全服务"];
 
-// 产品分析 - 结算单元选项
+// 产品分析 - 结算单元选项（与部门概览 overallDeptConfigs 的结算单元保持一致）
 const analysisSettlementUnits = [
-    "智汇云-云平台部",
-    "智汇云-智能工程部",
-    "智汇云-系统部",
-    "360人工智能研究院",
-    "安全技术中台",
+    "智汇云-应用平台部",
+    "智汇云-应用平台部-视频云",
+    "智汇云-云平台部-弹性计算",
+    "智汇云-云平台部-裸金属",
+    "智汇云-系统部-存储",
+    "智汇云-系统部-大数据",
+    "智汇云-基础架构部-Serverless",
+    "智汇云-基础架构部-中间件",
+    "智汇云-智能部",
 ];
 
 // 产品分析 - 金额格式化（以「万」为单位展示）
@@ -491,6 +502,9 @@ const departmentAnalysisData: DepartmentAnalysisRow[] = [
     { id: 10, opsUnit: "智汇云-安全技术部", bizTree: "安全中台", totalRevenue: 0, totalCost: 268300 },
     { id: 11, opsUnit: "360人工智能研究院", bizTree: "人工智能研究院", totalRevenue: 431280, totalCost: 392150 },
 ];
+
+// 说明：productAnalysisData.settlementUnit 与 departmentAnalysisData.opsUnit
+// 使用同一套结算单元命名，两者可直接按名称关联，无需额外映射表。
 
 // 部门分析 - 业务树选项
 const departmentBizTrees = ["技术中台", "安全中台", "人工智能研究院", "商业化"];
@@ -769,6 +783,8 @@ interface OverallAnalysisRow {
     outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
     innerTotalRevenue: number;      // 内结算总收入(元)
     productCost: number;            // 产品成本(元)
+    innerCost: number;              // 内部成本(元)：所有结算单元下资源组消费的账单金额总和
+    outerCost: number;              // 外部成本(元)：所有产品的外部收入
     innerProfit: number;            // 内结算价利润(元)
     outerProfit: number;            // 外部利润(元)
     innerMargin: number;            // 内结算毛利率
@@ -818,6 +834,8 @@ const buildOverallRow = (id: number, period: string, scale: number, seed: number
     const outerInnerPriceRevenue = b.outerInnerPriceRevenue * revFactor;
     const innerTotalRevenue = b.innerTotalRevenue * revFactor;
     const productCost = b.productCost * costFactor;
+    const outerCost = outerRevenue;             // 外部成本(元) = 所有产品的外部收入
+    const innerCost = productCost - outerCost;  // 内部成本(元) = 总成本 - 外部成本
     const innerProfit = innerTotalRevenue - productCost;
     const outerProfit = outerRevenue - outerInnerPriceRevenue;
 
@@ -834,6 +852,8 @@ const buildOverallRow = (id: number, period: string, scale: number, seed: number
         outerInnerPriceRevenue,
         innerTotalRevenue,
         productCost,
+        innerCost,
+        outerCost,
         innerProfit,
         outerProfit,
         innerMargin: innerTotalRevenue === 0 ? 0 : (innerProfit / innerTotalRevenue) * 100,
@@ -870,13 +890,110 @@ const buildOverallDailySeries = (anchorDate: string): OverallAnalysisRow[] => {
     });
 };
 
-// 整体分析 - 小时账单序列：选中天及其前 6 天的每个小时（共 7×24 = 168 个点，按时间正序）
-const buildOverallHourlySeries = (anchorDate: string): OverallAnalysisRow[] => {
+// 整体分析 - 小时账单序列：选中天的选中小时及其前 23 个小时（按时间正序，末条为选中小时）
+const buildOverallHourlySeries = (anchorDate: string, anchorHour = 23): OverallAnalysisRow[] => {
     const [y, m, d] = anchorDate.split("-").map(Number);
     if (!y || !m || !d) return [];
     const rows: OverallAnalysisRow[] = [];
-    for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
-        const cur = new Date(y, m - 1, d - dayOffset);
+    for (let back = 23; back >= 0; back--) {
+        const cur = new Date(y, m - 1, d, anchorHour - back);
+        const yy = cur.getFullYear();
+        const mm = cur.getMonth() + 1;
+        const dd = cur.getDate();
+        const hh = cur.getHours();
+        rows.push(
+            buildOverallRow(
+                rows.length + 1,
+                `${yy}${pad2(mm)}${pad2(dd)} ${pad2(hh)}:00`,
+                1 / (31 * 24),
+                yy * 8928 + mm * 744 + dd * 24 + hh
+            )
+        );
+    }
+    return rows;
+};
+
+// 整体分析 - 报表：根据账单类型与账期取数据源（末条为选中账期，倒数第二条用于环比）
+const getOverallDataset = (billType: string, period: string, hour = 23) => {
+    if (billType === "day") return buildOverallDailySeries(period);
+    if (billType === "hour") return buildOverallHourlySeries(period, hour);
+    return buildOverallMonthlySeries(period);
+};
+
+// ===== 整体分析 - 趋势：时间区间数据源 =====
+
+// 趋势区间上限：月趋势最多 6 个月、日趋势最多 31 天、小时趋势最多 7 天（按天计）
+const OVERALL_TREND_LIMIT = { month: 6, day: 31, hour: 7 } as const;
+
+// 日期字符串（YYYY-MM-DD）与 Date 互转
+const parseDay = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return y && m && d ? new Date(y, m - 1, d) : null;
+};
+const formatDay = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const addDays = (s: string, n: number) => {
+    const d = parseDay(s);
+    if (!d) return s;
+    d.setDate(d.getDate() + n);
+    return formatDay(d);
+};
+// 含首尾的天数差
+const diffDays = (start: string, end: string) => {
+    const a = parseDay(start);
+    const b = parseDay(end);
+    if (!a || !b) return 0;
+    return Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
+};
+
+// 月字符串（YYYY-MM）工具
+const monthIndex = (s: string) => {
+    const [y, m] = s.split("-").map(Number);
+    return y && m ? y * 12 + (m - 1) : NaN;
+};
+const formatMonth = (idx: number) => `${Math.floor(idx / 12)}-${pad2((idx % 12) + 1)}`;
+const addMonths = (s: string, n: number) => {
+    const idx = monthIndex(s);
+    return Number.isNaN(idx) ? s : formatMonth(idx + n);
+};
+// 含首尾的月份数差
+const diffMonths = (start: string, end: string) => {
+    const a = monthIndex(start);
+    const b = monthIndex(end);
+    return Number.isNaN(a) || Number.isNaN(b) ? 0 : b - a + 1;
+};
+
+// 趋势 - 月区间序列（按时间正序）
+const buildOverallMonthRange = (start: string, end: string): OverallAnalysisRow[] => {
+    const total = diffMonths(start, end);
+    if (total <= 0) return [];
+    return Array.from({ length: Math.min(total, OVERALL_TREND_LIMIT.month) }, (_, idx) => {
+        const cur = formatMonth(monthIndex(start) + idx);
+        const [yy, mm] = cur.split("-").map(Number);
+        return buildOverallRow(idx + 1, `${yy}${pad2(mm)}`, 1, yy * 12 + mm);
+    });
+};
+
+// 趋势 - 日区间序列（按时间正序）
+const buildOverallDayRange = (start: string, end: string): OverallAnalysisRow[] => {
+    const total = diffDays(start, end);
+    if (total <= 0) return [];
+    return Array.from({ length: Math.min(total, OVERALL_TREND_LIMIT.day) }, (_, idx) => {
+        const cur = parseDay(addDays(start, idx))!;
+        const yy = cur.getFullYear();
+        const mm = cur.getMonth() + 1;
+        const dd = cur.getDate();
+        return buildOverallRow(idx + 1, `${yy}${pad2(mm)}${pad2(dd)}`, 1 / 31, yy * 372 + mm * 31 + dd);
+    });
+};
+
+// 趋势 - 小时区间序列（区间内每天 24 个点，按时间正序）
+const buildOverallHourRange = (start: string, end: string): OverallAnalysisRow[] => {
+    const total = diffDays(start, end);
+    if (total <= 0) return [];
+    const days = Math.min(total, OVERALL_TREND_LIMIT.hour);
+    const rows: OverallAnalysisRow[] = [];
+    for (let i = 0; i < days; i++) {
+        const cur = parseDay(addDays(start, i))!;
         const yy = cur.getFullYear();
         const mm = cur.getMonth() + 1;
         const dd = cur.getDate();
@@ -894,11 +1011,11 @@ const buildOverallHourlySeries = (anchorDate: string): OverallAnalysisRow[] => {
     return rows;
 };
 
-// 整体分析 - 根据账单类型与账期取数据源（图表/列表共用，按时间正序）
-const getOverallDataset = (billType: string, period: string) => {
-    if (billType === "day") return buildOverallDailySeries(period);
-    if (billType === "hour") return buildOverallHourlySeries(period);
-    return buildOverallMonthlySeries(period);
+// 趋势 - 根据账单类型与区间取数据源
+const getOverallTrendDataset = (billType: string, start: string, end: string) => {
+    if (billType === "day") return buildOverallDayRange(start, end);
+    if (billType === "hour") return buildOverallHourRange(start, end);
+    return buildOverallMonthRange(start, end);
 };
 
 // 整体分析 - 账期短标签（图表 X 轴展示）
@@ -909,6 +1026,1263 @@ const overallShortLabel = (period: string, billType: string) => {
     }
     if (billType === "day") return `${Number(period.slice(4, 6))}/${Number(period.slice(6, 8))}`;
     return `${Number(period.slice(0, 4))}/${Number(period.slice(4, 6))}`;
+};
+
+// 整体分析 - 账期 seed（与月/天/小时序列构造使用同一套 seed 规则，保证产品维度与整体合计同源）
+const overallPeriodSeed = (period: string, billType: string) => {
+    const y = Number(period.slice(0, 4));
+    const m = Number(period.slice(4, 6));
+    if (billType === "hour") {
+        const [datePart, timePart] = period.split(" ");
+        const dd = Number(datePart.slice(6, 8));
+        const h = Number((timePart ?? "00:00").slice(0, 2));
+        return y * 8928 + m * 744 + dd * 24 + h;
+    }
+    if (billType === "day") {
+        const dd = Number(period.slice(6, 8));
+        return y * 372 + m * 31 + dd;
+    }
+    return y * 12 + m;
+};
+
+// 整体分析 - 账期缩放比例（天/小时账单在月基准值上均摊）
+const overallPeriodScale = (billType: string) =>
+    billType === "day" ? 1 / 31 : billType === "hour" ? 1 / (31 * 24) : 1;
+
+// 整体分析 - 产品维度行（单个产品在选中账期的经营数据）
+interface OverallProductRow {
+    id: number;
+    productName: string;            // 产品名称（已去除英文标识后缀）
+    settlementUnit: string;         // 归属结算单元
+    totalRevenue: number;           // 总收入(元)
+    productCost: number;            // 总成本(元)
+    innerCost: number;              // 内部成本(元) = 总成本 - 外部成本
+    outerCost: number;              // 外部成本(元) = 外部收入
+    innerRevenue: number;           // 集团内收入(元)
+    outerRevenue: number;           // 集团外收入(元)
+    innerMargin: number;            // 内结毛利率(%)
+    outerMargin: number;            // 外部毛利率(%)
+    profit: number;                 // 收支差额(元) = 总收入 - 总成本
+}
+
+// 整体分析 - 按账期构造产品维度数据
+// 构造逻辑：各产品先在「产品分析」基准值上做稳定伪随机波动，再按整体合计值等比归一化，
+// 因此「产品明细求和」严格等于顶部整体指标卡数值，也与趋势图同一账期的点位一致。
+const buildOverallProductRows = (period: string, billType: string): OverallProductRow[] => {
+    const seed = overallPeriodSeed(period, billType);
+    const total = buildOverallRow(0, period, overallPeriodScale(billType), seed);
+
+    const raw = productAnalysisData.map((p, idx) => {
+        const rw = 0.82 + overallWave(seed + (idx + 1) * 13) * 0.38;   // 收入波动
+        const cw = 0.85 + overallWave(seed + (idx + 1) * 29) * 0.34;   // 成本波动
+        return {
+            source: p,
+            revenue: p.totalRevenue * rw,
+            inner: p.innerRevenue * rw,
+            outer: p.outerRevenue * rw,
+            outerInnerPrice: p.outerInnerPriceRevenue * rw,
+            innerTotal: p.innerTotalRevenue * rw,
+            cost: p.productCost * cw,
+        };
+    });
+
+    const sumOf = (pick: (r: (typeof raw)[number]) => number) => raw.reduce((acc, r) => acc + pick(r), 0);
+    const sums = {
+        revenue: sumOf((r) => r.revenue),
+        inner: sumOf((r) => r.inner),
+        outer: sumOf((r) => r.outer),
+        outerInnerPrice: sumOf((r) => r.outerInnerPrice),
+        innerTotal: sumOf((r) => r.innerTotal),
+        cost: sumOf((r) => r.cost),
+    };
+    // 等比归一化到整体合计值
+    const norm = (v: number, sum: number, target: number) => (sum === 0 ? 0 : (v / sum) * target);
+
+    return raw.map((r, idx) => {
+        const innerRevenue = norm(r.inner, sums.inner, total.innerRevenue);
+        const outerRevenue = norm(r.outer, sums.outer, total.outerRevenue);
+        const totalRevenue = innerRevenue + outerRevenue; // 总收入 = 集团内收入 + 集团外收入
+        const outerInnerPrice = norm(r.outerInnerPrice, sums.outerInnerPrice, total.outerInnerPriceRevenue);
+        const innerTotalRevenue = norm(r.innerTotal, sums.innerTotal, total.innerTotalRevenue);
+        const productCost = norm(r.cost, sums.cost, total.productCost);
+        const outerCost = outerRevenue;             // 外部成本(元) = 外部收入
+        const innerCost = productCost - outerCost;  // 内部成本(元) = 总成本 - 外部成本
+        const innerProfit = innerTotalRevenue - productCost;
+        const outerProfit = outerRevenue - outerInnerPrice;
+        return {
+            id: idx + 1,
+            productName: cleanProductName(r.source.productName),
+            settlementUnit: r.source.settlementUnit,
+            totalRevenue,
+            productCost,
+            innerCost,
+            outerCost,
+            innerRevenue,
+            outerRevenue,
+            innerMargin: innerTotalRevenue === 0 ? 0 : (innerProfit / innerTotalRevenue) * 100,
+            outerMargin: outerRevenue === 0 ? 0 : (outerProfit / outerRevenue) * 100,
+            profit: totalRevenue - productCost,
+        };
+    });
+};
+
+// 整体分析 - 产品数量概览
+// 收入产品：有收入；成本产品：有内部成本或外部成本
+// 盈利产品：内结毛利率 ≥ 0；亏损产品：内结毛利率 < 0
+// 异常产品：外部毛利率 < 0，或只有成本没有收入
+const buildOverallProductStats = (rows: OverallProductRow[]) => ({
+    revenueCount: rows.filter((r) => r.totalRevenue > 0).length,
+    costCount: rows.filter((r) => r.innerCost > 0 || r.outerCost > 0).length,
+    profitCount: rows.filter((r) => r.innerMargin >= 0).length,
+    lossCount: rows.filter((r) => r.innerMargin < 0).length,
+    abnormalCount: rows.filter((r) => r.outerMargin < 0 || (r.productCost > 0 && r.totalRevenue <= 0)).length,
+});
+
+// 整体分析 - 结算单元维度聚合行
+interface OverallUnitRow {
+    unit: string;                   // 结算单元名称
+    totalRevenue: number;           // 收入(元)
+    innerRevenue: number;           // 内部收入(元)
+    outerRevenue: number;           // 外部收入(元)
+    productCost: number;            // 成本(元)
+    innerCost: number;              // 内部成本(元)
+    outerCost: number;              // 外部成本(元)
+    profit: number;                 // 收支差额(元)
+    productCount: number;           // 关联产品数
+}
+
+// 整体分析 - 按结算单元聚合产品维度数据（按收入降序）
+const buildOverallUnitRows = (rows: OverallProductRow[]): OverallUnitRow[] => {
+    const map = new Map<string, OverallUnitRow>();
+    rows.forEach((r) => {
+        const cur =
+            map.get(r.settlementUnit) ??
+            {
+                unit: r.settlementUnit,
+                totalRevenue: 0,
+                innerRevenue: 0,
+                outerRevenue: 0,
+                productCost: 0,
+                innerCost: 0,
+                outerCost: 0,
+                profit: 0,
+                productCount: 0,
+            };
+        cur.totalRevenue += r.totalRevenue;
+        cur.innerRevenue += r.innerRevenue;
+        cur.outerRevenue += r.outerRevenue;
+        cur.productCost += r.productCost;
+        cur.innerCost += r.innerCost;
+        cur.outerCost += r.outerCost;
+        cur.productCount += 1;
+        map.set(r.settlementUnit, cur);
+    });
+    return Array.from(map.values())
+        .map((u) => ({ ...u, profit: u.totalRevenue - u.productCost }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue);
+};
+
+// 整体分析 - 结算单元数量概览
+const buildOverallUnitStats = (units: OverallUnitRow[]) => ({
+    revenueCount: units.filter((u) => u.totalRevenue > 0).length,
+    costCount: units.filter((u) => u.productCost > 0).length,
+    profitCount: units.filter((u) => u.profit > 0).length,
+    lossCount: units.filter((u) => u.profit < 0).length,
+});
+
+// ===== 整体分析 - 部门概览 =====
+// 一个部门可关联多个结算单元，部门经营数据 = 其关联的全部结算单元收入/成本求和
+interface OverallDeptConfig {
+    name: string;    // 部门名称
+    path: string;    // 部门在业务树中的层级路径
+    units: string[]; // 关联的结算单元
+}
+
+const overallDeptConfigs: OverallDeptConfig[] = [
+    { name: "应用平台部", path: "技术中台/智汇云/应用平台部", units: ["智汇云-应用平台部", "智汇云-应用平台部-视频云"] },
+    { name: "云平台部", path: "技术中台/智汇云/云平台部", units: ["智汇云-云平台部-弹性计算", "智汇云-云平台部-裸金属"] },
+    { name: "系统部", path: "技术中台/智汇云/系统部", units: ["智汇云-系统部-存储", "智汇云-系统部-大数据"] },
+    { name: "基础架构部", path: "技术中台/智汇云/基础架构部", units: ["智汇云-基础架构部-Serverless", "智汇云-基础架构部-中间件"] },
+    { name: "智能部", path: "技术中台/智汇云/智能部", units: ["智汇云-智能部"] },
+];
+
+interface OverallDeptMember {
+    unit: string;          // 结算单元名称
+    totalRevenue: number;  // 收入(元)
+    productCost: number;   // 成本(元)
+}
+
+interface OverallDeptRow {
+    name: string;
+    path: string;
+    members: OverallDeptMember[];
+    totalRevenue: number;  // 部门收入(元) = 各结算单元收入求和
+    innerRevenue: number;  // 部门内部收入(元)
+    outerRevenue: number;  // 部门外部收入(元)
+    productCost: number;   // 部门成本(元) = 各结算单元成本求和
+    innerCost: number;     // 部门内部成本(元)
+    outerCost: number;     // 部门外部成本(元)
+    profit: number;        // 收支差额(元)
+}
+
+// 注：部门聚合在组件内基于 overallUnitRows 计算（与「结算单元概览」同源、随账期联动）
+
+// 整体分析 - 部门数量概览
+const buildOverallDeptStats = (rows: OverallDeptRow[]) => ({
+    profitCount: rows.filter((d) => d.profit >= 0).length,
+    lossCount: rows.filter((d) => d.profit < 0).length,
+});
+
+// 整体分析 - 结算单元柱状图通用绘制（纯 SVG 实现）
+// 每个结算单元一组并排柱：主柱（深色）+ 次柱（浅色），分别代表内部/外部
+const OverallUnitSplitBarChart = ({
+    units,
+    primary,
+    secondary,
+    primaryLabel,
+    secondaryLabel,
+    primaryColor,
+    secondaryColor,
+    primaryTip,
+    secondaryTip,
+}: {
+    units: OverallUnitRow[];
+    primary: (u: OverallUnitRow) => number;
+    secondary: (u: OverallUnitRow) => number;
+    primaryLabel: string;
+    secondaryLabel: string;
+    primaryColor: string;
+    secondaryColor: string;
+    primaryTip: string;
+    secondaryTip: string;
+}) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+    const W = 960;
+    const H = 300;
+    const padL = 74;
+    const padR = 16;
+    const padT = 16;
+    const padB = 56;
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+
+    if (units.length === 0) {
+        return <div className="flex h-[300px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    // 复合（堆叠）柱：纵轴上限取「内部 + 外部」的合计
+    const maxVal = Math.max(...units.map((u) => primary(u) + secondary(u)), 1);
+    const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
+    const yMax = Math.ceil(maxVal / step) * step;
+    const yTicks = Array.from({ length: 5 }, (_, i) => (yMax / 4) * i);
+
+    const bandW = innerW / units.length;
+    const barW = Math.min(36, bandW * 0.46);   // 复合柱宽（每个结算单元一根）
+    const yOf = (v: number) => padT + innerH - (v / yMax) * innerH;
+    const hOf = (v: number) => (v / yMax) * innerH;   // 数值 → 段高
+
+    return (
+        <div className="relative">
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+                {/* 横向网格线与左侧金额刻度 */}
+                {yTicks.map((t, i) => (
+                    <g key={i}>
+                        <line x1={padL} y1={yOf(t)} x2={W - padR} y2={yOf(t)} stroke="#f1f5f9" strokeWidth={1} />
+                        <text x={padL - 8} y={yOf(t) + 4} textAnchor="end" className="fill-gray-400" style={{ fontSize: 11 }}>
+                            {formatWan(t)}
+                        </text>
+                    </g>
+                ))}
+                {/* X 轴 */}
+                <line x1={padL} y1={padT + innerH} x2={W - padR} y2={padT + innerH} stroke="#e5e7eb" strokeWidth={1} />
+
+                {units.map((u, idx) => {
+                    const cx = padL + bandW * idx + bandW / 2;
+                    const pv = primary(u);
+                    const sv = secondary(u);
+                    const total = pv + sv;
+                    const baseY = padT + innerH;
+                    const pH = hOf(pv);   // 下段（内部）高度
+                    const sH = hOf(sv);   // 上段（外部）高度
+                    return (
+                        <g
+                            key={u.unit}
+                            onMouseEnter={() => setActiveIndex(idx)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        >
+                            {/* hover 命中区 */}
+                            <rect x={cx - bandW / 2} y={padT} width={bandW} height={innerH} fill={activeIndex === idx ? "#f8fafc" : "transparent"} />
+                            {/* 下段：内部 */}
+                            <rect x={cx - barW / 2} y={baseY - pH} width={barW} height={pH} fill={primaryColor} opacity={0.9} />
+                            {/* 上段：外部（堆叠在内部之上，无间距直接紧贴）；有值时保留最小 2px 可见高度 */}
+                            {sv > 0 && <rect x={cx - barW / 2} y={baseY - pH - Math.max(sH, 2)} width={barW} height={Math.max(sH, 2)} rx={2} fill={secondaryColor} opacity={0.9} />}
+                            {/* 柱顶合计 */}
+                            {total > 0 && (
+                                <text x={cx} y={baseY - pH - sH - 6} textAnchor="middle" className="fill-gray-600" style={{ fontSize: 11 }}>
+                                    {formatWan(total)}
+                                </text>
+                            )}
+                            {/* X 轴结算单元名称（过长换行展示） */}
+                            <text x={cx} y={padT + innerH + 18} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
+                                {u.unit.length > 8 ? u.unit.slice(0, 8) : u.unit}
+                            </text>
+                            {u.unit.length > 8 && (
+                                <text x={cx} y={padT + innerH + 32} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
+                                    {u.unit.slice(8)}
+                                </text>
+                            )}
+                        </g>
+                    );
+                })}
+            </svg>
+
+            {/* 图例 */}
+            <div className="mt-1 flex items-center justify-center gap-5">
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm" style={{ background: primaryColor }} />{primaryLabel}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm" style={{ background: secondaryColor }} />{secondaryLabel}
+                </span>
+            </div>
+
+            {/* hover 详情 */}
+            {activeIndex !== null && units[activeIndex] && (
+                <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded bg-gray-700 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg">
+                    <div className="font-medium">{units[activeIndex].unit}</div>
+                    <div>{primaryLabel}：{formatExactAmount(primary(units[activeIndex]))}</div>
+                    <div>{secondaryLabel}：{formatExactAmount(secondary(units[activeIndex]))}</div>
+                    <div className="mt-0.5 border-t border-white/20 pt-0.5">
+                        合计：{formatExactAmount(primary(units[activeIndex]) + secondary(units[activeIndex]))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// 整体分析 - 部门「收入 vs 成本」分组柱状图（与结算单元版本结构一致，数据源换为 OverallDeptRow）
+const OverallDeptRevenueCostBarChart = ({ depts }: { depts: OverallDeptRow[] }) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+    const W = 960;
+    const H = 300;
+    const padL = 74;
+    const padR = 16;
+    const padT = 28;
+    const padB = 64;
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+    const LABEL_MIN_GAP = 13;
+
+    if (depts.length === 0) {
+        return <div className="flex h-[300px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    const maxVal = Math.max(
+        ...depts.map((d) => d.innerRevenue + d.outerRevenue),
+        ...depts.map((d) => d.innerCost + d.outerCost),
+        1
+    );
+    const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
+    const yMax = Math.ceil(maxVal / step) * step;
+    const yTicks = Array.from({ length: 5 }, (_, i) => (yMax / 4) * i);
+
+    const balances = depts.map((d) => d.innerRevenue + d.outerRevenue - d.innerCost - d.outerCost);
+    const maxBalance = Math.max(...balances);
+    const bestIndex = maxBalance > 0 ? balances.indexOf(maxBalance) : -1;
+
+    const bandW = innerW / depts.length;
+    const groupGap = Math.min(8, bandW * 0.12);
+    const barW = Math.min(24, (bandW - groupGap * 2) / 2 - 2);
+    const showBarLabels = bandW >= 60;
+    const yOf = (v: number) => padT + innerH - (v / yMax) * innerH;
+    const hOf = (v: number) => Math.max(0, (v / yMax) * innerH);
+
+    return (
+        <div className="relative">
+            {/* 图例 */}
+            <div className="mb-2 flex flex-wrap items-center gap-5 px-1">
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#3b82f6]" />内部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#93c5fd]" />外部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#f97316]" />内部成本
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#fdba74]" />外部成本
+                </span>
+            </div>
+
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+                {/* 横向网格线 + 左侧刻度 */}
+                {yTicks.map((t, i) => (
+                    <g key={i}>
+                        <line x1={padL} y1={yOf(t)} x2={W - padR} y2={yOf(t)} stroke="#f1f5f9" strokeWidth={1} />
+                        <text x={padL - 8} y={yOf(t) + 4} textAnchor="end" className="fill-gray-400" style={{ fontSize: 11 }}>
+                            {formatWan(t)}
+                        </text>
+                    </g>
+                ))}
+                {/* X 轴 */}
+                <line x1={padL} y1={padT + innerH} x2={W - padR} y2={padT + innerH} stroke="#e5e7eb" strokeWidth={1} />
+
+                {depts.map((d, idx) => {
+                    const cx = padL + bandW * idx + bandW / 2;
+                    // 收入柱（左）
+                    const revInner = d.innerRevenue;
+                    const revOuter = d.outerRevenue;
+                    const revTotal = revInner + revOuter;
+                    const revIH = hOf(revInner);
+                    const revOH = hOf(revOuter);
+                    const revBaseY = padT + innerH;
+                    const revCx = cx - barW / 2 - groupGap / 2;
+
+                    // 成本柱（右）
+                    const costInner = d.innerCost;
+                    const costOuter = d.outerCost;
+                    const costTotal = costInner + costOuter;
+                    const costIH = hOf(costInner);
+                    const costOH = hOf(costOuter);
+                    const costCx = cx + barW / 2 + groupGap / 2;
+
+                    // 柱顶数值标签防重叠
+                    const revTopY = revBaseY - revIH - revOH;
+                    const costTopY = revBaseY - costIH - costOH;
+                    let revLabelY = revTopY - 5;
+                    let costLabelY = costTopY - 5;
+                    if (Math.abs(revLabelY - costLabelY) < LABEL_MIN_GAP) {
+                        const topY = Math.min(revLabelY, costLabelY);
+                        revLabelY = topY - LABEL_MIN_GAP;
+                        costLabelY = topY;
+                    }
+
+                    return (
+                        <g
+                            key={d.name}
+                            onMouseEnter={() => setActiveIndex(idx)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        >
+                            {/* hover 命中区 */}
+                            <rect x={cx - bandW / 2} y={padT} width={bandW} height={innerH} fill={activeIndex === idx ? "#f8fafc" : "transparent"} />
+
+                            {/* 收入柱：下段内部，上段外部；外部段极小时保留最小 2px 可见高度 */}
+                            <rect x={revCx - barW / 2} y={revBaseY - revIH} width={barW} height={revIH} fill="#3b82f6" opacity={0.9} />
+                            {revOuter > 0 && <rect x={revCx - barW / 2} y={revBaseY - revIH - Math.max(revOH, 2)} width={barW} height={Math.max(revOH, 2)} rx={2} fill="#93c5fd" opacity={0.9} />}
+                            {showBarLabels && revTotal > 0 && (
+                                <text x={revCx} y={revLabelY} textAnchor="middle" fill="#2563eb" style={{ fontSize: 10 }}>
+                                    {formatWan(revTotal)}
+                                </text>
+                            )}
+
+                            {/* 成本柱：下段内部，上段外部 */}
+                            <rect x={costCx - barW / 2} y={revBaseY - costIH} width={barW} height={costIH} fill="#f97316" opacity={0.9} />
+                            <rect x={costCx - barW / 2} y={revBaseY - costIH - costOH} width={barW} height={costOH} rx={2} fill="#fdba74" opacity={0.9} />
+                            {showBarLabels && costTotal > 0 && (
+                                <text x={costCx} y={costLabelY} textAnchor="middle" fill="#ea580c" style={{ fontSize: 10 }}>
+                                    {formatWan(costTotal)}
+                                </text>
+                            )}
+
+                            {/* X 轴部门名称 */}
+                            <text x={cx} y={padT + innerH + 16} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
+                                {d.name.length > 6 ? d.name.slice(0, 6) : d.name}
+                            </text>
+                            {d.name.length > 6 && (
+                                <text x={cx} y={padT + innerH + 29} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
+                                    {d.name.slice(6)}
+                                </text>
+                            )}
+
+                            {/* 盈亏标记 */}
+                            <text
+                                x={cx}
+                                y={padT + innerH + (d.name.length > 6 ? 42 : 29)}
+                                textAnchor="middle"
+                                fill={balances[idx] >= 0 ? "#16a34a" : "#ef4444"}
+                                style={{ fontSize: 10 }}
+                            >
+                                {balances[idx] >= 0 ? "盈利" : "亏损"}
+                            </text>
+
+                            {/* 毛利最高标注 */}
+                            {idx === bestIndex && (
+                                <text
+                                    x={cx}
+                                    y={padT + innerH + (d.name.length > 6 ? 55 : 42)}
+                                    textAnchor="middle"
+                                    fill="#f59e0b"
+                                    style={{ fontSize: 10, fontWeight: 600 }}
+                                >
+                                    ★ 毛利最高
+                                </text>
+                            )}
+                        </g>
+                    );
+                })}
+            </svg>
+
+            {/* hover 详情 tooltip */}
+            {activeIndex !== null && depts[activeIndex] && (() => {
+                const d = depts[activeIndex];
+                const revTotal = d.innerRevenue + d.outerRevenue;
+                const costTotal = d.innerCost + d.outerCost;
+                const balance = revTotal - costTotal;
+                return (
+                    <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded bg-gray-700 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg z-20">
+                        <div className="font-medium mb-0.5">{d.name}</div>
+                        <div className="border-b border-white/20 pb-1 mb-1">
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#3b82f6] mr-1 align-middle" />内部收入：{formatExactAmount(d.innerRevenue)}
+                        </div>
+                        <div>
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#93c5fd] mr-1 align-middle" />外部收入：{formatExactAmount(d.outerRevenue)}
+                        </div>
+                        <div className="mt-0.5 border-t border-white/20 pt-0.5">收入合计：{formatExactAmount(revTotal)}</div>
+                        <div className="mt-1 border-t border-white/20 pt-1">
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#f97316] mr-1 align-middle" />内部成本：{formatExactAmount(d.innerCost)}
+                        </div>
+                        <div>
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#fdba74] mr-1 align-middle" />外部成本：{formatExactAmount(d.outerCost)}
+                        </div>
+                        <div className="mt-0.5 border-t border-white/20 pt-0.5">成本合计：{formatExactAmount(costTotal)}</div>
+                        <div className="mt-1 border-t border-white/30 pt-1">
+                            收支差：
+                            <span className={balance >= 0 ? "text-green-300" : "text-red-300"}>
+                                {balance < 0 ? "-" : ""}{formatExactAmount(Math.abs(balance))}
+                            </span>
+                        </div>
+                        {d.members.length > 0 && (
+                            <div className="mt-1 border-t border-white/20 pt-1 text-[11px] text-white/70">
+                                关联结算单元：{d.members.map((m) => m.unit).join("、")}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+        </div>
+    );
+};
+
+// 整体分析 - 结算单元收入柱状图（内部收入 / 外部收入）
+const OverallUnitRevenueBarChart = ({ units }: { units: OverallUnitRow[] }) => (
+    <OverallUnitSplitBarChart
+        units={units}
+        primary={(u) => u.innerRevenue}
+        secondary={(u) => u.outerRevenue}
+        primaryLabel="内部收入"
+        secondaryLabel="外部收入"
+        primaryColor="#3b82f6"
+        secondaryColor="#93c5fd"
+        primaryTip="内部收入"
+        secondaryTip="外部收入"
+    />
+);
+
+// 整体分析 - 结算单元成本柱状图（内部成本 / 外部成本）
+const OverallUnitCostBarChart = ({ units }: { units: OverallUnitRow[] }) => (
+    <OverallUnitSplitBarChart
+        units={units}
+        primary={(u) => u.innerCost}
+        secondary={(u) => u.outerCost}
+        primaryLabel="内部成本"
+        secondaryLabel="外部成本"
+        primaryColor="#f97316"
+        secondaryColor="#fdba74"
+        primaryTip="内部成本"
+        secondaryTip="外部成本"
+    />
+);
+
+// 整体分析 - 通用收入/成本分布饼图（支持 OverallUnitRow 和 OverallDeptRow）
+interface PieChartItem {
+    name: string;
+    totalRevenue: number;
+    productCost: number;
+}
+
+const OverallPieChart = ({
+    items,
+    valueKey,
+    title,
+    color,
+}: {
+    items: PieChartItem[];
+    valueKey: "totalRevenue" | "productCost";
+    title: string;
+    color: string;
+}) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+    const PIE_COLORS = [
+        "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+        "#06b6d4", "#f97316", "#84cc16", "#ec4899", "#6366f1",
+    ];
+
+    const data = items
+        .map((u, i) => ({ unit: u.name, value: u[valueKey], color: PIE_COLORS[i % PIE_COLORS.length] }))
+        .filter((d) => d.value > 0);
+
+    if (data.length === 0) {
+        return <div className="flex h-[180px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    const total = data.reduce((s, d) => s + d.value, 0);
+    const CX = 80, CY = 80, R = 68, IR = 34;
+
+    // 计算各扇形起止角度
+    let cursor = -Math.PI / 2;
+    const slices = data.map((d) => {
+        const angle = (d.value / total) * 2 * Math.PI;
+        const start = cursor;
+        cursor += angle;
+        return { ...d, start, end: cursor, angle };
+    });
+
+    const arc = (cx: number, cy: number, r: number, start: number, end: number, inner: number) => {
+        const cos1 = Math.cos(start), sin1 = Math.sin(start);
+        const cos2 = Math.cos(end), sin2 = Math.sin(end);
+        const large = end - start > Math.PI ? 1 : 0;
+        return [
+            `M ${cx + inner * cos1} ${cy + inner * sin1}`,
+            `L ${cx + r * cos1} ${cy + r * sin1}`,
+            `A ${r} ${r} 0 ${large} 1 ${cx + r * cos2} ${cy + r * sin2}`,
+            `L ${cx + inner * cos2} ${cy + inner * sin2}`,
+            `A ${inner} ${inner} 0 ${large} 0 ${cx + inner * cos1} ${cy + inner * sin1}`,
+            "Z",
+        ].join(" ");
+    };
+
+    return (
+        <div>
+            <div className="mb-1 text-[12px] font-medium text-gray-600">{title}</div>
+            <div className="flex items-center gap-3">
+                {/* 饼图 SVG */}
+                <svg viewBox="0 0 160 160" className="flex-shrink-0" style={{ width: 150, height: 150 }}>
+                    {slices.map((s, i) => {
+                        const isActive = activeIndex === i;
+                        const mid = (s.start + s.end) / 2;
+                        const ox = isActive ? Math.cos(mid) * 5 : 0;
+                        const oy = isActive ? Math.sin(mid) * 5 : 0;
+                        return (
+                            <path
+                                key={s.unit}
+                                d={arc(CX + ox, CY + oy, R, s.start, s.end, IR)}
+                                fill={s.color}
+                                opacity={activeIndex === null || isActive ? 1 : 0.55}
+                                stroke="#fff"
+                                strokeWidth={1.5}
+                                style={{ cursor: "pointer", transition: "transform 0.15s" }}
+                                onMouseEnter={() => setActiveIndex(i)}
+                                onMouseLeave={() => setActiveIndex(null)}
+                            />
+                        );
+                    })}
+                    {/* 中间显示 hover 占比，默认显示合计金额 */}
+                    <text x={CX} y={CY - 5} textAnchor="middle" style={{ fontSize: 10, fill: "#6b7280" }}>
+                        {activeIndex !== null
+                            ? data[activeIndex].unit.replace(/^智汇云-/, "").slice(0, 7)
+                            : "合计"}
+                    </text>
+                    <text x={CX} y={CY + 11} textAnchor="middle" style={{ fontSize: 12, fontWeight: 600, fill: "#111827" }}>
+                        {activeIndex !== null
+                            ? `${((data[activeIndex].value / total) * 100).toFixed(1)}%`
+                            : formatWan(total)}
+                    </text>
+                </svg>
+                {/* 图例 */}
+                <div className="flex flex-1 min-w-0 flex-col justify-center gap-[3px] pr-1">
+                    {slices.map((s, i) => (
+                        <div
+                            key={s.unit}
+                            className="flex items-center gap-1.5 cursor-pointer"
+                            onMouseEnter={() => setActiveIndex(i)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        >
+                            <span className="flex-shrink-0 inline-block w-2.5 h-2.5 rounded-sm" style={{ background: s.color, opacity: activeIndex === null || activeIndex === i ? 1 : 0.4 }} />
+                            <span className="text-[11px] text-gray-600 truncate leading-tight" title={s.unit}>
+                                {s.unit.replace(/^智汇云-/, "").replace(/^基础架构部-/, "")}
+                            </span>
+                            <span className="ml-auto flex-shrink-0 text-[11px] text-gray-500 font-medium">
+                                {((s.value / total) * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// 整体分析 - 结算单元收入/成本分布饼图（兼容旧引用）
+const OverallUnitPieChart = ({
+    units,
+    valueKey,
+    title,
+    color,
+}: {
+    units: OverallUnitRow[];
+    valueKey: "totalRevenue" | "productCost";
+    title: string;
+    color: string;
+}) => (
+    <OverallPieChart
+        items={units.map((u) => ({ name: u.unit, totalRevenue: u.totalRevenue, productCost: u.productCost }))}
+        valueKey={valueKey}
+        title={title}
+        color={color}
+    />
+);
+
+// 整体分析 - 部门收入/成本分布饼图
+const OverallDeptPieChart = ({
+    depts,
+    valueKey,
+    title,
+    color,
+}: {
+    depts: OverallDeptRow[];
+    valueKey: "totalRevenue" | "productCost";
+    title: string;
+    color: string;
+}) => (
+    <OverallPieChart
+        items={depts.map((d) => ({ name: d.name, totalRevenue: d.totalRevenue, productCost: d.productCost }))}
+        valueKey={valueKey}
+        title={title}
+        color={color}
+    />
+);
+
+// 整体分析 - 结算单元横向柱状图（Y 轴为结算单元名称，X 轴为金额；每个结算单元一组并排两根堆叠柱）
+const OverallUnitHorizontalBarChart = ({ units }: { units: OverallUnitRow[] }) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+    const ROW_H = 62;       // 每行高度（加高，给结算单元名称折行留空间）
+    const padL = 152;       // 左侧 Y 轴标签宽度（稍宽，支持折行）
+    const padR = 76;        // 右侧留白（数值标签）
+    const padT = 8;
+    const padB = 34;        // 底部 X 轴刻度
+    const barGroup = 32;    // 每组两根柱总高
+    const barH = 14;        // 每根柱高
+    const innerH = units.length * ROW_H;
+    const W = 580;
+    const H = padT + innerH + padB;
+
+    if (units.length === 0) {
+        return <div className="flex h-[200px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    const maxVal = Math.max(
+        ...units.map((u) => u.innerRevenue + u.outerRevenue),
+        ...units.map((u) => u.innerCost + u.outerCost),
+        1
+    );
+    const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
+    const xMax = Math.ceil(maxVal / step) * step;
+    const xTicks = Array.from({ length: 5 }, (_, i) => (xMax / 4) * i);
+
+    const xOf = (v: number) => padL + (v / xMax) * (W - padL - padR);
+    const wOf = (v: number) => Math.max(0, (v / xMax) * (W - padL - padR));
+
+    const balances = units.map((u) => u.innerRevenue + u.outerRevenue - u.innerCost - u.outerCost);
+    const maxBalance = Math.max(...balances);
+    const bestIndex = maxBalance > 0 ? balances.indexOf(maxBalance) : -1;
+
+    return (
+        <div className="relative overflow-x-auto">
+            <div className="mb-2 flex flex-wrap items-center gap-4 px-1">
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#3b82f6]" />内部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#93c5fd]" />外部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#f97316]" />内部成本
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#fdba74]" />外部成本
+                </span>
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+                {/* 纵向网格线 + X 轴刻度 */}
+                {xTicks.map((t, i) => (
+                    <g key={i}>
+                        <line x1={xOf(t)} y1={padT} x2={xOf(t)} y2={padT + innerH} stroke="#f1f5f9" strokeWidth={1} />
+                        <text x={xOf(t)} y={padT + innerH + 16} textAnchor="middle" className="fill-gray-400" style={{ fontSize: 10 }}>
+                            {formatWan(t)}
+                        </text>
+                    </g>
+                ))}
+                {/* Y 轴基线 */}
+                <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} stroke="#e5e7eb" strokeWidth={1} />
+
+                {units.map((u, idx) => {
+                    const rowY = padT + idx * ROW_H;
+                    const midY = rowY + ROW_H / 2;
+                    const revY = midY - barGroup / 2;
+                    const costY = midY + barGroup / 2 - barH;
+
+                    const revInnerW = wOf(u.innerRevenue);
+                    const revOuterW = wOf(u.outerRevenue);
+                    const costInnerW = wOf(u.innerCost);
+                    const costOuterW = wOf(u.outerCost);
+                    const revTotal = u.innerRevenue + u.outerRevenue;
+                    const costTotal = u.innerCost + u.outerCost;
+
+                    return (
+                        <g
+                            key={u.unit}
+                            onMouseEnter={() => setActiveIndex(idx)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        >
+                            {/* hover 命中区 */}
+                            <rect x={0} y={rowY} width={W} height={ROW_H} fill={activeIndex === idx ? "#f8fafc" : "transparent"} />
+
+                            {/* Y 轴标签（结算单元名称，最多两行折行） */}
+                            {(() => {
+                                const label = u.unit.replace(/^智汇云-/, "");
+                                const maxLen = 9;
+                                if (label.length <= maxLen) {
+                                    return (
+                                        <text x={padL - 8} y={midY + 4} textAnchor="end" className="fill-gray-600" style={{ fontSize: 11 }}>
+                                            {label}
+                                        </text>
+                                    );
+                                }
+                                const line1 = label.slice(0, maxLen);
+                                const line2 = label.slice(maxLen, maxLen * 2);
+                                return (
+                                    <g>
+                                        <text x={padL - 8} y={midY - 4} textAnchor="end" className="fill-gray-600" style={{ fontSize: 11 }}>{line1}</text>
+                                        <text x={padL - 8} y={midY + 10} textAnchor="end" className="fill-gray-600" style={{ fontSize: 11 }}>{line2}{label.length > maxLen * 2 ? "…" : ""}</text>
+                                    </g>
+                                );
+                            })()}
+
+                            {/* 收入柱（上）：内部在左，外部在右（堆叠）；外部段极小时保留最小 2px 可见宽度 */}
+                            <rect x={padL + 2} y={revY} width={Math.max(revInnerW - 2, 0)} height={barH} fill="#3b82f6" opacity={0.9} rx={2} />
+                            {u.outerRevenue > 0 && <rect x={padL + revInnerW + 2} y={revY} width={Math.max(revOuterW - 2, 2)} height={barH} fill="#93c5fd" opacity={0.9} rx={2} />}
+                            {revTotal > 0 && (
+                                <text x={padL + revInnerW + revOuterW + 6} y={revY + barH - 1} className="fill-gray-500" style={{ fontSize: 10 }}>
+                                    {formatWan(revTotal)}
+                                </text>
+                            )}
+
+                            {/* 成本柱（下）：内部在左，外部在右（堆叠）；外部段极小时保留最小 2px 可见宽度 */}
+                            <rect x={padL + 2} y={costY} width={Math.max(costInnerW - 2, 0)} height={barH} fill="#f97316" opacity={0.9} rx={2} />
+                            {u.outerCost > 0 && <rect x={padL + costInnerW + 2} y={costY} width={Math.max(costOuterW - 2, 2)} height={barH} fill="#fdba74" opacity={0.9} rx={2} />}
+                            {costTotal > 0 && (
+                                <text x={padL + costInnerW + costOuterW + 6} y={costY + barH - 1} className="fill-gray-500" style={{ fontSize: 10 }}>
+                                    {formatWan(costTotal)}
+                                </text>
+                            )}
+
+                            {/* 盈亏标记 */}
+                            <text
+                                x={padL - 8}
+                                y={midY + 24}
+                                textAnchor="end"
+                                fill={balances[idx] >= 0 ? "#16a34a" : "#ef4444"}
+                                style={{ fontSize: 9 }}
+                            >
+                                {balances[idx] >= 0 ? "●盈利" : "●亏损"}
+                                {idx === bestIndex && <tspan fill="#f59e0b" fontWeight={600}> ★</tspan>}
+                            </text>
+                        </g>
+                    );
+                })}
+            </svg>
+
+            {/* hover 详情 */}
+            {activeIndex !== null && units[activeIndex] && (() => {
+                const u = units[activeIndex];
+                const revTotal = u.innerRevenue + u.outerRevenue;
+                const costTotal = u.innerCost + u.outerCost;
+                const balance = revTotal - costTotal;
+                return (
+                    <div className="pointer-events-none absolute right-0 top-8 min-w-[200px] rounded bg-gray-700 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg z-10">
+                        <div className="font-medium mb-0.5">{u.unit}</div>
+                        <div><span className="inline-block w-2 h-2 rounded-sm bg-[#3b82f6] mr-1 align-middle" />内部收入：{formatExactAmount(u.innerRevenue)}</div>
+                        <div><span className="inline-block w-2 h-2 rounded-sm bg-[#93c5fd] mr-1 align-middle" />外部收入：{formatExactAmount(u.outerRevenue)}</div>
+                        <div className="border-t border-white/20 mt-0.5 pt-0.5">收入合计：{formatExactAmount(revTotal)}</div>
+                        <div className="mt-1 border-t border-white/20 pt-1"><span className="inline-block w-2 h-2 rounded-sm bg-[#f97316] mr-1 align-middle" />内部成本：{formatExactAmount(u.innerCost)}</div>
+                        <div><span className="inline-block w-2 h-2 rounded-sm bg-[#fdba74] mr-1 align-middle" />外部成本：{formatExactAmount(u.outerCost)}</div>
+                        <div className="border-t border-white/20 mt-0.5 pt-0.5">成本合计：{formatExactAmount(costTotal)}</div>
+                        <div className="mt-1 border-t border-white/30 pt-1">
+                            收支差：<span className={balance >= 0 ? "text-green-300" : "text-red-300"}>{balance < 0 ? "-" : ""}{formatExactAmount(Math.abs(balance))}</span>
+                        </div>
+                    </div>
+                );
+            })()}
+        </div>
+    );
+};
+
+// 整体分析 - 部门横向柱状图（结构与结算单元版本完全一致，数据源换为 OverallDeptRow）
+const OverallDeptHorizontalBarChart = ({ depts }: { depts: OverallDeptRow[] }) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+    const ROW_H = 62;
+    const padL = 152;
+    const padR = 76;
+    const padT = 8;
+    const padB = 34;
+    const barGroup = 32;
+    const barH = 14;
+    const innerH = depts.length * ROW_H;
+    const W = 580;
+    const H = padT + innerH + padB;
+
+    if (depts.length === 0) {
+        return <div className="flex h-[200px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    const maxVal = Math.max(
+        ...depts.map((d) => d.innerRevenue + d.outerRevenue),
+        ...depts.map((d) => d.innerCost + d.outerCost),
+        1
+    );
+    const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
+    const xMax = Math.ceil(maxVal / step) * step;
+    const xTicks = Array.from({ length: 5 }, (_, i) => (xMax / 4) * i);
+
+    const xOf = (v: number) => padL + (v / xMax) * (W - padL - padR);
+    const wOf = (v: number) => Math.max(0, (v / xMax) * (W - padL - padR));
+
+    const balances = depts.map((d) => d.innerRevenue + d.outerRevenue - d.innerCost - d.outerCost);
+    const maxBalance = Math.max(...balances);
+    const bestIndex = maxBalance > 0 ? balances.indexOf(maxBalance) : -1;
+
+    return (
+        <div className="relative overflow-x-auto">
+            <div className="mb-2 flex flex-wrap items-center gap-4 px-1">
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#3b82f6]" />内部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#93c5fd]" />外部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#f97316]" />内部成本
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#fdba74]" />外部成本
+                </span>
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+                {/* 纵向网格线 + X 轴刻度 */}
+                {xTicks.map((t, i) => (
+                    <g key={i}>
+                        <line x1={xOf(t)} y1={padT} x2={xOf(t)} y2={padT + innerH} stroke="#f1f5f9" strokeWidth={1} />
+                        <text x={xOf(t)} y={padT + innerH + 16} textAnchor="middle" className="fill-gray-400" style={{ fontSize: 10 }}>
+                            {formatWan(t)}
+                        </text>
+                    </g>
+                ))}
+                {/* Y 轴基线 */}
+                <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} stroke="#e5e7eb" strokeWidth={1} />
+
+                {depts.map((d, idx) => {
+                    const rowY = padT + idx * ROW_H;
+                    const midY = rowY + ROW_H / 2;
+                    const revY = midY - barGroup / 2;
+                    const costY = midY + barGroup / 2 - barH;
+
+                    const revInnerW = wOf(d.innerRevenue);
+                    const revOuterW = wOf(d.outerRevenue);
+                    const costInnerW = wOf(d.innerCost);
+                    const costOuterW = wOf(d.outerCost);
+                    const revTotal = d.innerRevenue + d.outerRevenue;
+                    const costTotal = d.innerCost + d.outerCost;
+
+                    return (
+                        <g
+                            key={d.name}
+                            onMouseEnter={() => setActiveIndex(idx)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        >
+                            {/* hover 命中区 */}
+                            <rect x={0} y={rowY} width={W} height={ROW_H} fill={activeIndex === idx ? "#f8fafc" : "transparent"} />
+
+                            {/* Y 轴标签（部门名称） */}
+                            <text x={padL - 8} y={midY + 4} textAnchor="end" className="fill-gray-600" style={{ fontSize: 11 }}>
+                                {d.name}
+                            </text>
+
+                            {/* 收入柱（上）：内部在左，外部在右（堆叠）；外部段极小时保留最小 2px 可见宽度 */}
+                            <rect x={padL + 2} y={revY} width={Math.max(revInnerW - 2, 0)} height={barH} fill="#3b82f6" opacity={0.9} rx={2} />
+                            {d.outerRevenue > 0 && <rect x={padL + revInnerW + 2} y={revY} width={Math.max(revOuterW - 2, 2)} height={barH} fill="#93c5fd" opacity={0.9} rx={2} />}
+                            {revTotal > 0 && (
+                                <text x={padL + revInnerW + revOuterW + 6} y={revY + barH - 1} className="fill-gray-500" style={{ fontSize: 10 }}>
+                                    {formatWan(revTotal)}
+                                </text>
+                            )}
+
+                            {/* 成本柱（下）：内部在左，外部在右（堆叠）；外部段极小时保留最小 2px 可见宽度 */}
+                            <rect x={padL + 2} y={costY} width={Math.max(costInnerW - 2, 0)} height={barH} fill="#f97316" opacity={0.9} rx={2} />
+                            {d.outerCost > 0 && <rect x={padL + costInnerW + 2} y={costY} width={Math.max(costOuterW - 2, 2)} height={barH} fill="#fdba74" opacity={0.9} rx={2} />}
+                            {costTotal > 0 && (
+                                <text x={padL + costInnerW + costOuterW + 6} y={costY + barH - 1} className="fill-gray-500" style={{ fontSize: 10 }}>
+                                    {formatWan(costTotal)}
+                                </text>
+                            )}
+
+                            {/* 盈亏标记 */}
+                            <text
+                                x={padL - 8}
+                                y={midY + 24}
+                                textAnchor="end"
+                                fill={balances[idx] >= 0 ? "#16a34a" : "#ef4444"}
+                                style={{ fontSize: 9 }}
+                            >
+                                {balances[idx] >= 0 ? "●盈利" : "●亏损"}
+                                {idx === bestIndex && <tspan fill="#f59e0b" fontWeight={600}> ★</tspan>}
+                            </text>
+                        </g>
+                    );
+                })}
+            </svg>
+
+            {/* hover 详情 */}
+            {activeIndex !== null && depts[activeIndex] && (() => {
+                const d = depts[activeIndex];
+                const revTotal = d.innerRevenue + d.outerRevenue;
+                const costTotal = d.innerCost + d.outerCost;
+                const balance = revTotal - costTotal;
+                return (
+                    <div className="pointer-events-none absolute right-0 top-8 min-w-[200px] rounded bg-gray-700 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg z-10">
+                        <div className="font-medium mb-0.5">{d.name}</div>
+                        <div><span className="inline-block w-2 h-2 rounded-sm bg-[#3b82f6] mr-1 align-middle" />内部收入：{formatExactAmount(d.innerRevenue)}</div>
+                        <div><span className="inline-block w-2 h-2 rounded-sm bg-[#93c5fd] mr-1 align-middle" />外部收入：{formatExactAmount(d.outerRevenue)}</div>
+                        <div className="border-t border-white/20 mt-0.5 pt-0.5">收入合计：{formatExactAmount(revTotal)}</div>
+                        <div className="mt-1 border-t border-white/20 pt-1"><span className="inline-block w-2 h-2 rounded-sm bg-[#f97316] mr-1 align-middle" />内部成本：{formatExactAmount(d.innerCost)}</div>
+                        <div><span className="inline-block w-2 h-2 rounded-sm bg-[#fdba74] mr-1 align-middle" />外部成本：{formatExactAmount(d.outerCost)}</div>
+                        <div className="border-t border-white/20 mt-0.5 pt-0.5">成本合计：{formatExactAmount(costTotal)}</div>
+                        <div className="mt-1 border-t border-white/30 pt-1">
+                            收支差：<span className={balance >= 0 ? "text-green-300" : "text-red-300"}>{balance < 0 ? "-" : ""}{formatExactAmount(Math.abs(balance))}</span>
+                        </div>
+                        {d.members.length > 0 && (
+                            <div className="mt-1 border-t border-white/20 pt-1 text-[11px] text-white/70">
+                                关联结算单元：{d.members.map((m) => m.unit.replace(/^智汇云-/, "")).join("、")}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+        </div>
+    );
+};
+
+// 整体分析 - 结算单元「收入 vs 成本」分组柱状图（每个结算单元并排两根堆叠柱）
+const OverallUnitRevenueCostBarChart = ({ units }: { units: OverallUnitRow[] }) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+    const W = 960;
+    const H = 300;
+    const padL = 74;
+    const padR = 16;
+    const padT = 28; // 顶部留白：为柱顶数值标签上下错位预留空间
+    const padB = 78; // 底部留白：结算单元名称 + 盈亏标记 + 「毛利最高」标注
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+    // 收入 / 成本两个数值标签的最小垂直间距：两根柱高度接近时上下错开，避免数字重叠
+    const LABEL_MIN_GAP = 13;
+
+    if (units.length === 0) {
+        return <div className="flex h-[300px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    // Y 轴上限：取「收入合计」与「成本合计」中的最大值
+    const maxVal = Math.max(
+        ...units.map((u) => u.innerRevenue + u.outerRevenue),
+        ...units.map((u) => u.innerCost + u.outerCost),
+        1
+    );
+    const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
+    const yMax = Math.ceil(maxVal / step) * step;
+    const yTicks = Array.from({ length: 5 }, (_, i) => (yMax / 4) * i);
+
+    // 收支差 = 总收入 - 总成本：用于名称下方的盈利/亏损标记，并标出收支差最大（毛利金额最高）的结算单元
+    const balances = units.map((u) => u.innerRevenue + u.outerRevenue - u.innerCost - u.outerCost);
+    const maxBalance = Math.max(...balances);
+    const bestIndex = maxBalance > 0 ? balances.indexOf(maxBalance) : -1;
+
+    const bandW = innerW / units.length;
+    // 每组两根柱，留出间距
+    const groupGap = Math.min(8, bandW * 0.12);
+    const barW = Math.min(20, (bandW - groupGap * 2) / 2 - 2);
+    // 组宽过窄时相邻结算单元的数值会互相挤压，此时不展示柱顶数值（hover 提示中仍可查看）
+    const showBarLabels = bandW >= 46;
+    const yOf = (v: number) => padT + innerH - (v / yMax) * innerH;
+    const hOf = (v: number) => Math.max(0, (v / yMax) * innerH);
+
+    return (
+        <div className="relative">
+            {/* 图例 */}
+            <div className="mb-2 flex flex-wrap items-center gap-5 px-1">
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#3b82f6]" />内部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#93c5fd]" />外部收入
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#f97316]" />内部成本
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600">
+                    <span className="inline-block h-2.5 w-3.5 rounded-sm bg-[#fdba74]" />外部成本
+                </span>
+            </div>
+
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+                {/* 横向网格线 + 左侧刻度 */}
+                {yTicks.map((t, i) => (
+                    <g key={i}>
+                        <line x1={padL} y1={yOf(t)} x2={W - padR} y2={yOf(t)} stroke="#f1f5f9" strokeWidth={1} />
+                        <text x={padL - 8} y={yOf(t) + 4} textAnchor="end" className="fill-gray-400" style={{ fontSize: 11 }}>
+                            {formatWan(t)}
+                        </text>
+                    </g>
+                ))}
+                {/* X 轴 */}
+                <line x1={padL} y1={padT + innerH} x2={W - padR} y2={padT + innerH} stroke="#e5e7eb" strokeWidth={1} />
+
+                {units.map((u, idx) => {
+                    const cx = padL + bandW * idx + bandW / 2;
+                    // 收入柱（左）
+                    const revInner = u.innerRevenue;
+                    const revOuter = u.outerRevenue;
+                    const revTotal = revInner + revOuter;
+                    const revIH = hOf(revInner);
+                    const revOH = hOf(revOuter);
+                    const revBaseY = padT + innerH;
+                    const revCx = cx - barW / 2 - groupGap / 2;
+
+                    // 成本柱（右）
+                    const costInner = u.innerCost;
+                    const costOuter = u.outerCost;
+                    const costTotal = costInner + costOuter;
+                    const costIH = hOf(costInner);
+                    const costOH = hOf(costOuter);
+                    const costCx = cx + barW / 2 + groupGap / 2;
+
+                    // 柱顶数值标签位置：两根柱中心仅相距 barW + groupGap，数值宽度大于该间距，
+                    // 因此当两柱高度接近时把「收入」数值上移一行，与「成本」数值形成上下错位（颜色区分归属）
+                    const revTopY = revBaseY - revIH - revOH;
+                    const costTopY = revBaseY - costIH - costOH;
+                    let revLabelY = revTopY - 5;
+                    let costLabelY = costTopY - 5;
+                    if (Math.abs(revLabelY - costLabelY) < LABEL_MIN_GAP) {
+                        const topY = Math.min(revLabelY, costLabelY);
+                        revLabelY = topY - LABEL_MIN_GAP;
+                        costLabelY = topY;
+                    }
+
+                    return (
+                        <g
+                            key={u.unit}
+                            onMouseEnter={() => setActiveIndex(idx)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        >
+                            {/* hover 命中区 */}
+                            <rect x={cx - bandW / 2} y={padT} width={bandW} height={innerH} fill={activeIndex === idx ? "#f8fafc" : "transparent"} />
+
+                            {/* 收入柱：下段内部，上段外部；外部段极小时保留最小 2px 可见高度 */}
+                            <rect x={revCx - barW / 2} y={revBaseY - revIH} width={barW} height={revIH} fill="#3b82f6" opacity={0.9} />
+                            {revOuter > 0 && <rect x={revCx - barW / 2} y={revBaseY - revIH - Math.max(revOH, 2)} width={barW} height={Math.max(revOH, 2)} rx={2} fill="#93c5fd" opacity={0.9} />}
+                            {showBarLabels && revTotal > 0 && (
+                                <text x={revCx} y={revLabelY} textAnchor="middle" fill="#2563eb" style={{ fontSize: 10 }}>
+                                    {formatWan(revTotal)}
+                                </text>
+                            )}
+
+                            {/* 成本柱：下段内部，上段外部；外部段极小时保留最小 2px 可见高度 */}
+                            <rect x={costCx - barW / 2} y={revBaseY - costIH} width={barW} height={costIH} fill="#f97316" opacity={0.9} />
+                            {costOuter > 0 && <rect x={costCx - barW / 2} y={revBaseY - costIH - Math.max(costOH, 2)} width={barW} height={Math.max(costOH, 2)} rx={2} fill="#fdba74" opacity={0.9} />}
+                            {showBarLabels && costTotal > 0 && (
+                                <text x={costCx} y={costLabelY} textAnchor="middle" fill="#ea580c" style={{ fontSize: 10 }}>
+                                    {formatWan(costTotal)}
+                                </text>
+                            )}
+
+                            {/* X 轴结算单元名称 */}
+                            <text x={cx} y={padT + innerH + 18} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
+                                {u.unit.length > 8 ? u.unit.slice(0, 8) : u.unit}
+                            </text>
+                            {u.unit.length > 8 && (
+                                <text x={cx} y={padT + innerH + 32} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 11 }}>
+                                    {u.unit.slice(8)}
+                                </text>
+                            )}
+
+                            {/* 名称下方：盈利 / 亏损标记（只展示文案，不附带金额） */}
+                            <text
+                                x={cx}
+                                y={padT + innerH + (u.unit.length > 8 ? 46 : 32)}
+                                textAnchor="middle"
+                                fill={balances[idx] >= 0 ? "#16a34a" : "#ef4444"}
+                                style={{ fontSize: 10 }}
+                            >
+                                {balances[idx] >= 0 ? "盈利" : "亏损"}
+                            </text>
+
+                            {/* 收支差最大（毛利金额最高）的结算单元 */}
+                            {idx === bestIndex && (
+                                <text
+                                    x={cx}
+                                    y={padT + innerH + (u.unit.length > 8 ? 59 : 45)}
+                                    textAnchor="middle"
+                                    fill="#f59e0b"
+                                    style={{ fontSize: 10, fontWeight: 600 }}
+                                >
+                                    ★ 毛利最高
+                                </text>
+                            )}
+                        </g>
+                    );
+                })}
+            </svg>
+
+            {/* hover 详情 */}
+            {activeIndex !== null && units[activeIndex] && (() => {
+                const u = units[activeIndex];
+                const revTotal = u.innerRevenue + u.outerRevenue;
+                const costTotal = u.innerCost + u.outerCost;
+                const balance = revTotal - costTotal; // 收支差 = 总收入 - 总成本
+                return (
+                    <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded bg-gray-700 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg">
+                        <div className="font-medium">{u.unit}</div>
+                        <div className="mt-0.5 border-b border-white/20 pb-1 mb-1">
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#3b82f6] mr-1 align-middle" />内部收入：{formatExactAmount(u.innerRevenue)}
+                        </div>
+                        <div>
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#93c5fd] mr-1 align-middle" />外部收入：{formatExactAmount(u.outerRevenue)}
+                        </div>
+                        <div className="mt-0.5 border-t border-white/20 pt-0.5">收入合计：{formatExactAmount(revTotal)}</div>
+                        <div className="mt-1 border-t border-white/20 pt-1">
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#f97316] mr-1 align-middle" />内部成本：{formatExactAmount(u.innerCost)}
+                        </div>
+                        <div>
+                            <span className="inline-block w-2 h-2 rounded-sm bg-[#fdba74] mr-1 align-middle" />外部成本：{formatExactAmount(u.outerCost)}
+                        </div>
+                        <div className="mt-0.5 border-t border-white/20 pt-0.5">成本合计：{formatExactAmount(costTotal)}</div>
+                        {/* 收支差 = 总收入 - 总成本 */}
+                        <div className="mt-1 border-t border-white/30 pt-1">
+                            收支差：
+                            <span className={balance >= 0 ? "text-green-300" : "text-red-300"}>
+                                {balance < 0 ? "-" : ""}{formatExactAmount(Math.abs(balance))}
+                            </span>
+                        </div>
+                    </div>
+                );
+            })()}
+        </div>
+    );
 };
 
 // 整体分析 - 曲线图例项 key
@@ -2048,6 +3422,292 @@ const getBillMomChange = (current: number, last: number) => {
     return { pct: Math.abs((diff / last) * 100), up: diff > 0 };
 };
 
+// 整体分析 - 环比计算（金额类：相对变化百分比）
+const calcOverallMom = (current: number, last: number) => {
+    if (last === 0) return { pct: 0, up: false, valid: false };
+    const diff = current - last;
+    return { pct: Math.abs((diff / last) * 100), up: diff > 0, valid: true };
+};
+
+// 整体分析 - 环比计算（毛利率类：百分点差值）
+const calcMarginMom = (current: number, last: number) => {
+    const diff = current - last;
+    return { pct: Math.abs(diff), up: diff > 0 };
+};
+
+// 整体分析 - 环比徽标（金额类：相对百分比；毛利率类：百分点差值）
+const OverallMomBadge = ({
+    mom,
+    isMargin = false,
+}: {
+    mom: { pct: number; up: boolean; valid?: boolean };
+    isMargin?: boolean;
+}) => {
+    if (mom.valid === false) {
+        return <span className="text-[12px] text-gray-400">环比 -</span>;
+    }
+    const color = mom.up ? "text-red-500" : "text-green-600";
+    const arrow = mom.up ? "▲" : "▼";
+    const suffix = isMargin ? "pp" : "%";
+    return (
+        <span className={`inline-flex items-center gap-0.5 text-[12px] ${color}`}>
+            <span className="text-[10px] leading-none">{arrow}</span>
+            {mom.pct.toFixed(2)}
+            {suffix}
+        </span>
+    );
+};
+
+// 整体分析 - 指标卡片（金额类：hover 展示精确值 + 环比；毛利率类：展示百分比 + 环比百分点）
+const OverallMetricCard = ({
+    label,
+    value,
+    mom,
+    type = "amount",
+    valueClass = "text-blue-600",
+}: {
+    label: string;
+    value: number;
+    mom: { pct: number; up: boolean; valid?: boolean };
+    type?: "amount" | "margin";
+    valueClass?: string;
+}) => (
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="mb-2 text-sm text-gray-500">{label}</div>
+        <div className="flex items-end justify-between gap-2">
+            <span className={`group/amt relative inline-block text-2xl font-bold ${valueClass}`}>
+                {type === "margin" ? `${value.toFixed(2)}%` : formatWan(value)}
+                {type === "amount" && (
+                    <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                        {formatExactAmount(value)}
+                        <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                    </span>
+                )}
+            </span>
+            <OverallMomBadge mom={mom} isMargin={type === "margin"} />
+        </div>
+    </div>
+);
+
+// 整体分析 - 数量概览小卡（产品 / 结算单元数量统计，支持问号说明）
+const OverallCountCard = ({
+    label,
+    value,
+    valueClass = "text-gray-900",
+    tip,
+    onClick,
+}: {
+    label: string;
+    value: number;
+    valueClass?: string;
+    tip?: string;
+    onClick?: () => void;
+}) => (
+    <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-4 py-3">
+        <div className="flex items-center gap-1 text-[12px] leading-none text-gray-500">
+            <span>{label}</span>
+            {tip && (
+                <span className="group/tip relative inline-flex flex-shrink-0">
+                    <svg className="h-3.5 w-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 hidden w-[220px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                        {tip}
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                    </span>
+                </span>
+            )}
+        </div>
+        <div
+            onClick={onClick}
+            className={`mt-1.5 text-[22px] font-semibold leading-none ${valueClass} ${
+                onClick ? "cursor-pointer hover:opacity-80" : ""
+            }`}
+        >
+            {value}
+        </div>
+    </div>
+);
+
+// 整体分析 - 数量概览合并小卡（两个数量指标合并展示在一个卡片内，中间以竖线「|」分隔）
+const OverallCountPairCard = ({
+    title,
+    items,
+}: {
+    title?: string;
+    items: { label: string; value: number; valueClass?: string; tip?: string; onClick?: () => void }[];
+}) => (
+    <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-4 py-3">
+        {title && <div className="mb-2 text-[12px] leading-none text-gray-500">{title}</div>}
+        <div className="flex items-center divide-x divide-gray-200">
+            {items.map((it, idx) => (
+                <div key={it.label} className={`${idx === 0 ? "pr-4" : "pl-4"} min-w-0 flex-1`}>
+                    <div className="flex items-center gap-1 text-[12px] leading-none text-gray-500">
+                        <span>{it.label}</span>
+                        {it.tip && (
+                            <span className="group/tip relative inline-flex flex-shrink-0">
+                                <svg className="h-3.5 w-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 hidden w-[220px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                    {it.tip}
+                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                </span>
+                            </span>
+                        )}
+                    </div>
+                    <div
+                        onClick={it.onClick}
+                        className={`mt-1.5 text-[22px] font-semibold leading-none ${it.valueClass ?? "text-gray-900"} ${
+                            it.onClick ? "cursor-pointer hover:opacity-80" : ""
+                        }`}
+                    >
+                        {it.value}
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+// 整体分析 - 问号提示图标（复用样式）
+const OverallTipIcon = ({ tip }: { tip: string }) => (
+    <span className="group/tip relative inline-flex flex-shrink-0">
+        <svg className="h-3.5 w-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+            {tip}
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+        </span>
+    </span>
+);
+
+// 整体分析 - 横向柱状图卡片（金额 + 分组横向柱状图 + 提示说明）
+const OverallHorizontalBarCard = ({
+    label,
+    tip,
+    value,
+    mom,
+    items,
+    valueClass = "text-blue-600",
+}: {
+    label: string;
+    tip: string;
+    value: number;
+    mom: { pct: number; up: boolean; valid?: boolean };
+    items: { label: string; value: number; color: string; tip?: string; mom?: { pct: number; up: boolean; valid?: boolean } }[];
+    valueClass?: string;
+}) => {
+    const maxVal = Math.max(...items.map((i) => i.value), 1);
+    return (
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
+            <div className="mb-2 flex items-center gap-1 text-sm text-gray-500">
+                <span>{label}</span>
+                <OverallTipIcon tip={tip} />
+            </div>
+            <div className="flex items-end justify-between gap-2">
+                <span className={`group/amt relative inline-block text-2xl font-bold ${valueClass}`}>
+                    {formatWan(value)}
+                    <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                        {formatExactAmount(value)}
+                        <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                    </span>
+                </span>
+                <OverallMomBadge mom={mom} />
+            </div>
+            {/* 分组横向柱状图 */}
+            <div className="mt-4 space-y-3">
+                {items.map((it) => (
+                    <div key={it.label}>
+                        <div className="mb-1 flex items-center justify-between text-[12px] text-gray-500">
+                            <span className="inline-flex items-center gap-1">
+                                <span>{it.label}</span>
+                                {it.tip && <OverallTipIcon tip={it.tip} />}
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <span className="group/amt relative inline-block text-gray-700">
+                                    {formatWan(it.value)}
+                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                        {formatExactAmount(it.value)}
+                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                    </span>
+                                </span>
+                                {it.mom && <OverallMomBadge mom={it.mom} />}
+                            </span>
+                        </div>
+                        <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div
+                                className="h-2.5 rounded-full"
+                                style={{ width: `${(it.value / maxVal) * 100}%`, backgroundColor: it.color }}
+                            />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// 整体分析 - 毛利率合并卡片（整体内结毛利率 + 整体外部毛利率）
+const OverallMarginCard = ({
+    innerLabel,
+    innerTip,
+    innerValue,
+    innerMom,
+    outerLabel,
+    outerTip,
+    outerValue,
+    outerMom,
+}: {
+    innerLabel: string;
+    innerTip: string;
+    innerValue: number;
+    innerMom: { pct: number; up: boolean; valid?: boolean };
+    outerLabel: string;
+    outerTip: string;
+    outerValue: number;
+    outerMom: { pct: number; up: boolean; valid?: boolean };
+}) => (
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="mb-3 text-sm text-gray-500">毛利率</div>
+        <div className="space-y-4">
+            <div>
+                <div className="mb-1 flex items-center gap-1 text-[12px] text-gray-500">
+                    <span>{innerLabel}</span>
+                    <OverallTipIcon tip={innerTip} />
+                </div>
+                <div className="flex items-end justify-between gap-2">
+                    <span className="group/mom relative inline-block text-2xl font-bold text-green-600">
+                        {innerValue.toFixed(2)}%
+                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/mom:block">
+                            较上个账期{innerMom.up ? "增加" : "下降"}{innerMom.pct.toFixed(2)}个点
+                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                        </span>
+                    </span>
+                    <OverallMomBadge mom={innerMom} isMargin />
+                </div>
+            </div>
+            <div className="border-t border-gray-100 pt-4">
+                <div className="mb-1 flex items-center gap-1 text-[12px] text-gray-500">
+                    <span>{outerLabel}</span>
+                    <OverallTipIcon tip={outerTip} />
+                </div>
+                <div className="flex items-end justify-between gap-2">
+                    <span className="group/mom relative inline-block text-2xl font-bold text-green-600">
+                        {outerValue.toFixed(2)}%
+                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/mom:block">
+                            较上个账期{outerMom.up ? "增加" : "下降"}{outerMom.pct.toFixed(2)}个点
+                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                        </span>
+                    </span>
+                    <OverallMomBadge mom={outerMom} isMargin />
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
 export default function AdminPage() {
     const [adminMenuExpanded, setAdminMenuExpanded] = useState(false); // 管理后台菜单展开状态
     const [productMenuExpanded, setProductMenuExpanded] = useState(true); // 产品管理菜单展开状态
@@ -2059,50 +3719,224 @@ export default function AdminPage() {
 
     // ===== 经营分析 - 整体分析 =====
     const [overallBillType, setOverallBillType] = useState("month");     // 账单类型：month / day / hour
-    const [overallMonth, setOverallMonth] = useState("2026-08");         // 选中月（月账单）
-    const [overallDate, setOverallDate] = useState("2026-08-31");        // 选中天（天账单 / 小时账单）
-    const [overallPage, setOverallPage] = useState(1);                   // 当前页
-    const [overallPageSize, setOverallPageSize] = useState(10);          // 每页条数
+    const [overallMonth, setOverallMonth] = useState("2026-08");         // 报表 - 选中月（月报表）
+    const [overallDate, setOverallDate] = useState("2026-08-31");        // 报表 - 选中天（日报表 / 小时报表）
+    const [overallHour, setOverallHour] = useState(10);                  // 报表 - 选中小时（小时报表，0~23）
+    const [overallTab, setOverallTab] = useState<"report" | "trend">("report"); // 报表 / 趋势 tab
+    const [overallTopType, setOverallTopType] = useState<"revenue" | "cost" | "innerMargin" | "outerMargin">("revenue"); // 产品TOP维度：收入TOP / 成本TOP / 内结毛利率TOP / 外部毛利率TOP
+    // 整体分析 - 产品数量卡片点击抽屉（按筛选维度展示产品列表）
+    const [overallCountDrawer, setOverallCountDrawer] = useState<{ title: string; rows: OverallProductRow[] } | null>(null);
 
-    // 整体分析 - 当前账期（月账单取选中月，天/小时账单取选中天）
+    // 趋势 - 时间区间（月趋势最多 6 个月 / 日趋势最多 31 天 / 小时趋势最多 7 天）
+    const [overallTrendMonthStart, setOverallTrendMonthStart] = useState("2026-03");
+    const [overallTrendMonthEnd, setOverallTrendMonthEnd] = useState("2026-08");
+    const [overallTrendDayStart, setOverallTrendDayStart] = useState("2026-08-01");
+    const [overallTrendDayEnd, setOverallTrendDayEnd] = useState("2026-08-31");
+    const [overallTrendHourStart, setOverallTrendHourStart] = useState("2026-08-25");
+    const [overallTrendHourEnd, setOverallTrendHourEnd] = useState("2026-08-31");
+    const [overallTrendError, setOverallTrendError] = useState("");      // 区间超限提示文案
+
+    // 整体分析 - 当前账期（月报表取选中月，日/小时报表取选中天）
     const overallPeriodValue = overallBillType === "month" ? overallMonth : overallDate;
 
-    // 整体分析 - 当前账单类型与账期对应的数据源（图表按时间正序）
+    // 整体分析 - 报表数据源（末条为选中账期，倒数第二条用于环比）
     const overallChartRows = useMemo(
-        () => getOverallDataset(overallBillType, overallPeriodValue),
-        [overallBillType, overallPeriodValue]
+        () => getOverallDataset(overallBillType, overallPeriodValue, overallHour),
+        [overallBillType, overallPeriodValue, overallHour]
     );
 
-    // 整体分析 - 图表统计区间说明
+    // 趋势 - 当前账单类型对应的区间
+    const overallTrendRange = useMemo(() => {
+        if (overallBillType === "day") return { start: overallTrendDayStart, end: overallTrendDayEnd };
+        if (overallBillType === "hour") return { start: overallTrendHourStart, end: overallTrendHourEnd };
+        return { start: overallTrendMonthStart, end: overallTrendMonthEnd };
+    }, [
+        overallBillType,
+        overallTrendMonthStart, overallTrendMonthEnd,
+        overallTrendDayStart, overallTrendDayEnd,
+        overallTrendHourStart, overallTrendHourEnd,
+    ]);
+
+    // 趋势 - 区间数据源（按时间正序）
+    const overallTrendRows = useMemo(
+        () => getOverallTrendDataset(overallBillType, overallTrendRange.start, overallTrendRange.end),
+        [overallBillType, overallTrendRange]
+    );
+
+    // 趋势 - 区间变更：自动纠正起止倒置，并按上限裁剪结束时间
+    const handleOverallTrendRangeChange = (which: "start" | "end", value: string) => {
+        if (!value) return;
+        setOverallTrendError("");
+        const range = overallTrendRange;
+        let start = which === "start" ? value : range.start;
+        let end = which === "end" ? value : range.end;
+
+        if (overallBillType === "month") {
+            if (diffMonths(start, end) <= 0) {
+                if (which === "start") end = start; else start = end;
+            }
+            if (diffMonths(start, end) > OVERALL_TREND_LIMIT.month) {
+                setOverallTrendError(`月趋势最多可选择 ${OVERALL_TREND_LIMIT.month} 个月，已自动调整区间`);
+                if (which === "start") end = addMonths(start, OVERALL_TREND_LIMIT.month - 1);
+                else start = addMonths(end, -(OVERALL_TREND_LIMIT.month - 1));
+            }
+            setOverallTrendMonthStart(start);
+            setOverallTrendMonthEnd(end);
+            return;
+        }
+
+        const limit = overallBillType === "day" ? OVERALL_TREND_LIMIT.day : OVERALL_TREND_LIMIT.hour;
+        const unitName = overallBillType === "day" ? "日趋势最多可选择 31 天" : "小时趋势最多可选择 7 天";
+        if (diffDays(start, end) <= 0) {
+            if (which === "start") end = start; else start = end;
+        }
+        if (diffDays(start, end) > limit) {
+            setOverallTrendError(`${unitName}，已自动调整区间`);
+            if (which === "start") end = addDays(start, limit - 1);
+            else start = addDays(end, -(limit - 1));
+        }
+        if (overallBillType === "day") {
+            setOverallTrendDayStart(start);
+            setOverallTrendDayEnd(end);
+        } else {
+            setOverallTrendHourStart(start);
+            setOverallTrendHourEnd(end);
+        }
+    };
+
+    // 趋势 - 区间说明
     const overallChartRangeTip = useMemo(() => {
-        if (overallBillType === "month") return `${overallMonth} 及其前 5 个月，共 6 个月`;
-        if (overallBillType === "day") return `${overallDate} 及其前 29 天，共 30 天`;
-        return `${overallDate} 及其前 6 天，按小时统计，共 168 个点`;
-    }, [overallBillType, overallMonth, overallDate]);
+        const { start, end } = overallTrendRange;
+        if (overallBillType === "month") return `${start} ~ ${end}，共 ${diffMonths(start, end)} 个月（最多 6 个月）`;
+        if (overallBillType === "day") return `${start} ~ ${end}，共 ${diffDays(start, end)} 天（最多 31 天）`;
+        return `${start} ~ ${end}，共 ${diffDays(start, end)} 天 × 24 小时 = ${diffDays(start, end) * 24} 个点（最多 7 天）`;
+    }, [overallBillType, overallTrendRange]);
 
-    // 整体分析 - 列表数据（最新账期在前）
-    const overallListRows = useMemo(() => [...overallChartRows].reverse(), [overallChartRows]);
-
-    // 整体分析 - 汇总卡片（全部账期合计）
-    const overallSummary = useMemo(() => {
-        const totalRevenue = overallChartRows.reduce((s, r) => s + r.totalRevenue, 0);
-        const productCost = overallChartRows.reduce((s, r) => s + r.productCost, 0);
-        const balance = overallChartRows.reduce((s, r) => s + r.balance, 0);
-        const innerTotalRevenue = overallChartRows.reduce((s, r) => s + r.innerTotalRevenue, 0);
+    // 整体分析 - 报表汇总（仅统计选中账期，并计算环比）
+    const overallReportSummary = useMemo(() => {
+        // 数据源按时间正序，最后一条即选中账期，倒数第二条为上一账期
+        const cur = overallChartRows[overallChartRows.length - 1];
+        const prev = overallChartRows[overallChartRows.length - 2];
+        if (!cur) return null;
+        const mom = (c: number, p: number | undefined) =>
+            p === undefined ? { pct: 0, up: false, valid: false } : calcOverallMom(c, p);
+        const marginMom = (c: number, p: number | undefined) =>
+            p === undefined ? { pct: 0, up: false } : calcMarginMom(c, p);
         return {
-            totalRevenue,
-            productCost,
-            balance,
-            margin: innerTotalRevenue === 0 ? 0 : ((innerTotalRevenue - productCost) / innerTotalRevenue) * 100,
+            totalRevenue: cur.totalRevenue,
+            productCost: cur.productCost,
+            innerCost: cur.innerCost,
+            outerCost: cur.outerCost,
+            innerRevenue: cur.innerRevenue,
+            outerRevenue: cur.outerRevenue,
+            innerMargin: cur.innerMargin,
+            outerMargin: cur.outerMargin,
+            mom: {
+                totalRevenue: mom(cur.totalRevenue, prev?.totalRevenue),
+                productCost: mom(cur.productCost, prev?.productCost),
+                innerCost: mom(cur.innerCost, prev?.innerCost),
+                outerCost: mom(cur.outerCost, prev?.outerCost),
+                innerRevenue: mom(cur.innerRevenue, prev?.innerRevenue),
+                outerRevenue: mom(cur.outerRevenue, prev?.outerRevenue),
+                innerMargin: marginMom(cur.innerMargin, prev?.innerMargin),
+                outerMargin: marginMom(cur.outerMargin, prev?.outerMargin),
+            },
         };
     }, [overallChartRows]);
 
-    // 整体分析 - 当前页数据
-    const overallTotalPages = Math.max(1, Math.ceil(overallListRows.length / overallPageSize));
-    const pagedOverallRows = useMemo(() => {
-        const start = (overallPage - 1) * overallPageSize;
-        return overallListRows.slice(start, start + overallPageSize);
-    }, [overallListRows, overallPage, overallPageSize]);
+    // 整体分析 - 上一账期标识（用于产品级环比计算）
+    const overallPrevPeriod = useMemo(
+        () => overallChartRows[overallChartRows.length - 2]?.period,
+        [overallChartRows]
+    );
+
+    // 整体分析 - 选中账期的产品维度数据（含收入/成本环比）
+    const overallProductRows = useMemo(() => {
+        const curPeriod = overallChartRows[overallChartRows.length - 1]?.period;
+        if (!curPeriod) return [];
+        const cur = buildOverallProductRows(curPeriod, overallBillType);
+        const prev = overallPrevPeriod ? buildOverallProductRows(overallPrevPeriod, overallBillType) : [];
+        const prevMap = new Map(prev.map((p) => [p.productName, p]));
+        return cur.map((r) => {
+            const last = prevMap.get(r.productName);
+            return {
+                ...r,
+                revenueMom: last ? calcOverallMom(r.totalRevenue, last.totalRevenue) : { pct: 0, up: false, valid: false },
+                costMom: last ? calcOverallMom(r.productCost, last.productCost) : { pct: 0, up: false, valid: false },
+            };
+        });
+    }, [overallChartRows, overallBillType, overallPrevPeriod]);
+
+    // 整体分析 - 产品数量概览
+    const overallProductStats = useMemo(() => buildOverallProductStats(overallProductRows), [overallProductRows]);
+
+    // 整体分析 - 产品数量卡片点击抽屉数据（与卡片口径一致）
+    const overallCountDrawerRows = useMemo(
+        () => ({
+            revenue: overallProductRows.filter((r) => r.totalRevenue > 0),
+            cost: overallProductRows.filter((r) => r.innerCost > 0 || r.outerCost > 0),
+            profit: overallProductRows.filter((r) => r.innerMargin >= 0),
+            loss: overallProductRows.filter((r) => r.innerMargin < 0),
+            abnormal: overallProductRows.filter((r) => r.outerMargin < 0 || (r.productCost > 0 && r.totalRevenue <= 0)),
+        }),
+        [overallProductRows]
+    );
+
+    // 整体分析 - 产品TOP10（按所选维度降序取前 10）
+    const overallTopProducts = useMemo(
+        () =>
+            [...overallProductRows]
+                .sort((a, b) => {
+                    if (overallTopType === "revenue") return b.totalRevenue - a.totalRevenue;
+                    if (overallTopType === "cost") return b.productCost - a.productCost;
+                    if (overallTopType === "innerMargin") return b.innerMargin - a.innerMargin;
+                    return b.outerMargin - a.outerMargin;
+                })
+                .slice(0, 10),
+        [overallProductRows, overallTopType]
+    );
+
+    // 整体分析 - 结算单元聚合数据与数量概览
+    const overallUnitRows = useMemo(() => buildOverallUnitRows(overallProductRows), [overallProductRows]);
+    const overallUnitStats = useMemo(() => buildOverallUnitStats(overallUnitRows), [overallUnitRows]);
+
+    // 整体分析 - 部门聚合数据
+    // 数据源即「结算单元概览」的 overallUnitRows：遍历所有结算单元，按配置归入所属部门
+    // （未配置的结算单元自成一个部门），因此两个模块的收入/成本始终一致并随账期联动
+    const overallDeptRows = useMemo(() => {
+        // 结算单元 → 部门配置 索引
+        const unitToCfg = new Map<string, OverallDeptConfig>();
+        overallDeptConfigs.forEach((cfg) => cfg.units.forEach((u) => unitToCfg.set(u, cfg)));
+
+        const deptMap = new Map<string, OverallDeptRow>();
+        overallUnitRows.forEach((u) => {
+            const cfg = unitToCfg.get(u.unit);
+            const name = cfg?.name ?? u.unit;
+            const path = cfg?.path ?? u.unit;
+            const cur =
+                deptMap.get(name) ??
+                { name, path, members: [] as OverallDeptMember[], totalRevenue: 0, innerRevenue: 0, outerRevenue: 0, productCost: 0, innerCost: 0, outerCost: 0, profit: 0 };
+            cur.members.push({ unit: u.unit, totalRevenue: u.totalRevenue, productCost: u.productCost });
+            cur.totalRevenue += u.totalRevenue;
+            cur.innerRevenue += u.innerRevenue;
+            cur.outerRevenue += u.outerRevenue;
+            cur.productCost += u.productCost;
+            cur.innerCost += u.innerCost;
+            cur.outerCost += u.outerCost;
+            deptMap.set(name, cur);
+        });
+
+        return Array.from(deptMap.values())
+            .map((d) => ({ ...d, profit: d.totalRevenue - d.productCost }))
+            .sort((a, b) => b.totalRevenue - a.totalRevenue);
+    }, [overallUnitRows]);
+    const overallDeptStats = useMemo(() => buildOverallDeptStats(overallDeptRows), [overallDeptRows]);
+
+    // 整体分析 - 选中账期展示标签（报表区标题说明）
+    const overallPeriodLabel = useMemo(
+        () => overallChartRows[overallChartRows.length - 1]?.period ?? "-",
+        [overallChartRows]
+    );
 
     // ===== 经营分析 - 产品分析 =====
     const [analysisBillType, setAnalysisBillType] = useState("month");        // 账单类型
@@ -2124,6 +3958,21 @@ export default function AdminPage() {
     const [outerRevenueDetailRow, setOuterRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
     // 产品分析 - 结算单元账单金额明细抽屉（公司内非中台收入 / 中台内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
     const [unitBillDetail, setUnitBillDetail] = useState<{ row: ProductAnalysisRow; title: string; amount: number } | null>(null);
+
+    // 产品TOP / 产品数量抽屉 → 跳转「经营分析 - 产品分析」，携带产品名称与账期
+    const goToProductAnalysis = (productName: string, period: string) => {
+        const match = productAnalysisData.find((r) => cleanProductName(r.productName) === productName);
+        const targetName = match ? match.productName : productName;
+        const short = targetName.length > 22 ? `${targetName.slice(0, 22)}...` : targetName;
+        setAnalysisProductTags([short]);
+        // 产品分析页账期为「月」格式（YYYY-MM）：兼容 YYYYMM 与 YYYY-MM-DD 两种来源
+        const s = period.trim();
+        if (/^\d{6}$/.test(s)) setAnalysisPeriod(`${s.slice(0, 4)}-${s.slice(4, 6)}`);
+        else if (/^\d{4}-\d{2}/.test(s)) setAnalysisPeriod(s.slice(0, 7));
+        else setAnalysisPeriod("2026-08");
+        setAnalysisPage(1);
+        setCurrentMenu("analysis-product");
+    };
 
     // 产品分析 - 按筛选条件过滤
     const filteredAnalysisRows = useMemo(() => {
@@ -6460,18 +8309,23 @@ export default function AdminPage() {
                                 </p>
                             </div>
 
-                            {/* 筛选工具栏 */}
-                            <div className="mb-4 flex flex-wrap items-center gap-3">
-                                {/* 账单类型（按月/天/小时切换） */}
-                                <div className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white p-0.5">
-                                    {analysisBillTypes.map((t) => (
+                            {/* 报表 / 趋势 Tab 切换（分段控件样式） */}
+                            <div className="mb-4 flex items-center justify-between">
+                                <div className="inline-flex h-9 items-center rounded-lg bg-gray-100 p-1">
+                                    {[
+                                        { key: "report" as const, label: "报表" },
+                                        { key: "trend" as const, label: "趋势" },
+                                    ].map((t) => (
                                         <button
-                                            key={t.value}
-                                            onClick={() => { setOverallBillType(t.value); setOverallPage(1); }}
-                                            className={`h-8 rounded-md px-4 text-sm transition-colors ${
-                                                overallBillType === t.value
-                                                    ? "bg-blue-600 text-white"
-                                                    : "text-gray-600 hover:bg-gray-50"
+                                            key={t.key}
+                                            onClick={() => {
+                                                setOverallTab(t.key);
+                                                setOverallTrendError("");
+                                            }}
+                                            className={`h-7 rounded-md px-6 text-sm transition-all ${
+                                                overallTab === t.key
+                                                    ? "bg-white font-medium text-blue-600 shadow-sm"
+                                                    : "text-gray-500 hover:text-gray-700"
                                             }`}
                                         >
                                             {t.label}
@@ -6479,179 +8333,492 @@ export default function AdminPage() {
                                     ))}
                                 </div>
 
-                                {/* 账期选择：月 / 天 */}
-                                {overallBillType === "month" ? (
-                                    <input
-                                        type="month"
-                                        value={overallMonth}
-                                        onChange={(e) => { setOverallMonth(e.target.value); setOverallPage(1); }}
-                                        className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                    />
-                                ) : (
-                                    <input
-                                        type="date"
-                                        value={overallDate}
-                                        onChange={(e) => { setOverallDate(e.target.value); setOverallPage(1); }}
-                                        className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                    />
-                                )}
-
                                 {/* 导出数据 */}
-                                <button className="ml-auto h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
+                                <button className="h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
                                     导出数据
                                 </button>
                             </div>
 
-                            {/* 汇总卡片：hover 展示精确金额，交互与列表金额单元格一致 */}
-                            <div className="mb-4 grid grid-cols-3 gap-4">
-                                <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                    <div className="mb-2 text-sm text-gray-500">总收入</div>
-                                    <span className="group/amt relative inline-block text-2xl font-bold text-blue-600">
-                                        {formatWan(overallSummary.totalRevenue)}
-                                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                                            {formatExactAmount(overallSummary.totalRevenue)}
-                                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
-                                        </span>
-                                    </span>
-                                </div>
-                                <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                    <div className="mb-2 text-sm text-gray-500">总成本</div>
-                                    <span className="group/amt relative inline-block text-2xl font-bold text-orange-500">
-                                        {formatWan(overallSummary.productCost)}
-                                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                                            {formatExactAmount(overallSummary.productCost)}
-                                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
-                                        </span>
-                                    </span>
-                                </div>
-                                <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                    <div className="mb-2 text-sm text-gray-500">收支差额</div>
-                                    <span className={`group/amt relative inline-block text-2xl font-bold ${overallSummary.balance >= 0 ? "text-green-600" : "text-red-500"}`}>
-                                        {formatWan(overallSummary.balance)}
-                                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                                            {formatExactAmount(overallSummary.balance)}
-                                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* 第一部分：变化曲线图（双坐标：金额 + 毛利率） */}
-                            <div className="mb-4 rounded-lg border border-gray-200 bg-white p-5">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <div className="text-sm font-medium text-gray-900">收入 / 成本变化趋势</div>
-                                    <div className="text-[12px] text-gray-400">{overallChartRangeTip}</div>
-                                </div>
-                                <OverallTrendChart rows={overallChartRows} billType={overallBillType} />
-                            </div>
-
-                            {/* 第二部分：数据列表（字段为产品分析各列之和） */}
-                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[1900px]">
-                                        <thead>
-                                            <tr className="border-b border-gray-200 bg-gray-50">
-                                                <AnalysisTh label="账期" align="left" width="120px" />
-                                                <AnalysisTh label="总收入(元)" tip="平台侧全部产品在本账期内的收入合计。" width="110px" />
-                                                <AnalysisTh label="公司内收入(元)" tip="来自公司内部各部门与中台的收入合计。" width="110px" />
-                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" />
-                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" />
-                                                <AnalysisTh label="本结算单元收入(元)" width="110px" />
-                                                <AnalysisTh label="公司外收入(元)" tip="来自公司外部客户的收入合计。" width="110px" />
-                                                <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" />
-                                                <AnalysisTh label="内结算总收入(元)" width="110px" />
-                                                <AnalysisTh label="产品成本(元)" tip="平台侧全部产品在本账期内分摊的资源成本合计。" width="110px" />
-                                                <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" />
-                                                <AnalysisTh label="外部利润(元)" tip="公司外收入 - 外部收入对应的内结算价收入。" width="105px" />
-                                                <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" highlight />
-                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 公司外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" highlight />
-                                                <AnalysisTh label="收支差额(元)" width="110px" />
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {pagedOverallRows.map((row) => (
-                                                <tr key={row.id} className="hover:bg-gray-50">
-                                                    <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">{row.period}</td>
-                                                    <AnalysisAmountCell value={row.totalRevenue} />
-                                                    <AnalysisAmountCell value={row.innerRevenue} />
-                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} />
-                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} />
-                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} />
-                                                    <AnalysisAmountCell value={row.unitRevenue} />
-                                                    <AnalysisAmountCell value={row.outerRevenue} />
-                                                    <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
-                                                    <AnalysisAmountCell value={row.innerTotalRevenue} />
-                                                    <AnalysisAmountCell value={row.productCost} />
-                                                    <AnalysisAmountCell value={row.innerProfit} />
-                                                    <AnalysisAmountCell value={row.outerProfit} />
-                                                    <td className="bg-orange-50/70 px-3 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
-                                                        {row.innerMargin.toFixed(2)}%
-                                                    </td>
-                                                    <td className="bg-orange-50/70 px-3 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
-                                                        {row.outerMargin.toFixed(2)}%
-                                                    </td>
-                                                    <AnalysisAmountCell value={row.balance} />
-                                                </tr>
-                                            ))}
-                                            {pagedOverallRows.length === 0 && (
-                                                <tr>
-                                                    <td colSpan={16} className="px-4 py-12 text-center text-sm text-gray-400">
-                                                        暂无符合条件的数据
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {/* 分页 */}
-                            <div className="mt-4 flex items-center justify-between rounded-b-lg border-t border-gray-200 bg-white px-4 py-3">
-                                <div className="text-sm text-gray-500">
-                                    共 <span className="font-medium">{overallListRows.length}</span> 条
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <select
-                                        value={overallPageSize}
-                                        onChange={(e) => { setOverallPageSize(Number(e.target.value)); setOverallPage(1); }}
-                                        className="h-8 rounded border border-gray-300 px-2 text-sm"
-                                    >
-                                        <option value={10}>10条/页</option>
-                                        <option value={20}>20条/页</option>
-                                        <option value={50}>50条/页</option>
-                                    </select>
-                                    <div className="flex items-center gap-1">
+                            {/* 筛选工具栏：报表为单账期选择，趋势为时间区间选择 */}
+                            <div className="mb-4 flex flex-wrap items-center gap-3">
+                                {/* 统计粒度：月 / 日 / 小时（文案随 Tab 变化） */}
+                                <div className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white p-0.5">
+                                    {overallBillTypeOptions.map((t) => (
                                         <button
-                                            onClick={() => setOverallPage(Math.max(1, overallPage - 1))}
-                                            disabled={overallPage === 1}
-                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                            key={t.value}
+                                            onClick={() => {
+                                                setOverallBillType(t.value);
+                                                setOverallTrendError("");
+                                            }}
+                                            className={`h-8 rounded-md px-4 text-sm transition-colors ${
+                                                overallBillType === t.value
+                                                    ? "bg-blue-600 text-white"
+                                                    : "text-gray-600 hover:bg-gray-50"
+                                            }`}
                                         >
-                                            ‹
+                                            {overallTab === "report" ? t.reportLabel : t.trendLabel}
                                         </button>
-                                        {Array.from({ length: overallTotalPages }, (_, i) => i + 1).map((p) => (
-                                            <button
-                                                key={p}
-                                                onClick={() => setOverallPage(p)}
-                                                className={`flex h-8 w-8 items-center justify-center rounded text-sm ${
-                                                    p === overallPage
-                                                        ? "bg-blue-600 text-white"
-                                                        : "border border-gray-300 hover:bg-gray-50"
-                                                }`}
+                                    ))}
+                                </div>
+
+                                {overallTab === "report" ? (
+                                    /* 报表：月报表选某月、日报表选某天、小时报表选某天 + 某小时 */
+                                    <>
+                                        {overallBillType === "month" ? (
+                                            <input
+                                                type="month"
+                                                value={overallMonth}
+                                                onChange={(e) => setOverallMonth(e.target.value)}
+                                                className="h-9 w-[200px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                            />
+                                        ) : (
+                                            <input
+                                                type="date"
+                                                value={overallDate}
+                                                onChange={(e) => setOverallDate(e.target.value)}
+                                                className="h-9 w-[200px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                            />
+                                        )}
+                                        {overallBillType === "hour" && (
+                                            <select
+                                                value={overallHour}
+                                                onChange={(e) => setOverallHour(Number(e.target.value))}
+                                                className="h-9 w-[130px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
                                             >
-                                                {p}
-                                            </button>
-                                        ))}
-                                        <button
-                                            onClick={() => setOverallPage(Math.min(overallTotalPages, overallPage + 1))}
-                                            disabled={overallPage === overallTotalPages}
-                                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                        >
-                                            ›
-                                        </button>
+                                                {Array.from({ length: 24 }, (_, h) => (
+                                                    <option key={h} value={h}>{`${pad2(h)}:00`}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </>
+                                ) : (
+                                    /* 趋势：时间区间选择，超出上限自动裁剪并提示 */
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type={overallBillType === "month" ? "month" : "date"}
+                                            value={overallTrendRange.start}
+                                            onChange={(e) => handleOverallTrendRangeChange("start", e.target.value)}
+                                            className="h-9 w-[180px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                        />
+                                        <span className="text-sm text-gray-400">至</span>
+                                        <input
+                                            type={overallBillType === "month" ? "month" : "date"}
+                                            value={overallTrendRange.end}
+                                            onChange={(e) => handleOverallTrendRangeChange("end", e.target.value)}
+                                            className="h-9 w-[180px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                        />
+                                        <span className="text-[12px] text-gray-400">
+                                            {overallBillType === "month"
+                                                ? "最多 6 个月"
+                                                : overallBillType === "day"
+                                                ? "最多 31 天"
+                                                : "最多 7 天（按小时统计）"}
+                                        </span>
                                     </div>
-                                </div>
+                                )}
                             </div>
+
+                            {/* 趋势区间超限提示 */}
+                            {overallTab === "trend" && overallTrendError && (
+                                <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-[13px] text-orange-600">
+                                    {overallTrendError}
+                                </div>
+                            )}
+
+                            {overallTab === "report" ? (
+                                <>
+                                    {/* 模块一：整体分析（选中账期的核心指标 + 环比） */}
+                                    <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                        <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3.5">
+                                            <h3 className="text-sm font-semibold text-gray-900">
+                                                {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"}
+                                            </h3>
+                                            <span className="text-[12px] text-gray-400">账期 {overallPeriodLabel}，环比对比上一{overallBillType === "month" ? "月" : overallBillType === "day" ? "日" : "小时"}</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-4 p-5">
+                                            <OverallHorizontalBarCard
+                                                label="总收入(元)"
+                                                tip="选中时间，所有产品的账单金额总和。"
+                                                value={overallReportSummary?.totalRevenue ?? 0}
+                                                mom={overallReportSummary?.mom.totalRevenue ?? { pct: 0, up: false, valid: false }}
+                                                valueClass="text-blue-600"
+                                                items={[
+                                                    { label: "集团内总收入(元)", value: overallReportSummary?.innerRevenue ?? 0, color: "#3b82f6", tip: "选中时间，所有产品的内部收入总和。", mom: overallReportSummary?.mom.innerRevenue ?? { pct: 0, up: false, valid: false } },
+                                                    { label: "集团外总收入(元)", value: overallReportSummary?.outerRevenue ?? 0, color: "#93c5fd", tip: "选中时间，所有产品的外部收入总和。", mom: overallReportSummary?.mom.outerRevenue ?? { pct: 0, up: false, valid: false } },
+                                                ]}
+                                            />
+                                            <OverallHorizontalBarCard
+                                                label="总成本(元)"
+                                                tip="选中时间，所有结算单元下资源组消费的账单金额总和+所有产品的外部收入。"
+                                                value={overallReportSummary?.productCost ?? 0}
+                                                mom={overallReportSummary?.mom.productCost ?? { pct: 0, up: false, valid: false }}
+                                                valueClass="text-orange-500"
+                                                items={[
+                                                    { label: "内部成本(元)", value: overallReportSummary?.innerCost ?? 0, color: "#f97316", tip: "选中时间，所有结算单元的资源组消费的金额总和。", mom: overallReportSummary?.mom.innerCost ?? { pct: 0, up: false, valid: false } },
+                                                    { label: "外部成本(元)", value: overallReportSummary?.outerCost ?? 0, color: "#fdba74", tip: "选中时间，所有产品的外部成本总和。", mom: overallReportSummary?.mom.outerCost ?? { pct: 0, up: false, valid: false } },
+                                                ]}
+                                            />
+                                            <OverallMarginCard
+                                                innerLabel="整体内结毛利率"
+                                                innerTip="整体内结毛利率 = SUM (每个产品的内结价收入 - 成本) / SUM (每个产品的内结价收入)。"
+                                                innerValue={overallReportSummary?.innerMargin ?? 0}
+                                                innerMom={overallReportSummary?.mom.innerMargin ?? { pct: 0, up: false }}
+                                                outerLabel="整体外部毛利率"
+                                                outerTip="整体外部毛利率 = SUM (每个产品的外部收入 - 外部收入对应的内结价收入) / SUM (每个产品的外部收入)。"
+                                                outerValue={overallReportSummary?.outerMargin ?? 0}
+                                                outerMom={overallReportSummary?.mom.outerMargin ?? { pct: 0, up: false }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 模块二：产品TOP */}
+                                    <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                        <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3.5">
+                                            <h3 className="text-sm font-semibold text-gray-900">产品TOP</h3>
+                                        </div>
+
+                                        {/* 第一部分：产品数量概览（统计口径与下方TOP维度无关，不随tab切换变化） */}
+                                        <div className="grid grid-cols-3 gap-3 px-5 py-4">
+                                            <OverallCountPairCard
+                                                items={[
+                                                    { label: "有收入", value: overallProductStats.revenueCount, valueClass: "text-blue-600", tip: "选中账期，有收入的产品数量。", onClick: () => setOverallCountDrawer({ title: "收入产品", rows: overallCountDrawerRows.revenue }) },
+                                                    { label: "有成本", value: overallProductStats.costCount, valueClass: "text-orange-500", tip: "选中账期，有内部成本或外部成本的产品数量。", onClick: () => setOverallCountDrawer({ title: "成本产品", rows: overallCountDrawerRows.cost }) },
+                                                ]}
+                                            />
+                                            <OverallCountPairCard
+                                                items={[
+                                                    { label: "盈利", value: overallProductStats.profitCount, valueClass: "text-green-600", tip: "内结毛利率大于等于 0 的产品数量。", onClick: () => setOverallCountDrawer({ title: "盈利产品", rows: overallCountDrawerRows.profit }) },
+                                                    { label: "亏损", value: overallProductStats.lossCount, valueClass: "text-red-500", tip: "内结毛利率小于 0 的产品数量。", onClick: () => setOverallCountDrawer({ title: "亏损产品", rows: overallCountDrawerRows.loss }) },
+                                                ]}
+                                            />
+                                            <OverallCountCard label="异常" value={overallProductStats.abnormalCount} valueClass="text-red-500" tip="外部毛利率小于 0，或只有成本没有收入的产品数量。" onClick={() => setOverallCountDrawer({ title: "异常产品", rows: overallCountDrawerRows.abnormal })} />
+                                        </div>
+
+                                        {/* 第二部分：产品TOP10 列表 */}
+                                        <div className="border-t border-gray-100">
+                                            {/* 收入TOP / 成本TOP / 内结毛利率TOP / 外部毛利率TOP 切换（作用于下方产品列表） */}
+                                            <div className="flex items-center gap-3 px-5 py-3">
+                                                <div className="inline-flex h-8 items-center rounded-lg border border-gray-300 bg-white p-0.5">
+                                                    {[
+                                                        { key: "revenue" as const, label: "收入TOP" },
+                                                        { key: "cost" as const, label: "成本TOP" },
+                                                        { key: "innerMargin" as const, label: "内结毛利率TOP" },
+                                                        { key: "outerMargin" as const, label: "外部毛利率TOP" },
+                                                    ].map((t) => (
+                                                        <button
+                                                            key={t.key}
+                                                            onClick={() => setOverallTopType(t.key)}
+                                                            className={`h-7 rounded-md px-3 text-[13px] transition-colors ${
+                                                                overallTopType === t.key
+                                                                    ? "bg-blue-600 text-white"
+                                                                    : "text-gray-600 hover:bg-gray-50"
+                                                            }`}
+                                                        >
+                                                            {t.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="overflow-x-auto border-t border-gray-100">
+                                            <table className="w-full min-w-[1080px]">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200 bg-gray-50">
+                                                        <AnalysisTh label="排名" align="center" width="60px" />
+                                                        <AnalysisTh label="产品名称" align="left" width="240px" />
+                                                        <AnalysisTh label="总收入(元)" tip="产品在本账期内的收入合计（集团内收入+集团外收入），括号内为环比上一账期的变化。" width="150px" />
+                                                        <AnalysisTh label="收入占比" tip="当前产品收入占本账期所有产品总收入的百分比。" width="90px" />
+                                                        <AnalysisTh label="总成本(元)" tip="产品在本账期内分摊的资源成本合计，括号内为环比上一账期的变化。" width="150px" />
+                                                        <AnalysisTh label="成本占比" tip="当前产品成本占本账期所有产品总成本的百分比。" width="90px" />
+                                                        <AnalysisTh label="内结毛利率" tip="内结算价利润 / 内结算总收入 × 100%。" width="100px" />
+                                                        <AnalysisTh label="外部毛利率" tip="外部利润 / 集团外收入 × 100%。" width="100px" />
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-200">
+                                                    {(() => {
+                                                        const totalRev = overallTopProducts.reduce((s, r) => s + r.totalRevenue, 0);
+                                                        const totalCost = overallTopProducts.reduce((s, r) => s + r.productCost, 0);
+                                                        return overallTopProducts.map((row, idx) => (
+                                                            <tr key={row.id} className="hover:bg-gray-50">
+                                                                {/* 排名：前三名徽标高亮 */}
+                                                                <td className="px-3 py-3 text-center">
+                                                                    <span
+                                                                        className={`inline-flex h-5 w-5 items-center justify-center rounded text-[12px] font-medium ${
+                                                                            idx === 0
+                                                                                ? "bg-orange-500 text-white"
+                                                                                : idx === 1
+                                                                                ? "bg-orange-400/80 text-white"
+                                                                                : idx === 2
+                                                                                ? "bg-orange-300/80 text-white"
+                                                                                : "text-gray-500"
+                                                                        }`}
+                                                                    >
+                                                                        {idx + 1}
+                                                                    </span>
+                                                                </td>
+                                                                {/* 产品名称 + 结算单元 + 盈亏标记 */}
+                                                                <td className="px-3 py-3 text-sm text-gray-900">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => goToProductAnalysis(row.productName, overallPeriodValue)}
+                                                                            className="min-w-0 text-left text-blue-600 hover:text-blue-700"
+                                                                        >
+                                                                            <div className="truncate" title={row.productName}>{row.productName}</div>
+                                                                        </button>
+                                                                        {row.innerMargin >= 0 ? (
+                                                                            <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-green-50 px-1 py-0.5 text-[11px] font-medium leading-none text-green-700 ring-1 ring-inset ring-green-200">盈利</span>
+                                                                        ) : (
+                                                                            <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-red-50 px-1 py-0.5 text-[11px] font-medium leading-none text-red-600 ring-1 ring-inset ring-red-200">亏损</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="mt-0.5 text-[12px] text-gray-400">{row.settlementUnit}</div>
+                                                                </td>
+                                                                {/* 总收入 + 收入环比 */}
+                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                    <span className="group/amt relative inline-block text-gray-900">
+                                                                        {formatWan(row.totalRevenue)}
+                                                                        <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] text-white shadow-lg group-hover/amt:block">
+                                                                            {formatExactAmount(row.totalRevenue)}
+                                                                            <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                        </span>
+                                                                    </span>
+                                                                    <div className="mt-0.5"><OverallMomBadge mom={row.revenueMom} /></div>
+                                                                </td>
+                                                                {/* 收入占比 */}
+                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                    {totalRev > 0 ? `${((row.totalRevenue / totalRev) * 100).toFixed(1)}%` : "-"}
+                                                                </td>
+                                                                {/* 总成本 + 成本环比 */}
+                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                    <span className="group/amt relative inline-block text-gray-900">
+                                                                        {formatWan(row.productCost)}
+                                                                        <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] text-white shadow-lg group-hover/amt:block">
+                                                                            {formatExactAmount(row.productCost)}
+                                                                            <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                        </span>
+                                                                    </span>
+                                                                    <div className="mt-0.5"><OverallMomBadge mom={row.costMom} /></div>
+                                                                </td>
+                                                                {/* 成本占比 */}
+                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                    {totalCost > 0 ? `${((row.productCost / totalCost) * 100).toFixed(1)}%` : "-"}
+                                                                </td>
+                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                    <span className={row.innerMargin < 0 ? "text-red-500" : "text-gray-900"}>
+                                                                        {row.innerMargin.toFixed(2)}%
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                    <span className={row.outerMargin < 0 ? "text-red-500" : "text-gray-900"}>
+                                                                        {row.outerMargin.toFixed(2)}%
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        ));
+                                                    })()}
+                                                    {overallTopProducts.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                                暂无符合条件的数据
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 模块三：结算单元概览 */}
+                                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
+                                            <h3 className="text-sm font-semibold text-gray-900">结算单元概览</h3>
+                                            <span className="text-[12px] text-gray-400">
+                                                共 {overallUnitRows.length} 个经营结算单元 &nbsp;·&nbsp;
+                                                <span className="text-green-600">盈利 {overallUnitStats.profitCount} 个</span>
+                                                <span className="mx-1.5 text-gray-300">|</span>
+                                                <span className="text-red-500">亏损 {overallUnitStats.lossCount} 个</span>
+                                                <span className="mx-1.5 text-gray-300">|</span>
+                                                <span className="text-amber-600">★ 毛利最高</span>
+                                            </span>
+                                        </div>
+
+                                        <div className="flex gap-0 px-5 py-6">
+                                            {/* 左侧：收入分布饼图 + 成本分布饼图（上下排列） */}
+                                            <div className="flex w-[420px] flex-shrink-0 flex-col gap-7 border-r border-gray-100 pr-6">
+                                                <OverallUnitPieChart
+                                                    units={overallUnitRows}
+                                                    valueKey="totalRevenue"
+                                                    title="收入分布"
+                                                    color="#3b82f6"
+                                                />
+                                                <OverallUnitPieChart
+                                                    units={overallUnitRows}
+                                                    valueKey="productCost"
+                                                    title="成本分布"
+                                                    color="#f97316"
+                                                />
+                                            </div>
+
+                                            {/* 右侧：横向柱状图（Y 轴为结算单元，X 轴为金额） */}
+                                            <div className="flex-1 min-w-0 pl-5">
+                                                <div className="mb-2 text-[12px] font-medium text-gray-600">各结算单元收入与成本对比</div>
+                                                <OverallUnitHorizontalBarChart units={overallUnitRows} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 模块四：部门概览 */}
+                                    <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
+                                            <h3 className="text-sm font-semibold text-gray-900">部门概览</h3>
+                                            <span className="text-[12px] text-gray-400">
+                                                共 {overallDeptRows.length} 个部门 &nbsp;·&nbsp;
+                                                <span className="text-green-600">盈利 {overallDeptStats.profitCount} 个</span>
+                                                <span className="mx-1.5 text-gray-300">|</span>
+                                                <span className="text-red-500">亏损 {overallDeptStats.lossCount} 个</span>
+                                                <span className="mx-1.5 text-gray-300">|</span>
+                                                <span className="text-amber-600">★ 毛利最高</span>
+                                            </span>
+                                        </div>
+
+                                        <div className="flex gap-0 px-5 py-6">
+                                            {/* 左侧：收入分布饼图 + 成本分布饼图（上下排列） */}
+                                            <div className="flex w-[420px] flex-shrink-0 flex-col gap-7 border-r border-gray-100 pr-6">
+                                                <OverallDeptPieChart
+                                                    depts={overallDeptRows}
+                                                    valueKey="totalRevenue"
+                                                    title="收入分布"
+                                                    color="#3b82f6"
+                                                />
+                                                <OverallDeptPieChart
+                                                    depts={overallDeptRows}
+                                                    valueKey="productCost"
+                                                    title="成本分布"
+                                                    color="#f97316"
+                                                />
+                                            </div>
+
+                                            {/* 右侧：横向柱状图（Y 轴为部门，X 轴为金额） */}
+                                            <div className="flex-1 min-w-0 pl-5">
+                                                <div className="mb-2 text-[12px] font-medium text-gray-600">
+                                                    各部门收入与成本对比（部门数据 = 其关联所有结算单元对应值之和）
+                                                </div>
+                                                <OverallDeptHorizontalBarChart depts={overallDeptRows} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 产品数量卡片点击抽屉（字段同产品TOP列表） */}
+                                    {overallCountDrawer && (
+                                        <div className="fixed inset-0 z-[120]">
+                                            <div className="absolute inset-0 bg-black/50" onClick={() => setOverallCountDrawer(null)} />
+                                            <div className="absolute right-0 top-0 bottom-0 w-[960px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                                                    <div>
+                                                        <h3 className="text-base font-semibold text-gray-900">{overallCountDrawer.title}</h3>
+                                                        <p className="mt-0.5 text-[13px] text-gray-500">
+                                                            {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"} · 账期 {overallPeriodLabel} · 共 {overallCountDrawer.rows.length} 个产品
+                                                        </p>
+                                                    </div>
+                                                    <button onClick={() => setOverallCountDrawer(null)} className="text-gray-400 hover:text-gray-600">
+                                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div className="flex-1 overflow-auto">
+                                                    <table className="w-full">
+                                                        <thead className="sticky top-0 z-10 bg-gray-50">
+                                                            <tr className="border-b border-gray-200">
+                                                               <AnalysisTh label="排名" align="center" width="36px" />
+                                                               <AnalysisTh label="产品名称" align="left" width="160px" />
+                                                               <AnalysisTh label="总收入(元)" width="100px" />
+                                                               <AnalysisTh label="收入占比" tip="当前产品收入占本账期所有产品总收入的百分比。" width="72px" />
+                                                               <AnalysisTh label="总成本(元)" width="100px" />
+                                                               <AnalysisTh label="成本占比" tip="当前产品成本占本账期所有产品总成本的百分比。" width="72px" />
+                                                               <AnalysisTh label="内结毛利率" tip="内结算价利润 / 内结算总收入 × 100%。" width="72px" />
+                                                               <AnalysisTh label="外部毛利率" tip="外部利润 / 集团外收入 × 100%。" width="72px" />
+                                                           </tr>
+                                                       </thead>
+                                                       <tbody className="divide-y divide-gray-200">
+                                                           {(() => {
+                                                               const drawerTotalRev = overallCountDrawer.rows.reduce((s, r) => s + r.totalRevenue, 0);
+                                                               const drawerTotalCost = overallCountDrawer.rows.reduce((s, r) => s + r.productCost, 0);
+                                                               return overallCountDrawer.rows.map((row, idx) => (
+                                                                   <tr key={row.id} className="hover:bg-gray-50">
+                                                                       <td className="px-3 py-3 text-center text-[12px] text-gray-500">{idx + 1}</td>
+                                                                       <td className="px-3 py-3 text-sm text-gray-900">
+                                                                           <div className="flex items-center gap-1.5">
+                                                                               <button
+                                                                                   type="button"
+                                                                                   onClick={() => goToProductAnalysis(row.productName, overallPeriodValue)}
+                                                                                   className="min-w-0 text-left text-blue-600 hover:text-blue-700"
+                                                                               >
+                                                                                   <div className="truncate" title={row.productName}>{row.productName}</div>
+                                                                               </button>
+                                                                               {row.innerMargin >= 0 ? (
+                                                                                   <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-green-50 px-1 py-0.5 text-[11px] font-medium leading-none text-green-700 ring-1 ring-inset ring-green-200">盈利</span>
+                                                                               ) : (
+                                                                                   <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-red-50 px-1 py-0.5 text-[11px] font-medium leading-none text-red-600 ring-1 ring-inset ring-red-200">亏损</span>
+                                                                               )}
+                                                                           </div>
+                                                                           <div className="mt-0.5 text-[12px] text-gray-400">{row.settlementUnit}</div>
+                                                                       </td>
+                                                                       <AnalysisAmountCell value={row.totalRevenue} />
+                                                                       <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                           {drawerTotalRev > 0 ? `${((row.totalRevenue / drawerTotalRev) * 100).toFixed(1)}%` : "-"}
+                                                                       </td>
+                                                                       <AnalysisAmountCell value={row.productCost} />
+                                                                       <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                           {drawerTotalCost > 0 ? `${((row.productCost / drawerTotalCost) * 100).toFixed(1)}%` : "-"}
+                                                                       </td>
+                                                                       <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                           <span className={row.innerMargin < 0 ? "text-red-500" : "text-gray-900"}>
+                                                                               {row.innerMargin.toFixed(2)}%
+                                                                           </span>
+                                                                       </td>
+                                                                       <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                           <span className={row.outerMargin < 0 ? "text-red-500" : "text-gray-900"}>
+                                                                               {row.outerMargin.toFixed(2)}%
+                                                                           </span>
+                                                                       </td>
+                                                                   </tr>
+                                                               ));
+                                                           })()}
+                                                           {overallCountDrawer.rows.length === 0 && (
+                                                               <tr>
+                                                                   <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                                       暂无符合条件的数据
+                                                                   </td>
+                                                               </tr>
+                                                           )}
+                                                       </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                /* 趋势：所选时间区间的变化曲线图（双坐标：金额 + 毛利率） */
+                                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <div className="text-sm font-medium text-gray-900">
+                                            {overallBillType === "month" ? "月趋势" : overallBillType === "day" ? "日趋势" : "小时趋势"}
+                                            <span className="ml-2 text-gray-500">收入 / 成本变化趋势</span>
+                                        </div>
+                                        <div className="text-[12px] text-gray-400">{overallChartRangeTip}</div>
+                                    </div>
+                                    {overallTrendRows.length > 0 ? (
+                                        <OverallTrendChart rows={overallTrendRows} billType={overallBillType} />
+                                    ) : (
+                                        <div className="flex h-64 items-center justify-center text-sm text-gray-400">
+                                            请选择有效的时间区间
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
