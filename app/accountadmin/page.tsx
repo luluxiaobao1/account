@@ -649,21 +649,51 @@ const getProductRevenueDetailRows = (row: ProductAnalysisRow) => {
     });
 };
 
-// 产品分析 - 通用结算单元账单金额明细：按结算单元名称拆分账单金额（用于各可点击收入列）
+// 产品分析 - 通用结算单元账单金额明细：每个结算单元都可能关联外部portal账号，
+// 因此列表结构与「公司内收入」明细一致：来源一结算单元账单 + 来源二外部portal账号。
 const outerGroupSettlementUnits = ["智汇云-云平台部", "智汇云-智能工程部", "智汇云-系统部"];
-const getUnitBillDetailRows = (row: ProductAnalysisRow, amount: number) => {
-    if (amount === 0) return [];
+const getUnitBillDetailRows = (row: ProductAnalysisRow, amount: number, title?: string) => {
+    const rows: { period: string; unitName: string; source: string; amount: number; type: "internal" | "portal" }[] = [];
+    if (amount === 0) return rows;
+
+    // 本结算单元收入：弹框只展示当前产品归属的结算单元，仅一条结算单元收入记录
+    if (title === "本结算单元收入") {
+        rows.push({ period: row.period, unitName: row.settlementUnit, source: row.settlementUnit, amount, type: "internal" });
+        return rows;
+    }
+
+    // 来源一：集团内部结算单元账单
+    const billTotal = row.hasOuterPortal ? Math.round(amount * 0.8 * 100) / 100 : amount;
     const units = outerGroupSettlementUnits;
     const weights = units.map((_, i) => units.length - i);
     const weightSum = weights.reduce((s, w) => s + w, 0);
     let allocated = 0;
-    return units.map((unitName, i) => {
+    units.forEach((unitName, i) => {
         const amt = i === units.length - 1
-            ? amount - allocated
-            : Math.round((amount * weights[i]) / weightSum * 100) / 100;
+            ? billTotal - allocated
+            : Math.round((billTotal * weights[i]) / weightSum * 100) / 100;
         allocated += amt;
-        return { period: row.period, unitName, amount: amt };
+        rows.push({ period: row.period, unitName, source: unitName, amount: amt, type: "internal" });
     });
+
+    // 来源二：内部结算单元账号在外部portal上使用产生的费用（关联回内部结算单元）
+    if (row.hasOuterPortal) {
+        const portalTotal = Math.round(amount * 0.2 * 100) / 100;
+        const accounts = innerRevenuePortalUsageAccounts;
+        const accountWeights = accounts.map((_, i) => accounts.length - i);
+        const accountWeightSum = accountWeights.reduce((s, w) => s + w, 0);
+        let portalAllocated = 0;
+        accounts.forEach((account, i) => {
+            const amt = i === accounts.length - 1
+                ? portalTotal - portalAllocated
+                : Math.round((portalTotal * accountWeights[i]) / accountWeightSum * 100) / 100;
+            portalAllocated += amt;
+            const [unitName, portalAccount] = account.split("@");
+            rows.push({ period: row.period, unitName, source: portalAccount, amount: amt, type: "portal" });
+        });
+    }
+
+    return rows;
 };
 
 
@@ -1026,6 +1056,188 @@ const overallShortLabel = (period: string, billType: string) => {
     }
     if (billType === "day") return `${Number(period.slice(4, 6))}/${Number(period.slice(6, 8))}`;
     return `${Number(period.slice(0, 4))}/${Number(period.slice(4, 6))}`;
+};
+
+// ===== 产品分析 - 单列趋势（抽屉「趋势」Tab 数据源与图表） =====
+
+// 产品分析 - 单列趋势数据点
+interface ProductColumnTrendPoint {
+    period: string; // 账期标签（月/天/小时）
+    value: number;  // 该账期该列收入(元)
+}
+
+// 产品分析 - 稳定伪随机波动（保证同一产品、同一账期结果一致）
+const productColumnWave = (seed: number) => {
+    const s = Math.sin(seed * 12.9898) * 43758.5453;
+    return s - Math.floor(s);
+};
+
+// 产品分析 - 根据账单类型、选中时间与基准值构造「选中时间前 N 期」趋势序列（末条=选中时间）
+const buildProductColumnTrend = (
+    billType: string,
+    anchor: { month: string; date: string; hour: number },
+    baseValue: number,
+    seedBase: number,
+): ProductColumnTrendPoint[] => {
+    const make = (period: string, seed: number, idx: number, total: number): ProductColumnTrendPoint => ({
+        period,
+        // 末条为选中账期，值等于基准值；历史账期叠加稳定波动
+        value: Math.round(baseValue * (idx === total - 1 ? 1 : 0.72 + productColumnWave(seed) * 0.56) * 100) / 100,
+    });
+
+    if (billType === "day") {
+        if (!parseDay(anchor.date)) return [];
+        return Array.from({ length: 31 }, (_, idx) => {
+            const cur = parseDay(addDays(anchor.date, idx - 30))!;
+            const yy = cur.getFullYear();
+            const mm = cur.getMonth() + 1;
+            const dd = cur.getDate();
+            return make(`${yy}${pad2(mm)}${pad2(dd)}`, seedBase + yy * 372 + mm * 31 + dd, idx, 31);
+        });
+    }
+
+    if (billType === "hour") {
+        if (!parseDay(anchor.date)) return [];
+        const total = 7 * 24;
+        const rows: ProductColumnTrendPoint[] = [];
+        const d = parseDay(anchor.date)!;
+        for (let back = total - 1; back >= 0; back--) {
+            const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate(), anchor.hour - back);
+            const yy = cur.getFullYear();
+            const mm = cur.getMonth() + 1;
+            const dd = cur.getDate();
+            const hh = cur.getHours();
+            rows.push(
+                make(`${yy}${pad2(mm)}${pad2(dd)} ${pad2(hh)}:00`, seedBase + yy * 8928 + mm * 744 + dd * 24 + hh, rows.length, total)
+            );
+        }
+        return rows;
+    }
+
+    const anchorIdx = monthIndex(anchor.month);
+    if (Number.isNaN(anchorIdx)) return [];
+    return Array.from({ length: 6 }, (_, idx) => {
+        const cur = formatMonth(anchorIdx - 5 + idx);
+        const [yy, mm] = cur.split("-").map(Number);
+        return make(`${yy}${pad2(mm)}`, seedBase + yy * 12 + mm, idx, 6);
+    });
+};
+
+// 产品分析 - 单列趋势曲线图（纯 SVG 实现，单系列）
+const ProductColumnTrendChart = ({
+    points,
+    billType,
+}: {
+    points: ProductColumnTrendPoint[];
+    billType: string;
+}) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+    const W = 900;
+    const H = 300;
+    const padL = 86;
+    const padR = 24;
+    const padT = 20;
+    const padB = 44;
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+
+    if (points.length === 0) {
+        return <div className="flex h-[300px] items-center justify-center text-sm text-gray-400">暂无趋势数据</div>;
+    }
+
+    const values = points.map((p) => p.value);
+    const maxVal = Math.max(...values, 1);
+    const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
+    const yMax = Math.ceil(maxVal / step) * step;
+
+    const xAt = (i: number) => (points.length === 1 ? padL + innerW / 2 : padL + (innerW * i) / (points.length - 1));
+    const yAt = (v: number) => padT + innerH - (v / yMax) * innerH;
+    const toPolyline = () => values.map((v, i) => `${xAt(i)},${yAt(v)}`).join(" ");
+    const toAreaPath = () =>
+        `M ${xAt(0)},${padT + innerH} ` + values.map((v, i) => `L ${xAt(i)},${yAt(v)}`).join(" ") + ` L ${xAt(values.length - 1)},${padT + innerH} Z`;
+
+    const tickCount = 5;
+    const ticks = Array.from({ length: tickCount + 1 }, (_, i) => i);
+    const labelStride = Math.max(1, Math.ceil(points.length / 12));
+    const showDots = points.length <= 40;
+
+    return (
+        <div className="relative">
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 300 }} preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="productColTrendFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0f73f6" stopOpacity="0.16" />
+                        <stop offset="100%" stopColor="#0f73f6" stopOpacity="0" />
+                    </linearGradient>
+                </defs>
+
+                {ticks.map((t) => {
+                    const y = padT + innerH - (innerH * t) / tickCount;
+                    return (
+                        <g key={`tick-${t}`}>
+                            <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="#eef0f3" strokeWidth={1} />
+                            <text x={padL - 10} y={y + 4} textAnchor="end" className="fill-gray-400" style={{ fontSize: 11 }}>
+                                {((yMax / tickCount) * t / 10000).toFixed(0)} 万
+                            </text>
+                        </g>
+                    );
+                })}
+
+                <path d={toAreaPath()} fill="url(#productColTrendFill)" />
+                <polyline points={toPolyline()} fill="none" stroke="#0f73f6" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+
+                {points.map((p, i) =>
+                    showDots || activeIndex === i ? (
+                        <circle key={`pt-${i}`} cx={xAt(i)} cy={yAt(p.value)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#0f73f6" strokeWidth={2} />
+                    ) : null
+                )}
+
+                {points.map((p, i) =>
+                    i % labelStride === 0 ? (
+                        <text key={`lb-${i}`} x={xAt(i)} y={H - padB + 20} textAnchor="middle" className="fill-gray-400" style={{ fontSize: 11 }}>
+                            {overallShortLabel(p.period, billType)}
+                        </text>
+                    ) : null
+                )}
+
+                {activeIndex !== null && (
+                    <line x1={xAt(activeIndex)} y1={padT} x2={xAt(activeIndex)} y2={padT + innerH} stroke="#c9d3e0" strokeWidth={1} strokeDasharray="4 3" />
+                )}
+
+                {points.map((_, i) => {
+                    const bandW = innerW / Math.max(points.length - 1, 1);
+                    return (
+                        <rect
+                            key={`hit-${i}`}
+                            x={xAt(i) - bandW / 2}
+                            y={padT}
+                            width={bandW}
+                            height={innerH}
+                            fill="transparent"
+                            onMouseEnter={() => setActiveIndex(i)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        />
+                    );
+                })}
+            </svg>
+
+            {activeIndex !== null && (
+                <div
+                    className={`pointer-events-none absolute top-8 z-20 min-w-[180px] rounded-md bg-gray-700/95 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg ${
+                        xAt(activeIndex) / W > 0.6 ? "-translate-x-full" : ""
+                    }`}
+                    style={{ left: `calc(${(xAt(activeIndex) / W) * 100}% ${xAt(activeIndex) / W > 0.6 ? "-" : "+"} 12px)` }}
+                >
+                    <div className="mb-0.5 font-medium">{points[activeIndex].period}</div>
+                    <div className="flex items-center justify-between gap-4">
+                        <span className="text-white/70">金额</span>
+                        <span>{formatExactAmount(points[activeIndex].value)}</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
 // 整体分析 - 账期 seed（与月/天/小时序列构造使用同一套 seed 规则，保证产品维度与整体合计同源）
@@ -2286,7 +2498,15 @@ const OverallUnitRevenueCostBarChart = ({ units }: { units: OverallUnitRow[] }) 
 };
 
 // 整体分析 - 曲线图例项 key
-type OverallSeriesKey = "revenue" | "cost" | "innerMargin" | "outerMargin";
+type OverallSeriesKey =
+    | "revenue"
+    | "cost"
+    | "innerRevenue"
+    | "outerRevenue"
+    | "innerCost"
+    | "outerCost"
+    | "innerMargin"
+    | "outerMargin";
 
 // 整体分析 - 收入/成本 + 毛利率双坐标曲线图（纯 SVG 实现，无第三方依赖）
 // 主坐标（左）：总收入、总成本(元)；次坐标（右）：内结算毛利率、外部毛利率(%)
@@ -2303,6 +2523,10 @@ const OverallTrendChart = ({
     const [visible, setVisible] = useState<Record<OverallSeriesKey, boolean>>({
         revenue: true,
         cost: true,
+        innerRevenue: false,
+        outerRevenue: false,
+        innerCost: false,
+        outerCost: false,
         innerMargin: false,
         outerMargin: false,
     });
@@ -2325,11 +2549,15 @@ const OverallTrendChart = ({
 
     const revenues = rows.map((r) => r.totalRevenue);
     const costs = rows.map((r) => r.productCost);
+    const innerRevenues = rows.map((r) => r.innerRevenue);
+    const outerRevenues = rows.map((r) => r.outerRevenue);
+    const innerCosts = rows.map((r) => r.innerCost);
+    const outerCosts = rows.map((r) => r.outerCost);
     const innerMargins = rows.map((r) => r.innerMargin);
     const outerMargins = rows.map((r) => r.outerMargin);
 
     // 主坐标（金额）上限，向上取整到「整齐」刻度
-    const maxVal = Math.max(...revenues, ...costs, 1);
+    const maxVal = Math.max(...revenues, ...costs, ...innerRevenues, ...outerRevenues, ...innerCosts, ...outerCosts, 1);
     const step = Math.pow(10, Math.floor(Math.log10(maxVal))) / 2;
     const yMax = Math.ceil(maxVal / step) * step;
 
@@ -2378,6 +2606,38 @@ const OverallTrendChart = ({
                 >
                     <span className={`inline-block h-[3px] w-4 rounded-full bg-[#f5a623] ${visible.cost ? "" : "opacity-30"}`} />
                     总成本
+                </button>
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("innerRevenue")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.innerRevenue ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-[3px] w-4 rounded-full bg-[#3b82f6] ${visible.innerRevenue ? "" : "opacity-30"}`} />
+                    集团内总收入
+                </button>
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("outerRevenue")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.outerRevenue ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-[3px] w-4 rounded-full bg-[#93c5fd] ${visible.outerRevenue ? "" : "opacity-30"}`} />
+                    集团外总收入
+                </button>
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("innerCost")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.innerCost ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-[3px] w-4 rounded-full bg-[#f97316] ${visible.innerCost ? "" : "opacity-30"}`} />
+                    内部成本
+                </button>
+                <button
+                    type="button"
+                    onClick={() => toggleSeries("outerCost")}
+                    className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${visible.outerCost ? "text-gray-600" : "text-gray-300"}`}
+                >
+                    <span className={`inline-block h-[3px] w-4 rounded-full bg-[#fdba74] ${visible.outerCost ? "" : "opacity-30"}`} />
+                    外部成本
                 </button>
                 <button
                     type="button"
@@ -2434,6 +2694,18 @@ const OverallTrendChart = ({
                 {visible.cost && (
                     <polyline points={toPolyline(costs, yAt)} fill="none" stroke="#f5a623" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
                 )}
+                {visible.innerRevenue && (
+                    <polyline points={toPolyline(innerRevenues, yAt)} fill="none" stroke="#3b82f6" strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />
+                )}
+                {visible.outerRevenue && (
+                    <polyline points={toPolyline(outerRevenues, yAt)} fill="none" stroke="#93c5fd" strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />
+                )}
+                {visible.innerCost && (
+                    <polyline points={toPolyline(innerCosts, yAt)} fill="none" stroke="#f97316" strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />
+                )}
+                {visible.outerCost && (
+                    <polyline points={toPolyline(outerCosts, yAt)} fill="none" stroke="#fdba74" strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />
+                )}
 
                 {/* 次坐标：毛利率折线（虚线区分，按图例显隐控制渲染） */}
                 {visible.innerMargin && (
@@ -2449,6 +2721,10 @@ const OverallTrendChart = ({
                         <g key={`pt-${i}`}>
                             {visible.revenue && <circle cx={xAt(i)} cy={yAt(r.totalRevenue)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#0f73f6" strokeWidth={2} />}
                             {visible.cost && <circle cx={xAt(i)} cy={yAt(r.productCost)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#f5a623" strokeWidth={2} />}
+                            {visible.innerRevenue && <circle cx={xAt(i)} cy={yAt(r.innerRevenue)} r={activeIndex === i ? 4.5 : 2} fill="#fff" stroke="#3b82f6" strokeWidth={1.6} />}
+                            {visible.outerRevenue && <circle cx={xAt(i)} cy={yAt(r.outerRevenue)} r={activeIndex === i ? 4.5 : 2} fill="#fff" stroke="#93c5fd" strokeWidth={1.6} />}
+                            {visible.innerCost && <circle cx={xAt(i)} cy={yAt(r.innerCost)} r={activeIndex === i ? 4.5 : 2} fill="#fff" stroke="#f97316" strokeWidth={1.6} />}
+                            {visible.outerCost && <circle cx={xAt(i)} cy={yAt(r.outerCost)} r={activeIndex === i ? 4.5 : 2} fill="#fff" stroke="#fdba74" strokeWidth={1.6} />}
                             {visible.innerMargin && <circle cx={xAt(i)} cy={yPct(r.innerMargin)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#22b07d" strokeWidth={2} />}
                             {visible.outerMargin && <circle cx={xAt(i)} cy={yPct(r.outerMargin)} r={activeIndex === i ? 4.5 : 2.5} fill="#fff" stroke="#9254de" strokeWidth={2} />}
                         </g>
@@ -2508,6 +2784,30 @@ const OverallTrendChart = ({
                         <div className="flex items-center justify-between gap-4">
                             <span className="text-white/70">总成本</span>
                             <span>{formatExactAmount(rows[activeIndex].productCost)}</span>
+                        </div>
+                    )}
+                    {visible.innerRevenue && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">集团内总收入</span>
+                            <span>{formatExactAmount(rows[activeIndex].innerRevenue)}</span>
+                        </div>
+                    )}
+                    {visible.outerRevenue && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">集团外总收入</span>
+                            <span>{formatExactAmount(rows[activeIndex].outerRevenue)}</span>
+                        </div>
+                    )}
+                    {visible.innerCost && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">内部成本</span>
+                            <span>{formatExactAmount(rows[activeIndex].innerCost)}</span>
+                        </div>
+                    )}
+                    {visible.outerCost && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white/70">外部成本</span>
+                            <span>{formatExactAmount(rows[activeIndex].outerCost)}</span>
                         </div>
                     )}
                     {visible.innerMargin && (
@@ -3940,7 +4240,9 @@ export default function AdminPage() {
 
     // ===== 经营分析 - 产品分析 =====
     const [analysisBillType, setAnalysisBillType] = useState("month");        // 账单类型
-    const [analysisPeriod, setAnalysisPeriod] = useState("2026-08");          // 账期
+    const [analysisPeriod, setAnalysisPeriod] = useState("2026-08");          // 账期（月账单）
+    const [analysisDate, setAnalysisDate] = useState("2026-08-20");           // 账期（天/小时账单）
+    const [analysisHour, setAnalysisHour] = useState(10);                     // 账期（小时账单，0~23）
     const [analysisProductLine, setAnalysisProductLine] = useState("");       // 所属产线
     const [analysisSettlementUnit, setAnalysisSettlementUnit] = useState(""); // 结算单元
     const [analysisProductTags, setAnalysisProductTags] = useState<string[]>(["云数据库 PGSQL (p..."]); // 产品名称多选标签
@@ -3954,10 +4256,27 @@ export default function AdminPage() {
     const [revenueDetailTab, setRevenueDetailTab] = useState<"trend" | "revenue" | "cost">("revenue");
     // 产品分析 - 「公司内收入」明细抽屉（结算单元账单 / 外部portal使用费用 两部分来源）
     const [innerRevenueDetailRow, setInnerRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
+    const [innerRevenueDetailTab, setInnerRevenueDetailTab] = useState<"trend" | "revenue">("revenue");
     // 产品分析 - 「公司外收入」明细抽屉（集团内外部客户 + 外部Portal 合并展示）
     const [outerRevenueDetailRow, setOuterRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
+    const [outerRevenueDetailTab, setOuterRevenueDetailTab] = useState<"trend" | "revenue">("revenue");
     // 产品分析 - 结算单元账单金额明细抽屉（公司内非中台收入 / 中台内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
     const [unitBillDetail, setUnitBillDetail] = useState<{ row: ProductAnalysisRow; title: string; amount: number } | null>(null);
+    const [unitBillDetailTab, setUnitBillDetailTab] = useState<"trend" | "revenue">("revenue");
+
+    // 产品分析 - 单列趋势数据源（各列抽屉「趋势」Tab 共用）
+    const productColumnTrendPoints = useMemo(() => {
+        if (!innerRevenueDetailRow && !outerRevenueDetailRow && !unitBillDetail) return [];
+        const billType = analysisBillType;
+        const anchor = { month: analysisPeriod, date: analysisDate, hour: analysisHour };
+        if (innerRevenueDetailRow) {
+            return buildProductColumnTrend(billType, anchor, innerRevenueDetailRow.innerRevenue, innerRevenueDetailRow.id * 997 + 31);
+        }
+        if (outerRevenueDetailRow) {
+            return buildProductColumnTrend(billType, anchor, outerRevenueDetailRow.outerRevenue, outerRevenueDetailRow.id * 997 + 53);
+        }
+        return buildProductColumnTrend(billType, anchor, unitBillDetail!.amount, unitBillDetail!.row.id * 997 + 71);
+    }, [innerRevenueDetailRow, outerRevenueDetailRow, unitBillDetail, analysisBillType, analysisPeriod, analysisDate, analysisHour]);
 
     // 产品TOP / 产品数量抽屉 → 跳转「经营分析 - 产品分析」，携带产品名称与账期
     const goToProductAnalysis = (productName: string, period: string) => {
@@ -6784,7 +7103,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>地域可用区</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('platform-billing')}
@@ -8806,7 +9124,7 @@ export default function AdminPage() {
                                     <div className="mb-3 flex items-center justify-between">
                                         <div className="text-sm font-medium text-gray-900">
                                             {overallBillType === "month" ? "月趋势" : overallBillType === "day" ? "日趋势" : "小时趋势"}
-                                            <span className="ml-2 text-gray-500">收入 / 成本变化趋势</span>
+                                            <span className="ml-2 text-gray-500">收入 / 成本 / 毛利率变化趋势</span>
                                         </div>
                                         <div className="text-[12px] text-gray-400">{overallChartRangeTip}</div>
                                     </div>
@@ -8881,12 +9199,32 @@ export default function AdminPage() {
                                 </select>
 
                                 {/* 账期 */}
-                                <input
-                                    type="month"
-                                    value={analysisPeriod}
-                                    onChange={(e) => { setAnalysisPeriod(e.target.value); setAnalysisPage(1); }}
-                                    className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                />
+                                {analysisBillType === "month" ? (
+                                    <input
+                                        type="month"
+                                        value={analysisPeriod}
+                                        onChange={(e) => { setAnalysisPeriod(e.target.value); setAnalysisPage(1); }}
+                                        className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    />
+                                ) : (
+                                    <input
+                                        type="date"
+                                        value={analysisDate}
+                                        onChange={(e) => { setAnalysisDate(e.target.value); setAnalysisPage(1); }}
+                                        className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    />
+                                )}
+                                {analysisBillType === "hour" && (
+                                    <select
+                                        value={analysisHour}
+                                        onChange={(e) => { setAnalysisHour(Number(e.target.value)); setAnalysisPage(1); }}
+                                        className="h-9 w-[130px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    >
+                                        {Array.from({ length: 24 }, (_, h) => (
+                                            <option key={h} value={h}>{`${pad2(h)}:00`}</option>
+                                        ))}
+                                    </select>
+                                )}
 
                                 {/* 所属产线 */}
                                 <select
@@ -9023,19 +9361,17 @@ export default function AdminPage() {
                                                     label="产品名称"
                                                     align="left"
                                                     width="150px"
-                                                    highlight
                                                     tip="每个产品在本账期内合并展示为一条产品数据，不区分内外Portal。"
                                                 />
-                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含公司内收入与公司外收入。" width="110px" highlight />
+                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含公司内收入与公司外收入。" width="110px" />
                                                 <AnalysisTh label="公司内收入(元)" tip="来自公司内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="110px" highlight />
-                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" />
-                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" />
-                                                <AnalysisTh label="本结算单元收入(元)" width="110px" />
+                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" highlight />
+                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" highlight />
+                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" highlight />
+                                                <AnalysisTh label="本结算单元收入(元)" width="110px" highlight />
                                                 <AnalysisTh
                                                     label="公司外收入(元)"
                                                     align="center"
-                                                    highlight
                                                     tip="来自公司外部客户的收入合计，等于「集团内的外部客户」与「外部Portal」两部分收入之和。"
                                                 />
                                                 <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" />
@@ -9059,12 +9395,12 @@ export default function AdminPage() {
                                                         <span className="text-blue-600 hover:text-blue-700 cursor-pointer">{cleanProductName(row.productName)}</span>
                                                     </td>
                                                     <AnalysisAmountCell value={row.totalRevenue} link highlight onClick={() => { setRevenueDetailRow(row); setRevenueDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.innerRevenue} link highlight onClick={() => setInnerRevenueDetailRow(row)} />
-                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} link onClick={() => setUnitBillDetail({ row, title: "公司内非中台收入", amount: row.innerNonMidRevenue })} />
-                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} link onClick={() => setUnitBillDetail({ row, title: "中台内非智汇云收入", amount: row.midNonZyunRevenue })} />
-                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue })} />
-                                                    <AnalysisAmountCell value={row.unitRevenue} link onClick={() => setUnitBillDetail({ row, title: "本结算单元收入", amount: row.unitRevenue })} />
-                                                    <AnalysisAmountCell value={row.outerRevenue} link highlight onClick={() => setOuterRevenueDetailRow(row)} />
+                                                    <AnalysisAmountCell value={row.innerRevenue} link highlight onClick={() => { setInnerRevenueDetailRow(row); setInnerRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} link onClick={() => { setUnitBillDetail({ row, title: "公司内非中台收入", amount: row.innerNonMidRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} link onClick={() => { setUnitBillDetail({ row, title: "中台内非智汇云收入", amount: row.midNonZyunRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.unitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "本结算单元收入", amount: row.unitRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.outerRevenue} link highlight onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
                                                     <AnalysisAmountCell value={row.innerTotalRevenue} />
                                                     <AnalysisAmountCell value={row.productCost} link />
@@ -9251,50 +9587,77 @@ export default function AdminPage() {
                                                 </svg>
                                             </button>
                                         </div>
+
+                                        {/* 趋势 / 收入明细 切换 */}
+                                        <div className="flex items-center gap-6 border-b border-gray-200 px-6">
+                                            {[
+                                                { key: "trend" as const, label: "趋势" },
+                                                { key: "revenue" as const, label: "收入明细" },
+                                            ].map((t) => (
+                                                <button
+                                                    key={t.key}
+                                                    onClick={() => setInnerRevenueDetailTab(t.key)}
+                                                    className={`-mb-px border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
+                                                        innerRevenueDetailTab === t.key
+                                                            ? "border-blue-600 text-blue-600"
+                                                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                                                    }`}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
                                         <div className="flex-1 overflow-y-auto p-6">
-                                            {/* 提示文案 */}
-                                            <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
-                                                <div className="font-semibold text-gray-900">公司内收入包含两部分：</div>
-                                                <div>集团内部结算单元账单：内部企业标记为内结部门的收入；</div>
-                                                <div>内结部门在外部Portal使用的费用：内结部门账号在外部Portal上使用产生的费用，关联回对应结算单元，计入公司内收入。</div>
-                                            </div>
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-gray-200">
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {getInnerRevenueMergedRows(innerRevenueDetailRow).map((r, i) => (
-                                                        <tr key={i} className="border-b border-gray-100">
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
-                                                            <td className="py-3 px-4">
-                                                                <span className="group/tip relative inline-flex">
-                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
-                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                        {r.type === "internal"
-                                                                            ? "点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 > 结算单元概览，并选中对应的结算单元。"
-                                                                            : "点击带账期、结算单元和账号，新开页到【产品账单】，定位到 产品账单 > 客户概览，并选中对应的账号。"}
-                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                                                    </span>
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {getInnerRevenueMergedRows(innerRevenueDetailRow).length === 0 && (
-                                                        <tr>
-                                                            <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂无公司内收入明细数据</td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
+                                            {innerRevenueDetailTab === "trend" ? (
+                                                <ProductColumnTrendChart points={productColumnTrendPoints} billType={analysisBillType} />
+                                            ) : (
+                                                <>
+                                                    {/* 提示文案 */}
+                                                    <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
+                                                        <div className="font-semibold text-gray-900">公司内收入包含两部分：</div>
+                                                        <div>集团内部结算单元账单：内部企业标记为内结部门的收入；</div>
+                                                        <div>内结部门在外部Portal使用的费用：内结部门账号在外部Portal上使用产生的费用，关联回对应结算单元，计入公司内收入。</div>
+                                                    </div>
+                                                    <table className="w-full">
+                                                        <thead>
+                                                            <tr className="border-b border-gray-200">
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {getInnerRevenueMergedRows(innerRevenueDetailRow).map((r, i) => (
+                                                                <tr key={i} className="border-b border-gray-100">
+                                                                    <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                                    <td className="py-3 px-4">
+                                                                        <span className="group/tip relative inline-flex">
+                                                                            <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                                {r.type === "internal"
+                                                                                    ? "点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 > 结算单元概览，并选中对应的结算单元。"
+                                                                                    : "点击带账期、结算单元和账号，新开页到【产品账单】，定位到 产品账单 > 客户概览，并选中对应的账号。"}
+                                                                                <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                            </span>
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                            {getInnerRevenueMergedRows(innerRevenueDetailRow).length === 0 && (
+                                                                <tr>
+                                                                    <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂无公司内收入明细数据</td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -9315,43 +9678,70 @@ export default function AdminPage() {
                                                 </svg>
                                             </button>
                                         </div>
+
+                                        {/* 趋势 / 收入明细 切换 */}
+                                        <div className="flex items-center gap-6 border-b border-gray-200 px-6">
+                                            {[
+                                                { key: "trend" as const, label: "趋势" },
+                                                { key: "revenue" as const, label: "收入明细" },
+                                            ].map((t) => (
+                                                <button
+                                                    key={t.key}
+                                                    onClick={() => setOuterRevenueDetailTab(t.key)}
+                                                    className={`-mb-px border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
+                                                        outerRevenueDetailTab === t.key
+                                                            ? "border-blue-600 text-blue-600"
+                                                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                                                    }`}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
                                         <div className="flex-1 overflow-y-auto p-6">
-                                            {/* 提示文案 */}
-                                            <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
-                                                <div className="font-semibold text-gray-900">公司外收入包含两部分：</div>
-                                                <div>集团下外部结算单元账单：内部企业标记为经营部门的部门的收入；</div>
-                                                <div>外部Portal名称(域名)收入：外部Portal(360.cn)的收入。</div>
-                                            </div>
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-gray-200">
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">来源名称</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {getOuterRevenueDetailRows(outerRevenueDetailRow).map((r, i) => (
-                                                        <tr key={i} className="border-b border-gray-100">
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.sourceName}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
-                                                            <td className="py-3 px-4">
-                                                                <span className="group/tip relative inline-flex">
-                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
-                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                        点击带账期和收入来源，新开页到对应账单页面，定位并选中对应的记录。
-                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                                                    </span>
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                            {outerRevenueDetailTab === "trend" ? (
+                                                <ProductColumnTrendChart points={productColumnTrendPoints} billType={analysisBillType} />
+                                            ) : (
+                                                <>
+                                                    {/* 提示文案 */}
+                                                    <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
+                                                        <div className="font-semibold text-gray-900">公司外收入包含两部分：</div>
+                                                        <div>集团下外部结算单元账单：内部企业标记为经营部门的部门的收入；</div>
+                                                        <div>外部Portal名称(域名)收入：外部Portal(360.cn)的收入。</div>
+                                                    </div>
+                                                    <table className="w-full">
+                                                        <thead>
+                                                            <tr className="border-b border-gray-200">
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">来源名称</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {getOuterRevenueDetailRows(outerRevenueDetailRow).map((r, i) => (
+                                                                <tr key={i} className="border-b border-gray-100">
+                                                                    <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-700">{r.sourceName}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                                    <td className="py-3 px-4">
+                                                                        <span className="group/tip relative inline-flex">
+                                                                            <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                                点击带账期和收入来源，新开页到对应账单页面，定位并选中对应的记录。
+                                                                                <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                            </span>
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -9361,10 +9751,10 @@ export default function AdminPage() {
                             {unitBillDetail && (
                                 <div className="fixed inset-0 z-[100]">
                                     <div className="absolute inset-0 bg-black/50" onClick={() => setUnitBillDetail(null)} />
-                                    <div className="absolute right-0 top-0 bottom-0 w-[760px] bg-white shadow-xl flex flex-col">
+                                    <div className="absolute right-0 top-0 bottom-0 w-[900px] bg-white shadow-xl flex flex-col">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                             <h3 className="text-base font-semibold text-gray-900">
-                                                {unitBillDetail.title}账单金额明细 <span className="font-normal text-gray-600">{cleanProductName(unitBillDetail.row.productName)}</span>
+                                                {unitBillDetail.title}明细 <span className="font-normal text-gray-600">{cleanProductName(unitBillDetail.row.productName)}</span>
                                             </h3>
                                             <button onClick={() => setUnitBillDetail(null)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -9372,35 +9762,77 @@ export default function AdminPage() {
                                                 </svg>
                                             </button>
                                         </div>
+
+                                        {/* 趋势 / 收入明细 切换 */}
+                                        <div className="flex items-center gap-6 border-b border-gray-200 px-6">
+                                            {[
+                                                { key: "trend" as const, label: "趋势" },
+                                                { key: "revenue" as const, label: "收入明细" },
+                                            ].map((t) => (
+                                                <button
+                                                    key={t.key}
+                                                    onClick={() => setUnitBillDetailTab(t.key)}
+                                                    className={`-mb-px border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
+                                                        unitBillDetailTab === t.key
+                                                            ? "border-blue-600 text-blue-600"
+                                                            : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                                                    }`}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
                                         <div className="flex-1 overflow-y-auto p-6">
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-gray-200">
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {getUnitBillDetailRows(unitBillDetail.row, unitBillDetail.amount).map((r, i) => (
-                                                        <tr key={i} className="border-b border-gray-100">
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
-                                                            <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
-                                                            <td className="py-3 px-4">
-                                                                <span className="group/tip relative inline-flex">
-                                                                    <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
-                                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[260px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                        点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 &gt; 结算单元概览，并选中对应的结算单元。
-                                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                                                    </span>
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                            {unitBillDetailTab === "trend" ? (
+                                                <ProductColumnTrendChart points={productColumnTrendPoints} billType={analysisBillType} />
+                                            ) : (
+                                                <>
+                                                    {/* 提示文案 */}
+                                                    <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
+                                                        <div className="font-semibold text-gray-900">该收入包含两部分：</div>
+                                                        <div>集团内部结算单元账单：内部企业标记为内结部门的收入；</div>
+                                                        <div>内结部门在外部Portal使用的费用：内结部门账号在外部Portal上使用产生的费用，关联回对应结算单元。</div>
+                                                    </div>
+                                                    <table className="w-full">
+                                                        <thead>
+                                                            <tr className="border-b border-gray-200">
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">结算单元名称</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {getUnitBillDetailRows(unitBillDetail.row, unitBillDetail.amount, unitBillDetail.title).map((r, i) => (
+                                                                <tr key={i} className="border-b border-gray-100">
+                                                                    <td className="py-3 px-4 text-sm text-gray-900">{r.period}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-700">{r.unitName}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-700">{r.source}</td>
+                                                                    <td className="py-3 px-4 text-sm text-gray-900">{formatExactAmount(r.amount)}</td>
+                                                                    <td className="py-3 px-4">
+                                                                        <span className="group/tip relative inline-flex">
+                                                                            <button className="text-sm text-blue-600 hover:text-blue-700">查看详情</button>
+                                                                            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                                {r.type === "internal"
+                                                                                    ? "点击带账期和结算单元，新开页到【内网账单】，定位到 产品账单 > 结算单元概览，并选中对应的结算单元。"
+                                                                                    : "点击带账期、结算单元和账号，新开页到【产品账单】，定位到 产品账单 > 客户概览，并选中对应的账号。"}
+                                                                                <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                            </span>
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                            {getUnitBillDetailRows(unitBillDetail.row, unitBillDetail.amount, unitBillDetail.title).length === 0 && (
+                                                                <tr>
+                                                                    <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂无收入明细数据</td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -10825,7 +11257,6 @@ export default function AdminPage() {
                                         className={`px-4 py-3 text-sm font-medium transition-colors relative flex items-center ${regionPageTab === 'config' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
                                     >
                                         <span>地域配置</span>
-                                        <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                         {regionPageTab === 'config' && (
                                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
                                         )}
@@ -10865,18 +11296,16 @@ export default function AdminPage() {
                                                     <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">
                                                         <span className="inline-flex items-center">
                                                             <span>地域 / 所属标签</span>
-                                                            <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                                         </span>
                                                     </th>
                                                     {zonePortalOptions.map(portalName => (
                                                         <th key={portalName} colSpan={2} className="text-center py-2 px-4 text-sm font-medium text-gray-700 border-r border-gray-200">
                                                             <div className="inline-flex items-center gap-1.5">
                                                                 <span className="truncate max-w-[200px]" title={formatPortalLabel(portalName)}>{portalName}</span>
-                                                                {getPortalDomain(portalName) && (
-                                                                    <span className="text-[11px] font-normal text-gray-400 font-mono">({getPortalDomain(portalName)})</span>
-                                                                )}
-                                                                <span className="px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
-                                                            </div>
+                                                                        {getPortalDomain(portalName) && (
+                                                                            <span className="text-[11px] font-normal text-gray-400 font-mono">({getPortalDomain(portalName)})</span>
+                                                                        )}
+                                                                    </div>
                                                         </th>
                                                     ))}
                                                     <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap">更新时间</th>
