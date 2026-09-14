@@ -9373,6 +9373,7 @@ export default function AdminPage() {
                                                     label="公司外收入(元)"
                                                     align="center"
                                                     tip="来自公司外部客户的收入合计，等于「集团内的外部客户」与「外部Portal」两部分收入之和。"
+                                                    highlight
                                                 />
                                                 <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" />
                                                 <AnalysisTh label="内结算总收入(元)" width="110px" />
