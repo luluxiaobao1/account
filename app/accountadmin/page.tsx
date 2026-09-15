@@ -698,11 +698,10 @@ const getUnitBillDetailRows = (row: ProductAnalysisRow, amount: number, title?: 
 
 
 
-// 产品分析 - 外部Portal租户（名称 + 域名）
+// 产品分析 - 外部Portal账号（名称）
 const outerPortalTenants = [
-    { name: "360安全云", domain: "aq.360.cn" },
-    { name: "360政企云", domain: "zq.360.cn" },
-    { name: "360营销云", domain: "yx.360.cn" },
+    { name: "张三" },
+    { name: "李四" },
 ];
 
 // 产品分析 - 「公司外收入」明细：拆分「收入来源」与「来源名称」两列，
@@ -738,7 +737,7 @@ const getOuterRevenueDetailRows = (row: ProductAnalysisRow) => {
                 ? portalTotal - allocated
                 : Math.round((portalTotal * weights[i]) / weightSum * 100) / 100;
             allocated += amount;
-            rows.push({ period: row.period, unitName: "-", source: "外部Portal名称(域名)", sourceName: `${t.name}（${t.domain}）`, amount });
+            rows.push({ period: row.period, unitName: "-", source: "外部Portal名称(域名)", sourceName: t.name, amount });
         });
     }
 
@@ -3286,17 +3285,17 @@ const collectTenantSettlementUnits = (tenantId: string): TenantSettlementUnit[] 
     return result;
 };
 
-// 内部折扣设置 - 部门属性（固定两类，不可增删改）
-// 内结部门：内部结算部门，经营分析时是内部收入
-// 经营部门：单独定价的部门，经营分析时归类到外部收入
+// 内部折扣设置 - 经营属性（固定两类，不可增删改）
+// 内结：内部结算部门，经营分析时是内部收入
+// 经营：单独定价的部门，经营分析时归类到外部收入
 type UnitDeptAttr = 'biz' | 'inner';
 const unitDeptAttrOptions: { value: UnitDeptAttr; label: string }[] = [
-    { value: 'biz', label: '经营部门' },
-    { value: 'inner', label: '内结部门' },
+    { value: 'biz', label: '经营' },
+    { value: 'inner', label: '内结' },
 ];
-const unitDeptAttrTip = '内结部门：内部结算部门，经营分析时是内部收入。经营部门：单独定价的部门，经营分析时归类到外部收入。';
+const unitDeptAttrTip = '内结：内部结算部门，经营分析时是内部收入。经营：单独定价的部门，经营分析时归类到外部收入。';
 
-// 内部折扣设置 - 折扣类型（内结部门固定为「内部折扣」，经营部门可选 SVIP/VIP）
+// 内部折扣设置 - 折扣类型（内结固定为「内部折扣」，经营可选 SVIP/VIP）
 // 结算单元命中哪种折扣类型，计费时即取产品定义中对应的折扣值
 type UnitDiscountType = 'internal' | 'svip' | 'vip';
 const unitDiscountTypeOptions: { value: UnitDiscountType; label: string }[] = [
@@ -3323,16 +3322,16 @@ const standaloneProductOptions: Record<StandaloneBillingType, { id: number; name
 // 单独设置折扣的优先级说明（列头提示 + 弹窗温馨提示）
 const standaloneDiscountTip = '折扣优先级：单独设置的产品或资源包折扣 > 客户计费标签 > 租户折扣 > 官方折扣。';
 
-// 内部折扣设置 - 结算单元的部门属性与折扣配置
-// 规则：内结部门固定为内部折扣，不可再编辑；经营部门可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
+// 内部折扣设置 - 结算单元的经营属性与折扣配置
+// 规则：内结固定为内部折扣，不可再编辑；经营可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
 type UnitDiscountConfig = {
-    deptAttr: UnitDeptAttr | '';            // 部门属性，空字符串代表未配置
-    discount: UnitDiscountType | null;      // 折扣类型（内结部门固定 internal；经营部门可选 svip/vip）
-    standaloneProducts: StandaloneProduct[]; // 单独设置计费的产品/资源包，仅经营部门可设置
+    deptAttr: UnitDeptAttr | '';            // 经营属性，空字符串代表未配置
+    discount: UnitDiscountType | null;      // 折扣类型（内结固定 internal；经营可选 svip/vip）
+    standaloneProducts: StandaloneProduct[]; // 单独设置计费的产品/资源包，仅「经营」可设置
     updateTime: string;
 };
 const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
-    // 内结部门：内部结算，折扣固定为「内部折扣」，不再编辑
+    // 内结：内部结算，折扣固定为「内部折扣」，不再编辑
     '智汇云-应用平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
     '智汇云-商业化产品部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
     '智汇云-云平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-20 09:12:45' },
@@ -3370,11 +3369,37 @@ const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
 const formatDiscount = (v: UnitDiscountType | null) =>
     v == null ? '--' : (unitDiscountTypeOptions.find(o => o.value === v)?.label || '--');
 
-// 内部折扣设置 - 部门属性配色
+// 内部折扣设置 - 经营属性配色
 const unitDeptAttrColors: Record<UnitDeptAttr, string> = {
     biz: 'bg-blue-50 text-blue-600',
     inner: 'bg-amber-50 text-amber-600',
 };
+
+// 内部折扣设置 - 内外属性（结算单元在集团组织架构中的层级归属）
+// 集外：未关联到集团组织架构（集团外）；集团内非中台：集团内但不在任何中台下；中台内非智汇云；智汇云
+type UnitInsideAttr = 'outside' | 'groupNonMid' | 'midNonZyun' | 'zyun';
+const unitInsideAttrOptions: { value: UnitInsideAttr; label: string }[] = [
+    { value: 'outside', label: '集外' },
+    { value: 'groupNonMid', label: '集团内非中台' },
+    { value: 'midNonZyun', label: '中台内非智汇云' },
+    { value: 'zyun', label: '智汇云' },
+];
+const unitInsideAttrTip = '内外属性依据结算单元归属组织部门在集团架构中的层级判定：集外、集团内非中台、中台内非智汇云、智汇云。';
+const unitInsideAttrColors: Record<UnitInsideAttr, string> = {
+    outside: 'bg-gray-100 text-gray-600',
+    groupNonMid: 'bg-blue-50 text-blue-600',
+    midNonZyun: 'bg-purple-50 text-purple-600',
+    zyun: 'bg-emerald-50 text-emerald-600',
+};
+// 依据归属组织部门路径判定内外属性
+const getUnitInsideAttr = (deptId: string, deptPath: string): UnitInsideAttr => {
+    if (!deptId) return 'outside';
+    if (deptPath.includes('智汇云')) return 'zyun';
+    if (deptPath.includes('中台')) return 'midNonZyun';
+    return 'groupNonMid';
+};
+const getUnitInsideAttrLabel = (v: UnitInsideAttr) =>
+    unitInsideAttrOptions.find(o => o.value === v)?.label || '--';
 
 // 租户数据
 const tenantsData = [
@@ -5595,6 +5620,8 @@ export default function AdminPage() {
     // 新增计费设置表单
     const [standaloneAddForm, setStandaloneAddForm] = useState<{ type: StandaloneBillingType; productId: string; discount: string } | null>(null);
     const [standaloneAddError, setStandaloneAddError] = useState('');
+    // 新增产品/资源包：未画稿提示弹窗（交互复用客户管理-单独设置折扣）
+    const [standaloneAddNotice, setStandaloneAddNotice] = useState<StandaloneBillingType | null>(null);
 
     // 当前租户（内部企业所属租户）下同步的全部结算单元
     const tenantUnitRows = useMemo(() => {
@@ -5636,14 +5663,14 @@ export default function AdminPage() {
     const getDeptAttrColor = (attr: UnitDeptAttr | '') =>
         attr === '' ? 'bg-gray-100 text-gray-500' : unitDeptAttrColors[attr];
 
-    // 部门属性展示
+    // 经营属性展示
     const getDeptAttrLabel = (attr: UnitDeptAttr | '') =>
         attr === '' ? '--' : (unitDeptAttrOptions.find(o => o.value === attr)?.label || '--');
 
-    // 判断结算单元是否为「内结部门」（不可再编辑折扣）
+    // 判断结算单元的经营属性是否为「内结」（不可再编辑折扣）
     const isInnerDept = (unit: string) => unitDiscounts[unit]?.deptAttr === 'inner';
 
-    // 批量设置折扣仅对「经营部门」生效：内结部门固定内部折扣、未配置部门属性的单元均不可批量改折扣
+    // 批量设置折扣仅对「经营」生效：「内结」固定内部折扣、未配置经营属性的单元均不可批量改折扣
     const selectedBizUnits = useMemo(
         () => selectedDiscountUnits.filter(u => unitDiscounts[u]?.deptAttr === 'biz'),
         [selectedDiscountUnits, unitDiscounts]
@@ -5674,7 +5701,7 @@ export default function AdminPage() {
         if (discountDialogMode === 'discount') {
             const discount = discountForm.discount;
             if (!discount) {
-                setDiscountFormError('请选择折扣');
+                setDiscountFormError('请选择计费标签');
                 return;
             }
             const now = formatNow();
@@ -5698,13 +5725,13 @@ export default function AdminPage() {
         // 设置部门属性或完整设置模式
         const deptAttr = discountForm.deptAttr;
         if (!deptAttr) {
-            setDiscountFormError('请选择部门属性');
+            setDiscountFormError('请选择经营属性');
             return;
         }
         // 经营部门需选择折扣类型（SVIP/VIP）
         const discount = discountForm.discount;
         if (deptAttr === 'biz' && !discount) {
-            setDiscountFormError('请选择折扣');
+            setDiscountFormError('请选择计费标签');
             return;
         }
         const now = formatNow();
@@ -5712,7 +5739,7 @@ export default function AdminPage() {
             const next = { ...prev };
             discountDialogUnits.forEach(u => {
                 const old = prev[u] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' };
-                // 内结部门固定为内部折扣，且清空单独设置的产品；经营部门按所选折扣类型取值，单独设置的产品保持不变
+                // 「内结」固定为内部折扣，且清空单独设置的产品；「经营」按所选折扣类型取值，单独设置的产品保持不变
                 if (deptAttr === 'inner') {
                     next[u] = { deptAttr, discount: 'internal', standaloneProducts: [], updateTime: now };
                 } else {
@@ -5733,6 +5760,7 @@ export default function AdminPage() {
         setStandaloneProductsTab('metered');
         setStandaloneAddForm(null);
         setStandaloneAddError('');
+        setStandaloneAddNotice(null);
         setStandaloneProductsUnit(unit);
     };
 
@@ -5752,6 +5780,7 @@ export default function AdminPage() {
         setStandaloneProductsUnit(null);
         setStandaloneAddForm(null);
         setStandaloneAddError('');
+        setStandaloneAddNotice(null);
     };
 
     // 新增一条单独计费设置
@@ -9617,8 +9646,8 @@ export default function AdminPage() {
                                                     {/* 提示文案 */}
                                                     <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
                                                         <div className="font-semibold text-gray-900">公司内收入包含两部分：</div>
-                                                        <div>集团内部结算单元账单：内部企业标记为内结部门的收入；</div>
-                                                        <div>内结部门在外部Portal使用的费用：内结部门账号在外部Portal上使用产生的费用，关联回对应结算单元，计入公司内收入。</div>
+                                                        <div>集团内部结算单元账单：内部企业中经营属性为「内结」的结算单元收入；</div>
+                                                        <div>「内结」结算单元在外部Portal使用的费用：其账号在外部Portal上使用产生的费用，关联回对应结算单元，计入公司内收入。</div>
                                                     </div>
                                                     <table className="w-full">
                                                         <thead>
@@ -9708,15 +9737,15 @@ export default function AdminPage() {
                                                     {/* 提示文案 */}
                                                     <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
                                                         <div className="font-semibold text-gray-900">公司外收入包含两部分：</div>
-                                                        <div>集团下外部结算单元账单：内部企业标记为经营部门的部门的收入；</div>
+                                                        <div>集团下外部结算单元账单：内部企业中经营属性为「经营」的结算单元收入；</div>
                                                         <div>外部Portal名称(域名)收入：外部Portal(360.cn)的收入。</div>
                                                     </div>
                                                     <table className="w-full">
                                                         <thead>
                                                             <tr className="border-b border-gray-200">
                                                                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账期</th>
+                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入类型</th>
                                                                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">收入来源</th>
-                                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">来源名称</th>
                                                                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">账单金额(元)</th>
                                                                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">操作</th>
                                                             </tr>
@@ -9792,8 +9821,8 @@ export default function AdminPage() {
                                                     {/* 提示文案 */}
                                                     <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
                                                         <div className="font-semibold text-gray-900">该收入包含两部分：</div>
-                                                        <div>集团内部结算单元账单：内部企业标记为内结部门的收入；</div>
-                                                        <div>内结部门在外部Portal使用的费用：内结部门账号在外部Portal上使用产生的费用，关联回对应结算单元。</div>
+                                                        <div>集团内部结算单元账单：内部企业中经营属性为「内结」的结算单元收入；</div>
+                                                        <div>「内结」结算单元在外部Portal使用的费用：其账号在外部Portal上使用产生的费用，关联回对应结算单元。</div>
                                                     </div>
                                                     <table className="w-full">
                                                         <thead>
@@ -10451,11 +10480,11 @@ export default function AdminPage() {
                                                 onChange={(e) => setDiscountAttrFilter(e.target.value)}
                                                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                             >
-                                                <option value="all">全部部门属性</option>
+                                                <option value="all">全部经营属性</option>
                                                 {unitDeptAttrOptions.map(o => (
                                                     <option key={o.value} value={o.value}>{o.label}</option>
                                                 ))}
-                                                <option value="__unset__">未配置部门属性</option>
+                                                <option value="__unset__">未配置经营属性</option>
                                             </select>
                                         </div>
                                         {/* 批量操作：部门属性、折扣可批量设置；单独设置折扣不支持批量 */}
@@ -10467,7 +10496,7 @@ export default function AdminPage() {
                                                     ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                                                     : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                                             >
-                                                批量设置部门属性{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
+                                                批量设置经营属性{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
                                             </button>
                                             <button
                                                 onClick={() => handleOpenDiscountDialog(selectedBizUnits, 'discount')}
@@ -10476,7 +10505,7 @@ export default function AdminPage() {
                                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                     : 'bg-[#006bff] text-white hover:bg-blue-600'}`}
                                             >
-                                                批量设置折扣{selectedBizUnits.length > 0 ? `（${selectedBizUnits.length}）` : ''}
+                                                批量设置计费标签{selectedBizUnits.length > 0 ? `（${selectedBizUnits.length}）` : ''}
                                             </button>
                                         </div>
                                     </div>
@@ -10504,7 +10533,21 @@ export default function AdminPage() {
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[240px]">归属组织部门</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">
                                                         <span className="inline-flex items-center gap-1">
-                                                            部门属性
+                                                            内外属性
+                                                            <span className="group/tip relative inline-flex flex-shrink-0">
+                                                                <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                    {unitInsideAttrTip}
+                                                                    <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                                </span>
+                                                            </span>
+                                                        </span>
+                                                    </th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">
+                                                        <span className="inline-flex items-center gap-1">
+                                                            经营属性
                                                             <span className="group/tip relative inline-flex flex-shrink-0">
                                                                 <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -10516,7 +10559,7 @@ export default function AdminPage() {
                                                             </span>
                                                         </span>
                                                     </th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">折扣</th>
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">计费标签</th>
                                                     {/* 单独设置折扣：附折扣优先级说明 */}
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-44">
                                                         <span className="inline-flex items-center gap-1">
@@ -10538,7 +10581,7 @@ export default function AdminPage() {
                                             <tbody>
                                                 {filteredDiscountRows.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={8} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                        <td colSpan={9} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
                                                     </tr>
                                                 ) : (
                                                     filteredDiscountRows.map((row, idx) => (
@@ -10566,6 +10609,12 @@ export default function AdminPage() {
                                                                     <span className="text-xs text-gray-400">未关联组织部门</span>
                                                                 )}
                                                             </td>
+                                                            {/* 内外属性：依据归属组织部门层级判定 */}
+                                                            <td className="py-3 px-4 align-top">
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${unitInsideAttrColors[getUnitInsideAttr(row.deptId, row.deptPath)]}`}>
+                                                                    {getUnitInsideAttrLabel(getUnitInsideAttr(row.deptId, row.deptPath))}
+                                                                </span>
+                                                            </td>
                                                             {/* 部门属性：本列单独配置 */}
                                                             <td className="py-3 px-4 align-top">
                                                                 <div className="flex items-center gap-2">
@@ -10578,7 +10627,7 @@ export default function AdminPage() {
                                                                     )}
                                                                     <button
                                                                         onClick={() => handleOpenDiscountDialog([row.unit], 'attr')}
-                                                                        title="设置部门属性"
+                                                                        title="设置经营属性"
                                                                         className="text-gray-300 hover:text-blue-600 transition-colors"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -10587,7 +10636,7 @@ export default function AdminPage() {
                                                                     </button>
                                                                 </div>
                                                             </td>
-                                                            {/* 折扣：本列单独配置；内结部门固定内部折扣不可编辑 */}
+                                                            {/* 折扣：本列单独配置；「内结」固定内部折扣不可编辑 */}
                                                             <td className="py-3 px-4 text-sm text-gray-700 align-top">
                                                                 <div className="flex items-center gap-2">
                                                                     {row.config.discount == null
@@ -10596,7 +10645,7 @@ export default function AdminPage() {
                                                                     {!isInnerDept(row.unit) && (
                                                                         <button
                                                                             onClick={() => handleOpenDiscountDialog([row.unit], 'discount')}
-                                                                            title="设置折扣"
+                                                                            title="设置计费标签"
                                                                             className="text-gray-300 hover:text-blue-600 transition-colors"
                                                                         >
                                                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -10645,10 +10694,10 @@ export default function AdminPage() {
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                             <h3 className="text-base font-semibold text-gray-900">
                                                 {discountDialogMode === 'attr'
-                                                    ? (discountDialogUnits.length > 1 ? `批量设置部门属性（${discountDialogUnits.length} 个结算单元）` : '设置部门属性')
+                                                    ? (discountDialogUnits.length > 1 ? `批量设置经营属性（${discountDialogUnits.length} 个结算单元）` : '设置经营属性')
                                                     : discountDialogMode === 'discount'
-                                                        ? (discountDialogUnits.length > 1 ? `批量设置折扣（${discountDialogUnits.length} 个结算单元）` : '设置折扣')
-                                                        : (discountDialogUnits.length > 1 ? `批量设置（${discountDialogUnits.length} 个结算单元）` : '折扣设置')}
+                                                        ? (discountDialogUnits.length > 1 ? `批量设置计费标签（${discountDialogUnits.length} 个结算单元）` : '设置计费标签')
+                                                        : (discountDialogUnits.length > 1 ? `批量设置（${discountDialogUnits.length} 个结算单元）` : '计费标签设置')}
                                             </h3>
                                             <button onClick={() => setDiscountDialogUnits(null)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -10670,16 +10719,16 @@ export default function AdminPage() {
 
                                              {/* 批量模式说明 */}
                                              {discountDialogMode === 'attr' && (
-                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置部门属性，选择「内结部门」将自动清空该结算单元已设置的单独计费产品。</p>
+                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置经营属性，选择「内结」将自动清空该结算单元已设置的单独计费产品。</p>
                                              )}
                                              {discountDialogMode === 'discount' && discountDialogUnits.length > 1 && (
-                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置折扣，不影响各结算单元已单独设置的计费产品。</p>
+                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置计费标签，不影响各结算单元已单独设置的计费产品。</p>
                                              )}
 
                                              {/* 部门属性 */}
                                              {discountDialogMode !== 'discount' && (
                                              <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">部门属性 <span className="text-red-500">*</span></label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">经营属性 <span className="text-red-500">*</span></label>
                                                 <select
                                                     value={discountForm.deptAttr}
                                                     onChange={(e) => {
@@ -10687,14 +10736,14 @@ export default function AdminPage() {
                                                         setDiscountForm({
                                                             ...discountForm,
                                                             deptAttr: v,
-                                                            // 切换为内结部门时清空经营部门专属的折扣
+                                                            // 切换为「内结」时清空「经营」专属的折扣
                                                             discount: v === 'inner' ? '' : discountForm.discount,
                                                         });
                                                         setDiscountFormError('');
                                                     }}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                                 >
-                                                    <option value="">请选择部门属性</option>
+                                                    <option value="">请选择经营属性</option>
                                                     {unitDeptAttrOptions.map(o => (
                                                         <option key={o.value} value={o.value}>{o.label}</option>
                                                     ))}
@@ -10703,15 +10752,15 @@ export default function AdminPage() {
                                             </div>
                                             )}
 
-                                            {/* 折扣配置：内结部门固定内部折扣；经营部门可选 SVIP/VIP */}
+                                            {/* 折扣配置：内结固定内部折扣；经营可选 SVIP/VIP */}
                                             {discountDialogMode !== 'attr' && (                                            <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                    折扣 {discountForm.deptAttr === 'biz' && <span className="text-red-500">*</span>}
+                                                    计费标签 {discountForm.deptAttr === 'biz' && <span className="text-red-500">*</span>}
                                                 </label>
                                                 {discountForm.deptAttr === 'inner' ? (
                                                     <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
                                                         内部折扣
-                                                        <span className="text-xs text-gray-400">（内结部门固定为内部折扣，不可编辑）</span>
+                                                        <span className="text-xs text-gray-400">（内结固定为内部折扣，不可编辑）</span>
                                                     </div>
                                                 ) : discountForm.deptAttr === 'biz' ? (
                                                     <select
@@ -10719,17 +10768,17 @@ export default function AdminPage() {
                                                         onChange={(e) => { setDiscountForm({ ...discountForm, discount: e.target.value as UnitDiscountType | '' }); setDiscountFormError(''); }}
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                                     >
-                                                        <option value="">请选择折扣</option>
+                                                        <option value="">请选择计费标签</option>
                                                         {unitDiscountTypeOptions.filter(o => o.value !== 'internal').map(o => (
                                                             <option key={o.value} value={o.value}>{o.label}</option>
                                                         ))}
                                                     </select>
                                                 ) : (
                                                     <div className="flex items-center px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-400">
-                                                        请先选择部门属性
+                                                        请先选择经营属性
                                                     </div>
                                                 )}
-                                                <p className="mt-1.5 text-xs text-gray-400">经营部门可通过 SVIP / VIP 客户计费标签设置折扣；内结部门固定为内部折扣，不可再编辑。</p>
+                                                <p className="mt-1.5 text-xs text-gray-400">经营属性为「经营」的结算单元可通过 SVIP / VIP 客户计费标签设置折扣；「内结」固定为内部折扣，不可再编辑。</p>
                                             </div>
                                             )}
 
@@ -10771,11 +10820,16 @@ export default function AdminPage() {
                                         </div>
 
                                         <div className="px-6 py-4 flex-1 overflow-auto">
-                                            {/* 温馨提示 */}
-                                            <p className="text-sm text-red-500 leading-[1.7]">
-                                                温馨提示：如果为客户设置了标签，同时也单独为客户设置了某些产品的折扣，那么计费时优先取单独设置的折扣。
-                                            </p>
-                                            <p className="mt-1 text-xs text-gray-400 leading-[1.7]">{standaloneDiscountTip}</p>
+                                            {/* 高亮提示：交互同「客户管理 > 单独设置产品折扣」 */}
+                                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                                                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <div className="text-sm text-amber-700 leading-[1.7]">
+                                                    <p>温馨提示：如果为客户设置了标签，同时也单独为客户设置了某些产品的折扣，那么计费时优先取单独设置的折扣。</p>
+                                                    <p className="mt-1 text-xs text-amber-600">{standaloneDiscountTip}</p>
+                                                </div>
+                                            </div>
 
                                             {/* 结算单元 + 新增按钮 */}
                                             <div className="mt-3 flex items-center justify-between">
@@ -10783,10 +10837,10 @@ export default function AdminPage() {
                                                     结算单元：<span className="text-gray-900">{standaloneProductsUnit}</span>
                                                 </div>
                                                 <button
-                                                    onClick={() => { setStandaloneAddForm({ type: standaloneProductsTab, productId: '', discount: '' }); setStandaloneAddError(''); }}
+                                                    onClick={() => { setStandaloneAddForm(null); setStandaloneAddError(''); setStandaloneAddNotice(standaloneProductsTab); }}
                                                     className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
                                                 >
-                                                    新增计费设置
+                                                    {standaloneProductsTab === 'metered' ? '新增产品' : '新增资源包'}
                                                 </button>
                                             </div>
 
@@ -10795,7 +10849,7 @@ export default function AdminPage() {
                                                 {standaloneBillingTabs.map(tab => (
                                                     <button
                                                         key={tab.value}
-                                                        onClick={() => { setStandaloneProductsTab(tab.value); setStandaloneAddForm(null); setStandaloneAddError(''); }}
+                                                        onClick={() => { setStandaloneProductsTab(tab.value); setStandaloneAddForm(null); setStandaloneAddError(''); setStandaloneAddNotice(null); }}
                                                         className={`relative pb-2.5 text-sm transition-colors ${standaloneProductsTab === tab.value ? 'text-[#006bff] font-medium' : 'text-gray-600 hover:text-gray-900'}`}
                                                     >
                                                         {tab.label}
@@ -10916,6 +10970,54 @@ export default function AdminPage() {
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* 新增产品 / 新增资源包：未画稿说明弹窗 */}
+                                    {standaloneAddNotice && (
+                                        <div className="absolute inset-0 z-[60] flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/30" onClick={() => setStandaloneAddNotice(null)} />
+                                            <div className="relative bg-white rounded-lg shadow-xl w-[520px] max-w-[92vw]">
+                                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                                    <h3 className="text-base font-semibold text-gray-900">
+                                                        {standaloneAddNotice === 'metered' ? '新增产品' : '新增资源包'}
+                                                    </h3>
+                                                    <button onClick={() => setStandaloneAddNotice(null)} className="text-gray-400 hover:text-gray-600">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div className="px-6 py-5">
+                                                    <div className="flex items-start gap-2.5">
+                                                        <svg className="w-5 h-5 text-[#006bff] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <div className="text-sm text-gray-700 leading-[1.8]">
+                                                            <p>添加产品或资源包的交互同「客户管理 &gt; 单独设置折扣」，此处未画稿。</p>
+                                                            <p className="mt-1.5 text-gray-500">
+                                                                参考地址：
+                                                                <a
+                                                                    href="https://account.zyun.qihoo.net/#/usercenter/usermanage"
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="text-[#006bff] hover:underline break-all"
+                                                                >
+                                                                    https://account.zyun.qihoo.net/#/usercenter/usermanage
+                                                                </a>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setStandaloneAddNotice(null)}
+                                                        className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                                    >
+                                                        我知道了
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
