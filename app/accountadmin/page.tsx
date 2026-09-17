@@ -4406,6 +4406,8 @@ export default function AdminPage() {
         id: number;
         region: string;         // 地域
         cloudServer: string;    // 服务方名称
+        zoneId: string;         // 可用区ID（开启内部Portal时与内部Portal可用区标识一致；未开启内部Portal时需单独设置）
+        zoneName: string;       // 可用区名称（开启内部Portal时与内部Portal可用区名称一致；未开启内部Portal时需单独设置）
         portals: ZonePortalEntry[];  // 各 Portal 下的可用区配置（覆盖全部已开启独立Portal）
         createTime: string;
         updateTime: string;
@@ -4415,84 +4417,84 @@ export default function AdminPage() {
     const OUTER_PORTAL = '外部/公共(360.cn)';
     const [regionZones, setRegionZones] = useState<RegionZone[]>([
         {
-            id: 1, region: '北京', cloudServer: '360集团', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01',
+            id: 1, region: '北京', cloudServer: '360集团', zoneId: 'bjwdt', zoneName: '北京电信', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京电信', code: 'bjwdt' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '北京1区', code: 'beijing1' },
             ],
         },
         {
-            id: 2, region: '北京', cloudServer: '360集团', createTime: '2025-12-22 18:32:11', updateTime: '2025-12-22 18:32:11',
+            id: 2, region: '北京', cloudServer: '360集团', zoneId: 'bjzdt', zoneName: '北京电信', createTime: '2025-12-22 18:32:11', updateTime: '2025-12-22 18:32:11',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京电信', code: 'bjzdt' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '北京2区', code: 'beijing2' },
             ],
         },
         {
-            id: 3, region: '北京', cloudServer: '360集团', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03',
+            id: 3, region: '北京', cloudServer: '360集团', zoneId: 'bjpdc', zoneName: '北京联通', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京联通', code: 'bjpdc' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '北京3区', code: 'beijing3' },
             ],
         },
         {
-            id: 4, region: '北京', cloudServer: '360集团', createTime: '2025-12-22 18:32:29', updateTime: '2025-12-22 18:32:29',
+            id: 4, region: '北京', cloudServer: '360集团', zoneId: 'bjcm', zoneName: '北京移动', createTime: '2025-12-22 18:32:29', updateTime: '2025-12-22 18:32:29',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京移动', code: 'bjcm' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '北京4区', code: 'beijing4' },
             ],
         },
         {
-            id: 5, region: '北京', cloudServer: '360集团', createTime: '2025-12-22 18:32:33', updateTime: '2025-12-22 18:32:33',
+            id: 5, region: '北京', cloudServer: '360集团', zoneId: 'bjmd', zoneName: '北京联通', createTime: '2025-12-22 18:32:33', updateTime: '2025-12-22 18:32:33',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '北京联通', code: 'bjmd' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '北京5区', code: 'beijing5' },
             ],
         },
         {
-            id: 6, region: '北京', cloudServer: '阿里云', createTime: '2026-07-08 17:40:25', updateTime: '2026-07-08 17:40:25',
+            id: 6, region: '北京', cloudServer: '阿里云', zoneId: 'alibj1', zoneName: '阿里1区', createTime: '2026-07-08 17:40:25', updateTime: '2026-07-08 17:40:25',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '阿里1区', code: 'alibj1' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '阿里北京1区', code: 'ali_beijing1' },
             ],
         },
         {
-            id: 7, region: '上海', cloudServer: '360集团', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06',
+            id: 7, region: '上海', cloudServer: '360集团', zoneId: 'shbt', zoneName: '上海电信', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '上海电信', code: 'shbt' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '上海1区', code: 'shanghai1' },
             ],
         },
         {
-            id: 8, region: '上海', cloudServer: '360集团', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06',
+            id: 8, region: '上海', cloudServer: '360集团', zoneId: 'shyc2', zoneName: '上海联通', createTime: '2024-08-10 13:07:06', updateTime: '2024-08-10 13:07:06',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '上海联通', code: 'shyc2' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '上海2区', code: 'shanghai2' },
             ],
         },
         {
-            id: 9, region: '郑州', cloudServer: '360集团', createTime: '2025-12-22 18:33:15', updateTime: '2025-12-22 18:33:15',
+            id: 9, region: '郑州', cloudServer: '360集团', zoneId: 'zzdt', zoneName: '郑州电信', createTime: '2025-12-22 18:33:15', updateTime: '2025-12-22 18:33:15',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '郑州电信', code: 'zzdt' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '郑州1区', code: 'zhengzhou1' },
             ],
         },
         {
-            id: 10, region: '郑州', cloudServer: '360集团', createTime: '2025-12-22 18:33:20', updateTime: '2025-12-22 18:33:20',
+            id: 10, region: '郑州', cloudServer: '360集团', zoneId: 'zzzc', zoneName: '郑州联通', createTime: '2025-12-22 18:33:20', updateTime: '2025-12-22 18:33:20',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '郑州联通', code: 'zzzc' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: false, name: '郑州2区', code: 'zhengzhou2' },
             ],
         },
         {
-            id: 11, region: '广州', cloudServer: '360集团', createTime: '2025-12-22 18:33:41', updateTime: '2025-12-22 18:33:41',
+            id: 11, region: '广州', cloudServer: '360集团', zoneId: 'gzdt', zoneName: '广州电信', createTime: '2025-12-22 18:33:41', updateTime: '2025-12-22 18:33:41',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '广州电信', code: 'gzdt' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '广州1区', code: 'guangzhou1' },
             ],
         },
         {
-            id: 12, region: '香港', cloudServer: '360集团', createTime: '2025-12-22 18:34:02', updateTime: '2025-12-22 18:34:02',
+            id: 12, region: '香港', cloudServer: '360集团', zoneId: 'hk', zoneName: '香港', createTime: '2025-12-22 18:34:02', updateTime: '2025-12-22 18:34:02',
             portals: [
                 { key: 1, portalName: INNER_PORTAL, enabled: true, name: '香港', code: 'hk' },
                 { key: 2, portalName: OUTER_PORTAL, enabled: true, name: '香港1区', code: 'hongkong1' },
@@ -4502,9 +4504,9 @@ export default function AdminPage() {
     const [regionZoneSearch, setRegionZoneSearch] = useState('');
     const [regionZoneDialogOpen, setRegionZoneDialogOpen] = useState(false);
     const [editingRegionZoneId, setEditingRegionZoneId] = useState<number | null>(null);
-    type RegionZoneForm = { region: string; cloudServer: string; portals: ZonePortalEntry[] };
+    type RegionZoneForm = { region: string; cloudServer: string; zoneId: string; zoneName: string; portals: ZonePortalEntry[] };
     const emptyRegionZoneForm: RegionZoneForm = {
-        region: '', cloudServer: '',
+        region: '', cloudServer: '', zoneId: '', zoneName: '',
         portals: [],
     };
     const [regionZoneForm, setRegionZoneForm] = useState<RegionZoneForm>(emptyRegionZoneForm);
@@ -4571,7 +4573,7 @@ export default function AdminPage() {
     const filteredRegionZones = regionZones.filter(z => {
         const kw = regionZoneSearch.trim().toLowerCase();
         if (!kw) return true;
-        const values = [z.region, z.cloudServer, ...z.portals.flatMap(p => [p.portalName, p.name, p.code])];
+        const values = [z.region, z.cloudServer, z.zoneId, z.zoneName, ...z.portals.flatMap(p => [p.portalName, p.name, p.code])];
         return values.some(v => (v || '').toLowerCase().includes(kw));
     });
 
@@ -4615,7 +4617,7 @@ export default function AdminPage() {
     const handleOpenCreateRegionZone = () => {
         setEditingRegionZoneId(null);
         setRegionZoneForm({
-            region: '', cloudServer: '',
+            region: '', cloudServer: '', zoneId: '', zoneName: '',
             portals: buildZonePortalEntries(),
         });
         setRegionZoneFormError('');
@@ -4627,6 +4629,8 @@ export default function AdminPage() {
         setRegionZoneForm({
             region: zone.region,
             cloudServer: zone.cloudServer,
+            zoneId: zone.zoneId,
+            zoneName: zone.zoneName,
             portals: buildZonePortalEntries(zone.portals),
         });
         setRegionZoneFormError('');
@@ -4634,11 +4638,16 @@ export default function AdminPage() {
     };
 
     // 可用区 - Portal 配置行的修改（Portal 行固定，不支持增删）
+    // 开启内部portal时：内部portal的可用区标识/名称与可用区ID/名称保持一致，修改内部portal标识/名称时同步更新
     const handleUpdateZonePortal = (key: number, patch: Partial<ZonePortalEntry>) => {
-        setRegionZoneForm(prev => ({
-            ...prev,
-            portals: prev.portals.map(p => p.key === key ? { ...p, ...patch } : p),
-        }));
+        setRegionZoneForm(prev => {
+            const portals = prev.portals.map(p => p.key === key ? { ...p, ...patch } : p);
+            const updated = portals.find(p => p.key === key);
+            const isInner = updated?.portalName === internalPortalName;
+            const zoneId = (isInner && patch.code !== undefined) ? patch.code : prev.zoneId;
+            const zoneName = (isInner && patch.name !== undefined) ? patch.name : prev.zoneName;
+            return { ...prev, portals, zoneId, zoneName };
+        });
         setRegionZoneFormError('');
     };
 
@@ -4652,18 +4661,26 @@ export default function AdminPage() {
             if (!p.code.trim()) { setRegionZoneFormError(`请输入「${formatPortalLabel(p.portalName)}」的可用区标识`); return; }
             if (!/^[A-Za-z0-9_-]+$/.test(p.code.trim())) { setRegionZoneFormError(`「${formatPortalLabel(p.portalName)}」的可用区标识仅支持英文、数字、_、-`); return; }
         }
+        // 可用区ID：开启内部portal时与内部portal可用区标识一致；未开启内部portal时需单独填写
+        const innerEntry = regionZoneForm.portals.find(p => p.portalName === internalPortalName);
+        const zoneId = innerEntry ? innerEntry.code.trim() : regionZoneForm.zoneId.trim();
+        if (!innerEntry && !zoneId) { setRegionZoneFormError('请输入可用区ID'); return; }
+        if (!innerEntry && !/^[A-Za-z0-9_-]+$/.test(zoneId)) { setRegionZoneFormError('可用区ID仅支持英文、数字、_、-'); return; }
+        // 可用区名称：开启内部portal时与内部portal可用区名称一致；未开启内部portal时需单独填写
+        const zoneName = innerEntry ? innerEntry.name.trim() : regionZoneForm.zoneName.trim();
+        if (!innerEntry && !zoneName) { setRegionZoneFormError('请输入可用区名称'); return; }
         const now = formatNow();
         const portals = regionZoneForm.portals.map(p => ({
             ...p, portalName: p.portalName.trim(), name: p.name.trim(), code: p.code.trim(),
         }));
         if (editingRegionZoneId != null) {
             setRegionZones(prev => prev.map(z => z.id === editingRegionZoneId
-                ? { ...z, region: regionZoneForm.region, cloudServer: regionZoneForm.cloudServer, portals, updateTime: now }
+                ? { ...z, region: regionZoneForm.region, cloudServer: regionZoneForm.cloudServer, zoneId, zoneName, portals, updateTime: now }
                 : z));
         } else {
             const nextId = regionZones.length ? Math.max(...regionZones.map(z => z.id)) + 1 : 1;
             setRegionZones(prev => [...prev, {
-                id: nextId, region: regionZoneForm.region, cloudServer: regionZoneForm.cloudServer,
+                id: nextId, region: regionZoneForm.region, cloudServer: regionZoneForm.cloudServer, zoneId, zoneName,
                 portals, createTime: now, updateTime: now,
             }]);
         }
@@ -11401,6 +11418,8 @@ export default function AdminPage() {
                                                             <span>地域 / 所属标签</span>
                                                         </span>
                                                     </th>
+                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">可用区ID</th>
+                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">可用区名称</th>
                                                     {zonePortalOptions.map(portalName => (
                                                         <th key={portalName} colSpan={2} className="text-center py-2 px-4 text-sm font-medium text-gray-700 border-r border-gray-200">
                                                             <div className="inline-flex items-center gap-1.5">
@@ -11426,7 +11445,7 @@ export default function AdminPage() {
                                             <tbody>
                                                 {filteredRegionZones.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={5 + zonePortalOptions.length * 2} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                        <td colSpan={7 + zonePortalOptions.length * 2} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
                                                     </tr>
                                                 ) : (
                                                     filteredRegionZones.map((zone, idx) => {
@@ -11445,8 +11464,10 @@ export default function AdminPage() {
                                                                             <span key={name} className="px-1.5 py-0.5 text-[11px] leading-none rounded bg-blue-50 text-[#006bff]">{name}</span>
                                                                         ))}
                                                                     </div>
-                                                                </td>
-                                                                {/* 每个Portal的可用区名称、标识各占一列，方便横向对比 */}
+                                                                    </td>
+                                                                    <td className="py-3 px-4 text-xs font-mono whitespace-nowrap border-r border-gray-100 text-gray-500">{zone.zoneId || '--'}</td>
+                                                                    <td className="py-3 px-4 text-sm whitespace-nowrap border-r border-gray-100 text-gray-700">{zone.zoneName || '--'}</td>
+                                                                    {/* 每个Portal的可用区名称、标识各占一列，方便横向对比 */}
                                                                 {zonePortalOptions.map(portalName => {
                                                                     const p = zone.portals.find(x => x.portalName === portalName);
                                                                     const enabled = !!p?.enabled;
@@ -11798,6 +11819,88 @@ export default function AdminPage() {
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {/* 可用区ID：开启内部Portal时与内部Portal可用区标识一致；未开启内部Portal时需单独填写 */}
+                                            {(() => {
+                                                const innerEntry = regionZoneForm.portals.find(p => p.portalName === internalPortalName);
+                                                return (
+                                                    <div className="flex items-start gap-3">
+                                                        <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
+                                                            <span className="text-red-500 mr-0.5">*</span>可用区ID:
+                                                        </label>
+                                                        <div className="flex-1 min-w-0">
+                                                            {innerEntry ? (
+                                                                <>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={innerEntry.code}
+                                                                        disabled
+                                                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
+                                                                    />
+                                                                    <p className="mt-1.5 text-xs text-gray-400">
+                                                                        已开启内部Portal「{internalPortalName}」，可用区ID自动与内部Portal可用区标识保持一致
+                                                                    </p>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={regionZoneForm.zoneId}
+                                                                        onChange={(e) => { setRegionZoneForm({ ...regionZoneForm, zoneId: e.target.value }); setRegionZoneFormError(''); }}
+                                                                        placeholder="支持英文、数字、_、-(20个字符以内)"
+                                                                        maxLength={20}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                                                    />
+                                                                    <p className="mt-1.5 text-xs text-gray-400">
+                                                                        未开启内部Portal，请单独设置可用区ID
+                                                                    </p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* 可用区名称：开启内部Portal时与内部Portal可用区名称一致；未开启内部Portal时需单独填写 */}
+                                            {(() => {
+                                                const innerEntry = regionZoneForm.portals.find(p => p.portalName === internalPortalName);
+                                                return (
+                                                    <div className="flex items-start gap-3">
+                                                        <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
+                                                            <span className="text-red-500 mr-0.5">*</span>可用区名称:
+                                                        </label>
+                                                        <div className="flex-1 min-w-0">
+                                                            {innerEntry ? (
+                                                                <>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={innerEntry.name}
+                                                                        disabled
+                                                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
+                                                                    />
+                                                                    <p className="mt-1.5 text-xs text-gray-400">
+                                                                        已开启内部Portal「{internalPortalName}」，可用区名称自动与内部Portal可用区名称保持一致
+                                                                    </p>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={regionZoneForm.zoneName}
+                                                                        onChange={(e) => { setRegionZoneForm({ ...regionZoneForm, zoneName: e.target.value }); setRegionZoneFormError(''); }}
+                                                                        placeholder="支持中英文、数字(20个字符以内)"
+                                                                        maxLength={20}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                                                    />
+                                                                    <p className="mt-1.5 text-xs text-gray-400">
+                                                                        未开启内部Portal，请单独设置可用区名称
+                                                                    </p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
 
                                             {/* Portal 可用区配置：自动列出全部已开启独立Portal，仅支持开启/关闭，不支持增删 */}
                                             <div className="border border-gray-200 rounded-lg p-4 space-y-4">
