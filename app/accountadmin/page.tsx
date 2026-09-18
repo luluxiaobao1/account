@@ -418,6 +418,7 @@ const AnalysisTh = ({
     highlight = false,
     colSpan,
     rowSpan,
+    divider = false,
 }: {
     label: string;
     tip?: string;
@@ -426,6 +427,7 @@ const AnalysisTh = ({
     highlight?: boolean;   // 需重点说明的列：深橙底、白字
     colSpan?: number;
     rowSpan?: number;
+    divider?: boolean;     // 是否在列左侧加分割线
 }) => (
     <th
         style={width ? { minWidth: width } : undefined}
@@ -435,7 +437,7 @@ const AnalysisTh = ({
             align === "left" ? "text-left" : align === "center" ? "text-center" : "text-right"
         } text-xs font-medium align-bottom ${
             highlight ? "bg-orange-500 text-white" : "text-gray-600"
-        }`}
+        } ${divider ? "border-l border-gray-200" : ""}`}
     >
         <span className={`inline-flex items-start gap-1 ${align === "left" ? "" : align === "center" ? "justify-center" : "justify-end"}`}>
             <span className="leading-[1.5]">{label}</span>
@@ -479,6 +481,306 @@ const AnalysisAmountCell = ({
         </span>
     </td>
 );
+
+// 监控看板 - 单环节状态色值（done/running/pending/fail）
+const monitorStatusColor = (status?: MonitorNodeStatus) =>
+    status === "done"
+        ? { bar: "bg-green-500", dot: "bg-green-500", text: "text-green-600", label: "已完成" }
+        : status === "running"
+            ? { bar: "bg-blue-500", dot: "bg-blue-500", text: "text-blue-600", label: "进行中" }
+            : status === "fail"
+                ? { bar: "bg-red-500", dot: "bg-red-500", text: "text-red-600", label: "异常" }
+                : { bar: "bg-gray-200", dot: "bg-gray-300", text: "text-gray-400", label: "未开始" };
+
+// 监控看板 - 账单核验指标状态色值（验证通过=绿 / 告警=黄 / 异常=红）
+const monitorVerifyStatusColor = (status: MonitorVerifyStatus) =>
+    status === "pass"
+        ? { chip: "bg-green-50 text-green-600 border-green-200", dot: "bg-green-500", label: "通过" }
+        : status === "warn"
+            ? { chip: "bg-yellow-50 text-yellow-600 border-yellow-200", dot: "bg-yellow-500", label: "告警" }
+            : { chip: "bg-red-50 text-red-600 border-red-200", dot: "bg-red-500", label: "异常" };
+
+// 监控看板 - 普通进度单元格（计量上报 / 聚合出账）
+const MonitorProgressCell = ({ node, onClick }: { node?: MonitorNodeState; onClick?: () => void }) => {
+    const c = monitorStatusColor(node?.status);
+    return (
+        <td className="px-3 py-4 text-left align-middle border-l border-gray-200">
+            <button
+                onClick={onClick}
+                className="inline-flex w-full max-w-[150px] flex-col items-start gap-1.5"
+            >
+                <span className={`inline-flex items-center gap-1 text-[11px] leading-none ${c.text}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                    {c.label}
+                </span>
+                <span className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                    <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${node?.progress ?? 0}%` }} />
+                </span>
+                {node?.status === "done" && node.doneTime && (
+                    <span className="text-[10px] leading-none text-gray-400">{node.doneTime}</span>
+                )}
+            </button>
+        </td>
+    );
+};
+
+// 监控看板 - 结算单个环节单元格（抵扣 / 扣费 各占一列，纵向结构：环节名 + 进度条 + 状态）
+const SettleStageCell = ({
+    name,
+    na,
+    node,
+    divider = false,
+    onClick,
+}: {
+    name: string;
+    na: boolean;
+    node?: MonitorNodeState;
+    divider?: boolean;
+    onClick?: () => void;
+}) => {
+    const c = monitorStatusColor(node?.status);
+    return (
+        <td className={`px-3 py-4 text-left align-middle ${divider ? "border-l border-gray-200" : ""}`}>
+            <button onClick={onClick} className="flex w-full flex-col items-start gap-1.5" title={na ? undefined : "点击查看计费节点进度明细"}>
+                {na ? (
+                    <>
+                        <span className="inline-flex items-center gap-1 text-[11px] leading-none text-gray-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />
+                            {name}
+                        </span>
+                        <span className="text-[10px] leading-none text-gray-300">不涉及（无资源包抵扣）</span>
+                    </>
+                ) : (
+                    <>
+                        <span className={`inline-flex items-center gap-1 text-[11px] leading-none ${c.text}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                            {name}
+                        </span>
+                        <div className="w-full">
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${node?.progress ?? 0}%` }} />
+                            </div>
+                            {node?.status === "done" && (
+                                <div className="mt-1 flex items-center justify-between text-[10px] leading-none text-gray-400">
+                                    <span className="text-green-600">已完成</span>
+                                    {node.doneTime && <span>{node.doneTime}</span>}
+                                </div>
+                            )}
+                            {node?.status === "fail" && (
+                                <div className="mt-1 text-left text-[10px] leading-none text-red-500">
+                                    {node.failReason ? `异常（${node.failReason}）` : "异常"}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </button>
+        </td>
+    );
+};
+
+// 监控看板 - 结算单元格：抵扣、扣费两个环节（上下结构：抵扣环节 | 扣费环节）
+const MonitorSettleCell = ({
+    hasPackage,
+    offset,
+    charge,
+    onClick,
+}: {
+    hasPackage: boolean;
+    offset?: MonitorNodeState;
+    charge?: MonitorNodeState;
+    onClick?: () => void;
+}) => (
+    <>
+        <SettleStageCell
+            name="抵扣"
+            na={!hasPackage}
+            node={!hasPackage ? undefined : offset}
+            divider
+            onClick={onClick}
+        />
+        <SettleStageCell
+            name="扣费"
+            na={false}
+            node={charge}
+            onClick={onClick}
+        />
+    </>
+);
+
+// 监控看板 - 账单核验指标芯片（验证通过=绿 / 告警=黄 / 异常=红）
+const VerifySubChip = ({ sub }: { sub: MonitorVerifySubNode }) => {
+    const c = monitorVerifyStatusColor(sub.status);
+    return (
+        <div
+            className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[11px] leading-none ${c.chip}`}
+            title={`${sub.name}：${sub.detail}（${c.label}）`}
+        >
+            <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${c.dot}`} />
+            <span className="flex flex-col items-start gap-0.5">
+                <span className="font-medium">{sub.name}</span>
+                <span className="text-[10px] leading-none opacity-70">{sub.detail}</span>
+            </span>
+            <span className="ml-1 text-[10px] font-medium leading-none">{c.label}</span>
+        </div>
+    );
+};
+
+// 监控看板 - 账单核验单元格（默认仅展示 1 个核验指标，展开/收起 icon 位于首个指标右侧；点击指标弹出计费节点明细）
+const MonitorVerifyCell = ({
+    subs,
+    metricFilter,
+    statusFilter,
+    onOpenDetail,
+}: {
+    subs: MonitorVerifySubNode[];
+    metricFilter: string[];
+    statusFilter: string;
+    onOpenDetail?: () => void;
+}) => {
+    const [expanded, setExpanded] = useState(false);
+    const list = subs ?? [];
+    // 指标/状态筛选：按筛选条件过滤后展示（无筛选时展示全部，默认收起仅展示首个指标）
+    const filtered = list.filter(
+        (s) =>
+            (metricFilter.length === 0 || metricFilter.includes(s.name)) &&
+            (!statusFilter || s.status === statusFilter)
+    );
+    const visible = expanded ? filtered : filtered.slice(0, 1);
+    return (
+        <td className="px-3 py-4 text-left align-middle border-l border-gray-200">
+            <div className="flex flex-col items-start gap-1.5">
+                {visible.map((sub, i) => (
+                    <div key={sub.name} className="inline-flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={onOpenDetail}
+                            className="text-left"
+                            title={`${sub.name}：${sub.detail}，点击查看计费节点进度明细`}
+                        >
+                            <VerifySubChip sub={sub} />
+                        </button>
+                        {/* 展开/收起 icon 放在首个（用量）指标右侧 */}
+                        {i === 0 && filtered.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={() => setExpanded((v) => !v)}
+                                className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-blue-600 hover:text-blue-700"
+                                title={expanded ? "收起" : "展开全部"}
+                            >
+                                <svg className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </td>
+    );
+};
+
+// 监控看板 - 带列头状态筛选的表头（用于「计量上报 / 聚合出账」两列）
+// 表头仅展示一个筛选 icon，点击后展开状态下拉，节省表头空间
+const monitorStatusFilterOptions = [
+    { value: "", label: "全部状态" },
+    { value: "done", label: "已完成" },
+    { value: "running", label: "进行中" },
+    { value: "pending", label: "未开始" },
+    { value: "fail", label: "异常" },
+];
+
+const MonitorFilterTh = ({
+    label,
+    tip,
+    value,
+    onChange,
+    width,
+    rowSpan,
+    divider = true,
+}: {
+    label: string;
+    tip?: string;
+    value: string;
+    onChange: (v: string) => void;
+    width?: string;
+    rowSpan?: number;
+    divider?: boolean;
+}) => {
+    const [open, setOpen] = useState(false);
+    const wrapRef = React.useRef<HTMLDivElement>(null);
+    const active = value !== "";
+
+    // 点击外部关闭下拉
+    useEffect(() => {
+        if (!open) return;
+        const onDocClick = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onDocClick);
+        return () => document.removeEventListener("mousedown", onDocClick);
+    }, [open]);
+
+    return (
+        <th rowSpan={rowSpan} style={width ? { minWidth: width } : undefined} className={`px-3 py-3 text-left text-xs font-medium text-gray-600 align-bottom ${divider ? "border-l border-gray-200" : ""}`}>
+            <div className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-0.5">
+                    <span className="leading-[1.5]">{label}</span>
+                    {tip && (
+                        <span className="group/tip relative inline-flex flex-shrink-0">
+                            <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[240px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                {tip}
+                                <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                            </span>
+                        </span>
+                    )}
+                </span>
+                <div ref={wrapRef} className="relative">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setOpen((v) => !v);
+                        }}
+                        title="按状态筛选"
+                        className={`flex h-6 w-6 items-center justify-center rounded transition-colors ${
+                            active
+                                ? "bg-blue-50 text-blue-600"
+                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        }`}
+                    >
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                    </button>
+                    {open && (
+                        <div className="absolute top-full left-1/2 z-40 mt-1 w-[104px] -translate-x-1/2 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                            {monitorStatusFilterOptions.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onChange(opt.value);
+                                        setOpen(false);
+                                    }}
+                                    className={`block w-full px-3 py-1.5 text-left text-[11px] leading-none ${
+                                        value === opt.value ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </th>
+    );
+};
 
 // ===== 经营分析 - 部门分析 =====
 interface DepartmentAnalysisRow {
@@ -615,6 +917,465 @@ const deptProductRevenueMap: Record<string, { productName: string; amount: numbe
         { productName: "消息队列 Kafka/标准版(计量)(kafka)", amount: 1754500 },
         { productName: "数据集成 DataX/基础版(计量)(datax)", amount: 1000000 },
     ],
+};
+
+// ===== 经营分析 - 监控看板 =====
+// 计费节点定义：计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单核验（按字段逐项核验）
+const monitorNodeDefs = [
+    { key: "meter", name: "计量上报", tip: "各产品计量数据按账期上报完成情况。" },
+    { key: "aggregate", name: "聚合出账", tip: "计量数据聚合后生成账单。" },
+    { key: "settle", name: "结算", tip: "结算包含抵扣、扣费两个环节；无资源包抵扣的产品，抵扣环节展示「不涉及」。" },
+    { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
+];
+
+// 结算列下的两个环节：抵扣、扣费（抵扣、扣费仍然归属「结算」列）
+const monitorSettleStages = [
+    { key: "offset", name: "抵扣", tip: "账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节。" },
+    { key: "charge", name: "扣费", tip: "账单扣费处理完成情况。" },
+] as const;
+
+// 监控看板 - 监控统计矩阵：列 = 指标（状态）
+const monitorStatStatusCols = [
+    { key: "done", label: "已完成" },
+    { key: "running", label: "进行中" },
+    { key: "pending", label: "未开始" },
+    { key: "fail", label: "异常" },
+    { key: "warn", label: "告警" },
+] as const;
+
+type MonitorNodeStatus = "done" | "running" | "pending" | "fail";
+
+// 账单核验 - 指标核验状态：验证通过（绿）/ 告警（黄）/ 异常（红）
+type MonitorVerifyStatus = "pass" | "warn" | "fail";
+
+interface MonitorVerifySubNode {
+    name: string;        // 核验字段名（用量 / 金额 / 详情链1 / 明细聚合链1 / 月级取整差 …）
+    detail: string;      // 核验两端说明（如「原始用量 VS 明细用量」）
+    status: MonitorVerifyStatus;
+}
+
+interface MonitorNodeState {
+    status: MonitorNodeStatus;
+    progress: number;                         // 0~100
+    doneTime?: string;                        // 完成时间
+    na?: boolean;                             // 是否「不涉及」（如无资源包抵扣产品的抵扣环节）
+    failReason?: string;                      // 异常原因（如抵扣环节的「抵扣断点」：某个时间的抵扣量为0）
+    verifySubs?: MonitorVerifySubNode[];      // 账单核验子节点（预留）
+}
+
+// 监控看板 - 列表产品行：主产品与子产品均作为独立行展示（子产品不再是主产品的展开行）
+interface MonitorProductRow {
+    id: number;
+    productName: string;
+    productLine: string;
+    settlementUnit: string;
+    billingCycle: MonitorBillingCycle;        // 出账周期：小时 / 天 / 月 / 多出账周期
+    isMain: boolean;                          // 是否为主产品
+    parentId: number | null;                  // 主产品为 null；子产品为其所属主产品 id
+    subCount: number;                         // 主产品包含的子产品数量（用于「共N个子产品」），非主产品为 0
+    hasPackage: boolean;                      // 是否有资源包抵扣（无则抵扣环节展示「不涉及」）
+    nodes: Record<string, MonitorNodeState>;
+}
+
+// 出账周期：每个产品可同时存在一种或多种出账周期（小时 / 天 / 月 任意组合）
+type MonitorBillingCycle = ("hour" | "day" | "month")[];
+
+// 账单核验 - 各核验字段及两端数据说明（name 为核验字段，detail 为核验两端）
+const monitorVerifySubDefs = [
+    { name: "用量", detail: "原始用量 VS 明细用量" },
+    { name: "金额", detail: "基础明细日数据 VS 导出数据" },
+    { name: "详情链1", detail: "基础明细hour VS 小时详情" },
+    { name: "详情链2", detail: "基础明细hour+day VS 天详情" },
+    { name: "明细聚合链1", detail: "基础明细hour+day VS 天明细聚合" },
+    { name: "明细聚合链2", detail: "基础明细全类型 VS 月明细聚合" },
+    { name: "详情链3", detail: "基础明细全类型 VS 月详情" },
+    { name: "月级取整差", detail: "月all表 VS 月详情" },
+] as const;
+
+const monitorVerifyStatusFilterOptions = [
+    { value: "", label: "全部状态" },
+    { value: "pass", label: "通过" },
+    { value: "warn", label: "告警" },
+    { value: "fail", label: "异常" },
+];
+
+// 监控看板 - 账单核验列头筛选（支持按监控指标、指标状态筛选）
+const MonitorVerifyFilterTh = ({
+    metric,
+    onMetricChange,
+    status,
+    onStatusChange,
+    width,
+    rowSpan,
+}: {
+    metric: string[];
+    onMetricChange: (v: string[]) => void;
+    status: string;
+    onStatusChange: (v: string) => void;
+    width?: string;
+    rowSpan?: number;
+}) => {
+    const [openKind, setOpenKind] = useState<"metric" | "status" | null>(null);
+    const wrapRef = React.useRef<HTMLDivElement>(null);
+    const metricActive = metric.length > 0;
+    const statusActive = status !== "";
+    const toggleMetric = (value: string) => {
+        onMetricChange(
+            metric.includes(value)
+                ? metric.filter((v) => v !== value)
+                : [...metric, value]
+        );
+    };
+
+    // 点击外部关闭下拉
+    useEffect(() => {
+        if (!openKind) return;
+        const onDocClick = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpenKind(null);
+            }
+        };
+        document.addEventListener("mousedown", onDocClick);
+        return () => document.removeEventListener("mousedown", onDocClick);
+    }, [openKind]);
+
+    return (
+        <th rowSpan={rowSpan} style={width ? { minWidth: width } : undefined} className="px-3 py-3 text-left text-xs font-medium text-gray-600 align-bottom border-l border-gray-200">
+            <div ref={wrapRef} className="inline-flex items-center gap-1">
+                <span className="leading-[1.5]">账单核验</span>
+                <div className="relative">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenKind((v) => (v === "metric" ? null : "metric"));
+                        }}
+                        title="按监控指标筛选（可多选）"
+                        className={`flex h-6 items-center justify-center gap-0.5 rounded px-1 transition-colors ${
+                            metricActive ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        }`}
+                    >
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        <span className="text-[11px] leading-none">指标{metric.length > 0 ? `(${metric.length})` : ""}</span>
+                    </button>
+                    {openKind === "metric" && (
+                        <div className="absolute top-full left-1/2 z-40 mt-1 w-[140px] -translate-x-1/2 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onMetricChange([]);
+                                    setOpenKind(null);
+                                }}
+                                className={`block w-full px-3 py-1.5 text-left text-[11px] leading-none ${
+                                    metric.length === 0 ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50"
+                                }`}
+                            >
+                                全部指标
+                            </button>
+                            <div className="my-1 border-t border-gray-100" />
+                            {monitorVerifySubDefs.map((def) => {
+                                const checked = metric.includes(def.name);
+                                return (
+                                    <button
+                                        key={def.name}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleMetric(def.name);
+                                        }}
+                                        className={`flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[11px] leading-none ${
+                                            checked ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                    >
+                                        <span className={`flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded border ${checked ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"}`}>
+                                            {checked && (
+                                                <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </span>
+                                        <span>{def.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+                <div className="relative">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenKind((v) => (v === "status" ? null : "status"));
+                        }}
+                        title="按指标状态筛选"
+                        className={`flex h-6 items-center justify-center gap-0.5 rounded px-1 transition-colors ${
+                            statusActive ? "bg-blue-50 text-blue-600" : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        }`}
+                    >
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        <span className="text-[11px] leading-none">状态</span>
+                    </button>
+                    {openKind === "status" && (
+                        <div className="absolute top-full left-1/2 z-40 mt-1 w-[120px] -translate-x-1/2 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                            {monitorVerifyStatusFilterOptions.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onStatusChange(opt.value);
+                                        setOpenKind(null);
+                                    }}
+                                    className={`block w-full px-3 py-1.5 text-left text-[11px] leading-none ${
+                                        status === opt.value ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </th>
+    );
+};
+
+// 监控看板 - 产品筛选下拉（多选，支持主产品/子产品；可一键清除）
+const MonitorProductFilter = ({
+    options,
+    value,
+    onChange,
+}: {
+    options: { id: number; name: string; isMain: boolean; parentId: number | null }[];
+    value: number[];
+    onChange: (v: number[]) => void;
+}) => {
+    const [open, setOpen] = useState(false);
+    const wrapRef = React.useRef<HTMLDivElement>(null);
+
+    // 点击外部关闭下拉
+    useEffect(() => {
+        if (!open) return;
+        const onDocClick = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onDocClick);
+        return () => document.removeEventListener("mousedown", onDocClick);
+    }, [open]);
+
+    const toggle = (id: number) => {
+        onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
+    };
+
+    return (
+        <div ref={wrapRef} className="relative">
+            <button
+                onClick={() => setOpen((v) => !v)}
+                className={`flex h-9 w-[240px] items-center justify-between gap-2 rounded-lg border bg-white px-3 text-sm transition-colors ${
+                    value.length > 0 ? "border-blue-400 text-gray-900" : "border-gray-300 text-gray-600"
+                } hover:border-blue-400`}
+            >
+                <span className="truncate">
+                    {value.length === 0 ? "全部产品" : `已选 ${value.length} 个产品`}
+                </span>
+                <span className="flex flex-shrink-0 items-center gap-1">
+                    {value.length > 0 && (
+                        <span
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onChange([]);
+                            }}
+                            className="text-gray-400 hover:text-gray-600"
+                            aria-label="清除产品筛选"
+                        >
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </span>
+                    )}
+                    <svg className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </span>
+            </button>
+            {open && (
+                <div className="absolute left-0 top-full z-40 mt-1 max-h-[320px] w-[320px] overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    <button
+                        onClick={() => onChange([])}
+                        className={`block w-full px-3 py-1.5 text-left text-[12px] leading-none ${
+                            value.length === 0 ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50"
+                        }`}
+                    >
+                        全部产品
+                    </button>
+                    <div className="my-1 border-t border-gray-100" />
+                    {options.map((opt) => {
+                        const checked = value.includes(opt.id);
+                        return (
+                            <button
+                                key={opt.id}
+                                onClick={() => toggle(opt.id)}
+                                className={`flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[12px] leading-none ${
+                                    checked ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50"
+                                }`}
+                            >
+                                <span className={`flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded border ${checked ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"}`}>
+                                    {checked && (
+                                        <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    )}
+                                </span>
+                                <span className={`truncate ${opt.parentId != null ? "pl-3 text-gray-500" : ""}`}>
+                                    {opt.parentId != null ? `└ ${cleanProductName(opt.name)}` : cleanProductName(opt.name)}
+                                </span>
+                                {opt.isMain && (
+                                    <span className="ml-auto flex-shrink-0 rounded bg-orange-50 px-1 py-0.5 text-[10px] leading-none text-orange-600">主</span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// 监控看板 - 账期类型与选中值（用于生成各节点完成时间）
+type MonitorBillType = "hour" | "day" | "month";
+
+interface MonitorPeriodCtx {
+    billType: MonitorBillType;
+    period: string;      // month: YYYY-MM；day/hour: YYYY-MM-DD
+    hour: number;        // hour 时使用，0~23
+}
+
+// 监控看板 - 生成各节点完成时间（随选中账期联动：月账单定位到月内某天，天账单定位到天内某时刻，小时账单定位到选中小时内的分钟秒）
+const buildMonitorDoneTime = (ctx: MonitorPeriodCtx, day: number, time: string): string => {
+    const [hh, mm, ss] = time.split(":");
+    if (ctx.billType === "hour") {
+        return `${ctx.period} ${pad2(ctx.hour)}:${mm}:${ss}`;
+    }
+    if (ctx.billType === "day") {
+        return `${ctx.period} ${hh}:${mm}:${ss}`;
+    }
+    return `${ctx.period}-${pad2(day)} ${hh}:${mm}:${ss}`;
+};
+
+// 监控看板 - 是否有资源包抵扣（mock：按产品序号规律分布，部分产品无资源包，用于展示抵扣环节「不涉及」）
+const monitorHasResourcePackage = (idx: number): boolean => idx % 3 !== 2;
+
+// 监控看板 - 按序号生成各计费节点进度（主产品与子产品共用）
+const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boolean): Record<string, MonitorNodeState> => {
+    // 计量上报：前 8 个完成，第 9、10 个进行中
+    const meterDone = idx < 8;
+    const meter: MonitorNodeState = meterDone
+        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 10, "08:00:00") }
+        : { status: "running", progress: idx === 8 ? 72 : 45 };
+
+    // 聚合出账：前 5 完成，5~8 进行中，第 9 未开始
+    const aggregateDone = idx < 5;
+    const aggregateRunning = idx >= 5 && idx < 9;
+    const aggregate: MonitorNodeState = aggregateDone
+        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 11, "09:30:00") }
+        : aggregateRunning
+            ? { status: "running", progress: [58, 80, 35, 62][idx - 5] }
+            : { status: "pending", progress: 0 };
+
+    // 结算分为抵扣、扣费两个环节：前 3 进行中，3~5 已完成，其余未开始；无资源包抵扣的产品，抵扣环节「不涉及」
+    // 抵扣断点：有资源包抵扣的产品中，部分产品在某个时间的抵扣量为 0，抵扣环节标记为「异常（抵扣断点）」
+    const settleRunning = idx < 3;
+    const settleDone = idx >= 3 && idx < 6;
+    const offsetBreak = hasPackage && (idx === 1 || idx === 4);
+    const offset: MonitorNodeState = !hasPackage
+        ? { status: "pending", progress: 0, na: true }
+        : offsetBreak
+            ? { status: "fail", progress: 100, failReason: "抵扣断点" }
+            : settleRunning
+                ? { status: "running", progress: [35, 52, 18][idx] }
+                : settleDone
+                    ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 13, "10:20:00") }
+                    : { status: "pending", progress: 0 };
+    const charge: MonitorNodeState = settleRunning
+        ? { status: "running", progress: [24, 41, 13][idx] }
+        : settleDone
+            ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 13, "10:40:00") }
+            : { status: "pending", progress: 0 };
+
+    // 账单核验：各核验字段子节点；按产品/字段序号规律分配 验证通过/告警/异常 三种核验状态
+    const verifySubs: MonitorVerifySubNode[] = monitorVerifySubDefs.map((def, si) => ({
+        name: def.name,
+        detail: def.detail,
+        status: ((idx + si) % 4 === 1 ? "warn" : (idx + si) % 4 === 2 ? "fail" : "pass") as MonitorVerifyStatus,
+    }));
+    const verify: MonitorNodeState = { status: "pending", progress: 0, verifySubs };
+
+    return { meter, aggregate, offset, charge, verify };
+};
+
+// 监控看板 - 主产品下的子产品名称（mock：仅部分产品为主产品，其余为独立产品）
+const monitorSubProductNames: Record<number, string[]> = {
+    1: ["云服务器 ECS_裸金属CPU(计量)", "云服务器 ECS_裸金属GPU(计量)", "云服务器 ECS_通用型(计量)"],
+    2: ["托管集群服务 MCS_容器服务", "托管集群服务 MCS_A机器"],
+    5: ["对象存储 OSS_标准存储(计量)", "对象存储 OSS_低频存储(计量)"],
+    7: ["内容分发 CDN_流量(计量)", "内容分发 CDN_带宽(计量)"],
+};
+
+// 监控看板 - 平台各产品在各计费节点的进度（数据口径与「产品分析」一致）
+// 出账周期 mock：按产品规律分配 小时/天/月/多出账周期，便于展示列表效果。
+// 多出账周期直接以数组表达，如 ["hour","day"]（小时、天）、["hour","month"]（小时、月）
+const monitorBillingCycleOf = (idx: number): MonitorBillingCycle =>
+    ([
+        ["hour", "day"], ["month"], ["hour"], ["hour", "month"], ["month"],
+        ["day"], ["hour"], ["day"], ["month"], ["hour", "day"],
+    ] as MonitorBillingCycle[])[idx % 10];
+
+// 出账周期 - 中文展示（多出账周期按「、」连接，如 小时、天 / 小时、月）
+const formatBillingCycle = (cycles: MonitorBillingCycle): string => {
+    const labelMap: Record<"hour" | "day" | "month", string> = { hour: "小时", day: "天", month: "月" };
+    if (cycles.length === 0) return "-";
+    return cycles.map((c) => labelMap[c]).join("、");
+};
+
+const buildMonitorProductRows = (ctx: MonitorPeriodCtx): MonitorProductRow[] => {
+    const rows: MonitorProductRow[] = [];
+    productAnalysisData.forEach((p, idx) => {
+        const subNames = monitorSubProductNames[p.id] ?? [];
+        // 主产品作为独立行
+        rows.push({
+            id: p.id,
+            productName: p.productName,
+            productLine: p.productLine,
+            settlementUnit: p.settlementUnit,
+            billingCycle: monitorBillingCycleOf(idx),
+            isMain: subNames.length > 0,
+            parentId: null,
+            subCount: subNames.length,
+            hasPackage: monitorHasResourcePackage(idx),
+            nodes: buildMonitorNodes(idx, ctx, monitorHasResourcePackage(idx)),
+        });
+        // 子产品同样作为独立行（子产品也是一个个单独的产品，直接出现在列表中）
+        subNames.forEach((name, si) => {
+            const subIdx = (idx + si + 1) % 10;
+            rows.push({
+                id: p.id * 100 + si + 1,
+                productName: name,
+                productLine: p.productLine,
+                settlementUnit: p.settlementUnit,
+                billingCycle: monitorBillingCycleOf(subIdx),
+                isMain: false,
+                parentId: p.id,
+                subCount: 0,
+                hasPackage: monitorHasResourcePackage(subIdx),
+                nodes: buildMonitorNodes(subIdx, ctx, monitorHasResourcePackage(subIdx)),
+            });
+        });
+    });
+    return rows;
 };
 
 const getDeptRevenueDetailRows = (unit: DepartmentAnalysisRow, period: string): DeptRevenueDetailRow[] => {
@@ -4040,7 +4801,7 @@ export default function AdminPage() {
     const [bizAnalysisMenuExpanded, setBizAnalysisMenuExpanded] = useState(true); // 经营分析菜单展开状态
     const [platformConfigMenuExpanded, setPlatformConfigMenuExpanded] = useState(false); // 密钥管理菜单展开状态
     const [platformSettingMenuExpanded, setPlatformSettingMenuExpanded] = useState(true); // 平台配置菜单展开状态
-    const [currentMenu, setCurrentMenu] = useState("product-define"); // 当前选中的菜单: product-define, product-addon, product-billing, product-package, zhiqi-bill-customer, zhiqi-bill-product, zhiqi-bill-intranet, analysis-product, analysis-department, platform-key, platform-api, platform-portal, platform-region, platform-billing, zhiqi-admin
+    const [currentMenu, setCurrentMenu] = useState("product-define"); // 当前选中的菜单: product-define, product-addon, product-billing, product-package, zhiqi-bill-customer, zhiqi-bill-product, zhiqi-bill-intranet, analysis-overall, analysis-product, analysis-department, analysis-monitor, platform-key, platform-api, platform-portal, platform-region, platform-billing, zhiqi-admin
 
     // ===== 经营分析 - 整体分析 =====
     const [overallBillType, setOverallBillType] = useState("month");     // 账单类型：month / day / hour
@@ -4392,6 +5153,163 @@ export default function AdminPage() {
         setDeptRevenueDrawerUnit(unit);
     };
 
+    // ===== 经营分析 - 监控看板 =====
+    const [monitorBillType, setMonitorBillType] = useState<MonitorBillType>("month");    // 账期类型：小时 / 天 / 月
+    const [monitorPeriod, setMonitorPeriod] = useState("2026-09");                       // 账期（月账单）
+    const [monitorDate, setMonitorDate] = useState("2026-09-10");                        // 账期（天/小时账单）
+    const [monitorHour, setMonitorHour] = useState(8);                                   // 账期（小时账单，0~23）
+    const [monitorNodeFilter, setMonitorNodeFilter] = useState("");                       // 计费节点状态筛选
+    const [monitorMeterFilter, setMonitorMeterFilter] = useState("");                     // 计量上报列头状态筛选
+    const [monitorAggregateFilter, setMonitorAggregateFilter] = useState("");             // 聚合出账列头状态筛选
+    const [monitorOffsetFilter, setMonitorOffsetFilter] = useState("");                   // 结算-抵扣列头状态筛选
+    const [monitorChargeFilter, setMonitorChargeFilter] = useState("");                   // 结算-扣费列头状态筛选
+    const [monitorVerifyMetricFilter, setMonitorVerifyMetricFilter] = useState<string[]>([]); // 账单核验-监控指标筛选（多选）
+    const [monitorVerifyStatusFilter, setMonitorVerifyStatusFilter] = useState("");       // 账单核验-指标状态筛选
+    const [monitorProductFilter, setMonitorProductFilter] = useState<number[]>([]);       // 产品筛选（多选：主产品/子产品，可清除）
+    const [monitorKeyword, setMonitorKeyword] = useState("");                             // 产品名称关键字
+    const [monitorDetailProduct, setMonitorDetailProduct] = useState<MonitorProductRow | null>(null); // 节点明细抽屉
+
+    // 监控看板 - 当前选中账期上下文与展示标签
+    const monitorPeriodCtx: MonitorPeriodCtx = useMemo(
+        () => ({
+            billType: monitorBillType,
+            period: monitorBillType === "month" ? monitorPeriod : monitorDate,
+            hour: monitorHour,
+        }),
+        [monitorBillType, monitorPeriod, monitorDate, monitorHour]
+    );
+    const monitorPeriodLabel = useMemo(() => {
+        if (monitorBillType === "hour") return `${monitorDate} ${pad2(monitorHour)}:00`;
+        if (monitorBillType === "day") return monitorDate;
+        return monitorPeriod;
+    }, [monitorBillType, monitorDate, monitorHour, monitorPeriod]);
+
+    const monitorRows = useMemo(() => buildMonitorProductRows(monitorPeriodCtx), [monitorPeriodCtx]);
+
+    // 监控看板 - 单列（计量上报 / 聚合出账）表头状态筛选
+    const monitorStageHit = (row: MonitorProductRow, key: string, target: MonitorNodeStatus) =>
+        row.nodes[key]?.status === target;
+
+    // 监控看板 - 账单核验列筛选：命中任一核验指标（指标多选与状态联动过滤）
+    const monitorVerifyHit = (row: MonitorProductRow) => {
+        const check = (subs: MonitorVerifySubNode[]) =>
+            subs.some(
+                (s) =>
+                    (monitorVerifyMetricFilter.length === 0 || monitorVerifyMetricFilter.includes(s.name)) &&
+                    (!monitorVerifyStatusFilter || s.status === monitorVerifyStatusFilter)
+            );
+        return check(row.nodes.verify?.verifySubs ?? []);
+    };
+
+    // 监控看板 - 产品筛选下拉选项（主产品 + 子产品，子产品缩进展示）
+    const monitorProductOptions = useMemo(
+        () => monitorRows.map((r) => ({ id: r.id, name: r.productName, isMain: r.isMain, parentId: r.parentId })),
+        [monitorRows]
+    );
+
+    // 监控看板 - 按筛选条件过滤（关键字匹配产品名称；账期类型联动出账周期过滤）
+    // 小时：仅小时出账与多出账周期含小时的产品；天：小时/天出账与多出账周期含小时或天的产品；月：全部产品
+    const filteredMonitorRows = useMemo(() => {
+        return monitorRows.filter((row) => {
+            // 产品筛选（多选）：选中主产品时，其下子产品一并命中
+            if (monitorProductFilter.length > 0) {
+                const hit = monitorProductFilter.includes(row.id) || (row.parentId != null && monitorProductFilter.includes(row.parentId));
+                if (!hit) return false;
+            }
+            if (monitorBillType === "hour") {
+                if (!row.billingCycle.includes("hour")) return false;
+            } else if (monitorBillType === "day") {
+                if (!row.billingCycle.includes("hour") && !row.billingCycle.includes("day")) return false;
+            }
+            if (monitorKeyword) {
+                const kw = monitorKeyword.trim().toLowerCase();
+                if (!row.productName.toLowerCase().includes(kw)) return false;
+            }
+            if (monitorMeterFilter) {
+                if (!monitorStageHit(row, "meter", monitorMeterFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorAggregateFilter) {
+                if (!monitorStageHit(row, "aggregate", monitorAggregateFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorOffsetFilter) {
+                if (!monitorStageHit(row, "offset", monitorOffsetFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorChargeFilter) {
+                if (!monitorStageHit(row, "charge", monitorChargeFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorVerifyMetricFilter.length > 0 || monitorVerifyStatusFilter) {
+                if (!monitorVerifyHit(row)) return false;
+            }
+            if (monitorNodeFilter) {
+                const target = monitorNodeFilter as MonitorNodeStatus;
+                // 「结算」节点没有独立状态，用抵扣 / 扣费两个环节的状态参与筛选
+                const stageKeys = [...monitorNodeDefs.map((n) => n.key), ...monitorSettleStages.map((s) => s.key)];
+                const hit = stageKeys.some((key) => row.nodes[key]?.status === target);
+                if (!hit) return false;
+            }
+            return true;
+        });
+    }, [monitorRows, monitorKeyword, monitorNodeFilter, monitorMeterFilter, monitorAggregateFilter, monitorOffsetFilter, monitorChargeFilter, monitorVerifyMetricFilter, monitorVerifyStatusFilter, monitorBillType, monitorProductFilter]);
+
+    // 监控看板 - 监控统计矩阵：行 = 产品（计费节点），列 = 指标（状态），数字为命中该节点该状态的产品数量
+    const monitorNodeStats = useMemo(() => {
+        // 主产品与子产品均为独立行，全部参与统计
+        const allProducts: { nodes: Record<string, MonitorNodeState> }[] = monitorRows.map((row) => ({ nodes: row.nodes }));
+
+        const emptyCount = () => ({ done: 0, running: 0, pending: 0, fail: 0, warn: 0 });
+        const cellOf = (key: string): { done: number; running: number; pending: number; fail: number; warn: number } => {
+            const c = emptyCount();
+            if (key === "verify") {
+                allProducts.forEach((p) => {
+                    (p.nodes.verify?.verifySubs ?? []).forEach((sub) => {
+                        if (sub.status === "warn") c.warn += 1;
+                        else if (sub.status === "fail") c.fail += 1;
+                    });
+                });
+                return c;
+            }
+            allProducts.forEach((p) => {
+                const st = p.nodes[key];
+                // 抵扣环节「不涉及」（无资源包抵扣）不计入任何状态
+                if (!st || st.na) return;
+                c[st.status] += 1;
+            });
+            return c;
+        };
+
+        const stages = [
+            { key: "meter", name: "计量上报", tip: "各产品计量数据按账期上报完成情况。" },
+            { key: "aggregate", name: "聚合出账", tip: "计量数据聚合后生成账单。" },
+            { key: "offset", name: "抵扣", tip: "账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节。" },
+            { key: "charge", name: "扣费", tip: "账单扣费处理完成情况。" },
+            { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
+        ].map((s) => ({ ...s, cells: cellOf(s.key) }));
+
+        return { total: allProducts.length, stages };
+    }, [monitorRows]);
+
+    // 监控看板 - 点击监控统计数字：筛选对应计费节点的对应状态（再次点击同一状态则清除）
+    const handleMonitorStatClick = (stageKey: string, statusKey: string) => {
+        const clear = (cur: string, set: (v: string) => void) => set(cur === statusKey ? "" : statusKey);
+        if (stageKey === "meter") clear(monitorMeterFilter, setMonitorMeterFilter);
+        else if (stageKey === "aggregate") clear(monitorAggregateFilter, setMonitorAggregateFilter);
+        else if (stageKey === "offset") clear(monitorOffsetFilter, setMonitorOffsetFilter);
+        else if (stageKey === "charge") clear(monitorChargeFilter, setMonitorChargeFilter);
+        else if (stageKey === "verify") clear(monitorVerifyStatusFilter, setMonitorVerifyStatusFilter);
+    };
+
+    // 监控看板 - 监控统计矩阵当前选中状态（用于数字高亮），key 为 `${stageKey}:${statusKey}`
+    const monitorStatActive = useMemo(() => {
+        const map: Record<string, string> = {
+            meter: monitorMeterFilter,
+            aggregate: monitorAggregateFilter,
+            offset: monitorOffsetFilter,
+            charge: monitorChargeFilter,
+            verify: monitorVerifyStatusFilter,
+        };
+        return map;
+    }, [monitorMeterFilter, monitorAggregateFilter, monitorOffsetFilter, monitorChargeFilter, monitorVerifyStatusFilter]);
+
     // ===== 平台配置 - 地域可用区 =====
     // 单个 Portal 下的可用区配置：地域下「每个已开启独立Portal的Portal」都固定存在一条配置，
     // 不支持增删，只通过 enabled 控制该 Portal 下是否开启该可用区
@@ -4638,15 +5556,14 @@ export default function AdminPage() {
     };
 
     // 可用区 - Portal 配置行的修改（Portal 行固定，不支持增删）
-    // 开启内部portal时：内部portal的可用区标识/名称与可用区ID/名称保持一致，修改内部portal标识/名称时同步更新
+    // 开启内部portal时：内部portal的可用区名称与可用区名称保持一致，修改内部portal名称时同步更新
     const handleUpdateZonePortal = (key: number, patch: Partial<ZonePortalEntry>) => {
         setRegionZoneForm(prev => {
             const portals = prev.portals.map(p => p.key === key ? { ...p, ...patch } : p);
             const updated = portals.find(p => p.key === key);
             const isInner = updated?.portalName === internalPortalName;
-            const zoneId = (isInner && patch.code !== undefined) ? patch.code : prev.zoneId;
             const zoneName = (isInner && patch.name !== undefined) ? patch.name : prev.zoneName;
-            return { ...prev, portals, zoneId, zoneName };
+            return { ...prev, portals, zoneName };
         });
         setRegionZoneFormError('');
     };
@@ -4661,14 +5578,13 @@ export default function AdminPage() {
             if (!p.code.trim()) { setRegionZoneFormError(`请输入「${formatPortalLabel(p.portalName)}」的可用区标识`); return; }
             if (!/^[A-Za-z0-9_-]+$/.test(p.code.trim())) { setRegionZoneFormError(`「${formatPortalLabel(p.portalName)}」的可用区标识仅支持英文、数字、_、-`); return; }
         }
-        // 可用区ID：开启内部portal时与内部portal可用区标识一致；未开启内部portal时需单独填写
+        // 可用区ID：手动输入
+        const zoneId = regionZoneForm.zoneId.trim();
+        if (!zoneId) { setRegionZoneFormError('请输入可用区ID'); return; }
+        if (!/^[A-Za-z0-9_-]+$/.test(zoneId)) { setRegionZoneFormError('可用区ID仅支持英文、数字、_、-'); return; }
+        // 可用区名称：开启内部portal时与内部portal可用区名称一致
         const innerEntry = regionZoneForm.portals.find(p => p.portalName === internalPortalName);
-        const zoneId = innerEntry ? innerEntry.code.trim() : regionZoneForm.zoneId.trim();
-        if (!innerEntry && !zoneId) { setRegionZoneFormError('请输入可用区ID'); return; }
-        if (!innerEntry && !/^[A-Za-z0-9_-]+$/.test(zoneId)) { setRegionZoneFormError('可用区ID仅支持英文、数字、_、-'); return; }
-        // 可用区名称：开启内部portal时与内部portal可用区名称一致；未开启内部portal时需单独填写
         const zoneName = innerEntry ? innerEntry.name.trim() : regionZoneForm.zoneName.trim();
-        if (!innerEntry && !zoneName) { setRegionZoneFormError('请输入可用区名称'); return; }
         const now = formatNow();
         const portals = regionZoneForm.portals.map(p => ({
             ...p, portalName: p.portalName.trim(), name: p.name.trim(), code: p.code.trim(),
@@ -7003,8 +7919,8 @@ export default function AdminPage() {
                     <div className="mt-0.5">
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['analysis-overall', 'analysis-product', 'analysis-department'].includes(currentMenu)
-                                    ? 'bg-[#0f73f6] text-white'
+                                ['analysis-overall', 'analysis-product', 'analysis-department', 'analysis-monitor'].includes(currentMenu)
+                                ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
                             onClick={() => {
@@ -7053,6 +7969,17 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>部门分析</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
+                                <div
+                                    onClick={() => setCurrentMenu('analysis-monitor')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'analysis-monitor'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>监控看板</span>
                                     <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                             </div>
@@ -10285,6 +11212,424 @@ export default function AdminPage() {
                         </div>
                     )}
 
+                    {/* 经营分析 - 监控看板页面 */}
+                    {currentMenu === 'analysis-monitor' && (
+                        <div className="flex-1 bg-gray-50 p-6 overflow-auto">
+                            {/* 数据口径说明 */}
+                            <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
+                                <p className="text-[13px] leading-[1.9] text-blue-600">
+                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单核验</span>（账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
+                                </p>
+                            </div>
+
+                            {/* 筛选工具栏 */}
+                            <div className="mb-4 flex flex-wrap items-start gap-3">
+                                {/* 账期类型：小时 / 天 / 月 */}
+                                <div className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white p-0.5">
+                                    {(["hour", "day", "month"] as MonitorBillType[]).map((t) => (
+                                        <button
+                                            key={t}
+                                            onClick={() => setMonitorBillType(t)}
+                                            className={`h-8 rounded-md px-4 text-sm transition-colors ${
+                                                monitorBillType === t
+                                                    ? "bg-blue-600 text-white"
+                                                    : "text-gray-600 hover:bg-gray-50"
+                                            }`}
+                                        >
+                                            {t === "hour" ? "小时" : t === "day" ? "天" : "月"}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* 账期选择：月账单选月，天/小时账单选天，小时账单再选具体小时 */}
+                                {monitorBillType === "month" ? (
+                                    <input
+                                        type="month"
+                                        value={monitorPeriod}
+                                        onChange={(e) => setMonitorPeriod(e.target.value)}
+                                        className="h-9 w-[180px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    />
+                                ) : (
+                                    <input
+                                        type="date"
+                                        value={monitorDate}
+                                        onChange={(e) => setMonitorDate(e.target.value)}
+                                        className="h-9 w-[180px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    />
+                                )}
+                                {monitorBillType === "hour" && (
+                                    <select
+                                        value={monitorHour}
+                                        onChange={(e) => setMonitorHour(Number(e.target.value))}
+                                        className="h-9 w-[130px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                    >
+                                        {Array.from({ length: 24 }, (_, h) => (
+                                            <option key={h} value={h}>{`${pad2(h)}:00`}</option>
+                                        ))}
+                                    </select>
+                                )}
+
+                                {/* 产品筛选：下拉多选，可清除；选中主产品时其子产品一并命中 */}
+                                <MonitorProductFilter
+                                    options={monitorProductOptions}
+                                    value={monitorProductFilter}
+                                    onChange={setMonitorProductFilter}
+                                />
+
+                                {/* 计费节点状态 */}
+                                <select
+                                    value={monitorNodeFilter}
+                                    onChange={(e) => setMonitorNodeFilter(e.target.value)}
+                                    className="h-9 w-[150px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">节点状态</option>
+                                    <option value="done">已完成</option>
+                                    <option value="running">进行中</option>
+                                    <option value="pending">未开始</option>
+                                    <option value="fail">异常</option>
+                                </select>
+
+                                {/* 产品名称关键字 */}
+                                <input
+                                    type="text"
+                                    value={monitorKeyword}
+                                    onChange={(e) => setMonitorKeyword(e.target.value)}
+                                    placeholder="产品名称关键字"
+                                    className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                />
+
+                                <button
+                                    onClick={() => {}}
+                                    className="h-9 rounded-lg bg-blue-600 px-5 text-sm text-white transition-colors hover:bg-blue-700"
+                                >
+                                    搜索
+                                </button>
+                            </div>
+
+                            {/* 监控统计：卡片式布局，每个计费节点一张卡片，内含各状态数量；点击数字即筛选对应计费节点的对应状态 */}
+                            <div className="mb-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold text-gray-900">监控统计</h3>
+                                    <span className="text-[12px] text-gray-400">点击数字可按对应计费节点的对应状态筛选列表</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+                                    {monitorNodeStats.stages.map((stage) => (
+                                        <div key={stage.key} className="rounded-lg border border-gray-200 bg-white p-4">
+                                            <div className="mb-2 flex items-center justify-between gap-2 pr-2.5">
+                                                <div className="flex min-w-0 items-center gap-1.5">
+                                                <span className="truncate whitespace-nowrap text-[13px] font-medium text-gray-900">{stage.name}</span>
+                                                <span className="group/tip relative inline-flex flex-shrink-0">
+                                                    <svg className="h-3.5 w-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[220px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                        {stage.tip}
+                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                    </span>
+                                                </span>
+                                                </div>
+                                                <span className="flex-shrink-0 whitespace-nowrap text-[11px] font-normal text-gray-400">
+                                                    {stage.key === "verify" ? "指标数量" : "产品数量"}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                {monitorStatStatusCols
+                                                    .filter((col) =>
+                                                        stage.key === "verify"
+                                                            ? col.key === "warn" || col.key === "fail"
+                                                            : col.key !== "warn"
+                                                    )
+                                                    .map((col) => {
+                                                    const count = stage.cells[col.key as keyof typeof stage.cells];
+                                                    const active = monitorStatActive[stage.key] === col.key;
+                                                    const dotColor =
+                                                        col.key === "done" ? "bg-green-500"
+                                                            : col.key === "running" ? "bg-blue-500"
+                                                                : col.key === "pending" ? "bg-gray-300"
+                                                                    : col.key === "fail" ? "bg-red-500"
+                                                                        : "bg-yellow-500";
+                                                    const textColor =
+                                                        col.key === "done" ? "text-green-600"
+                                                            : col.key === "running" ? "text-blue-600"
+                                                                : col.key === "pending" ? "text-gray-500"
+                                                                    : col.key === "fail" ? "text-red-600"
+                                                                        : "text-yellow-600";
+                                                    return (
+                                                        <button
+                                                            key={col.key}
+                                                            onClick={() => handleMonitorStatClick(stage.key, col.key)}
+                                                            disabled={count === 0}
+                                                            title={`筛选「${stage.name}」为「${col.label}」的产品`}
+                                                            className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
+                                                                active
+                                                                    ? "bg-blue-600 text-white"
+                                                                    : count === 0
+                                                                        ? "text-gray-300 cursor-default"
+                                                                        : "hover:bg-gray-50"
+                                                            }`}
+                                                        >
+                                                            <span className="inline-flex items-center gap-1.5">
+                                                                <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : dotColor}`} />
+                                                                {col.label}
+                                                            </span>
+                                                            <span className={`font-medium ${active ? "text-white" : count === 0 ? "text-gray-300" : textColor}`}>
+                                                                {count}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 数据表格 */}
+                            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[1100px]">
+                                        <thead>
+                                            <tr className="border-b border-gray-200 bg-gray-50">
+                                                <AnalysisTh label="产品名称" align="left" width="280px" rowSpan={2} />
+                                                <AnalysisTh label="出账周期" align="left" width="140px" rowSpan={2} tip="该产品的出账周期：小时 / 天 / 月；多种周期同时存在时展示多个周期（如 小时、天）。" />
+                                                <MonitorFilterTh label="计量上报" tip="各产品计量数据按账期上报完成情况，点击下拉可按状态筛选。" value={monitorMeterFilter} onChange={setMonitorMeterFilter} width="180px" rowSpan={2} />
+                                                <MonitorFilterTh label="聚合出账" tip="计量数据聚合后生成账单，点击下拉可按状态筛选。" value={monitorAggregateFilter} onChange={setMonitorAggregateFilter} width="180px" rowSpan={2} />
+                                                <AnalysisTh label="结算" align="left" width="320px" colSpan={2} divider />
+                                                <MonitorVerifyFilterTh
+                                                    metric={monitorVerifyMetricFilter}
+                                                    onMetricChange={setMonitorVerifyMetricFilter}
+                                                    status={monitorVerifyStatusFilter}
+                                                    onStatusChange={setMonitorVerifyStatusFilter}
+                                                    width="300px"
+                                                    rowSpan={2}
+                                                />
+                                            </tr>
+                                            <tr className="border-b border-gray-200 bg-gray-50">
+                                                <MonitorFilterTh label="抵扣" tip="账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节，点击下拉可按状态筛选。" value={monitorOffsetFilter} onChange={setMonitorOffsetFilter} width="160px" />
+                                                <MonitorFilterTh label="扣费" tip="账单扣费处理完成情况，点击下拉可按状态筛选。" value={monitorChargeFilter} onChange={setMonitorChargeFilter} width="160px" divider={false} />
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {filteredMonitorRows.map((row) => (
+                                                <tr key={row.id} className="hover:bg-gray-50">
+                                                    <td className="px-3 py-4 text-sm text-gray-900">
+                                                        <div className="flex items-start gap-1.5">
+                                                            <span className="w-4 flex-shrink-0" />
+                                                            <div className="min-w-0">
+                                                                <button
+                                                                    onClick={() => setMonitorDetailProduct(row)}
+                                                                    className="block text-left leading-[1.5] break-all text-blue-600 hover:text-blue-700"
+                                                                    title={cleanProductName(row.productName)}
+                                                                >
+                                                                    {cleanProductName(row.productName)}
+                                                                </button>
+                                                                {row.isMain && (
+                                                                    <div className="mt-1 flex items-center gap-1.5">
+                                                                        <span className="flex-shrink-0 rounded bg-orange-50 px-1.5 py-0.5 text-[11px] leading-none text-orange-600">
+                                                                            主产品
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                // 点击后自动在产品筛选框中选中该主产品及其全部子产品
+                                                                                const subIds = monitorRows.filter((r) => r.parentId === row.id).map((r) => r.id);
+                                                                                setMonitorProductFilter([row.id, ...subIds]);
+                                                                            }}
+                                                                            className="text-[12px] leading-none text-blue-600 hover:text-blue-700"
+                                                                            title={`筛选出该主产品及其 ${row.subCount} 个子产品`}
+                                                                        >
+                                                                            共 {row.subCount} 个子产品
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                                {row.parentId != null && (
+                                                                    <div className="mt-1">
+                                                                        <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[11px] leading-none text-gray-500">
+                                                                            子产品
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-4 text-sm text-gray-600">
+                                                        <span className={row.billingCycle.length > 1 ? "text-orange-600" : ""}>
+                                                            {formatBillingCycle(row.billingCycle)}
+                                                        </span>
+                                                    </td>
+                                                    {/* 计量上报 */}
+                                                    <MonitorProgressCell node={row.nodes.meter} onClick={() => setMonitorDetailProduct(row)} />
+                                                    {/* 聚合出账 */}
+                                                    <MonitorProgressCell node={row.nodes.aggregate} onClick={() => setMonitorDetailProduct(row)} />
+                                                    {/* 结算（抵扣、扣费两个环节） */}
+                                                    <MonitorSettleCell hasPackage={row.hasPackage} offset={row.nodes.offset} charge={row.nodes.charge} onClick={() => setMonitorDetailProduct(row)} />
+                                                    {/* 账单核验 */}
+                                                    <MonitorVerifyCell
+                                                        subs={row.nodes.verify?.verifySubs ?? []}
+                                                        metricFilter={monitorVerifyMetricFilter}
+                                                        statusFilter={monitorVerifyStatusFilter}
+                                                        onOpenDetail={() => setMonitorDetailProduct(row)}
+                                                    />
+                                                </tr>
+                                            ))}
+                                            {filteredMonitorRows.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={2 + monitorNodeDefs.length + 1} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                        暂无符合条件的数据
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* 统计条 */}
+                            <div className="mt-4 flex items-center justify-end rounded-lg border border-gray-200 bg-white px-4 py-3">
+                                <div className="flex items-center gap-4 text-[12px] text-gray-500">
+                                    <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" />已完成</span>
+                                    <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" />进行中</span>
+                                    <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-gray-300" />未开始</span>
+                                    <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" />异常</span>
+                                </div>
+                            </div>
+
+                            {/* 节点进度明细抽屉 */}
+                            {monitorDetailProduct && (
+                                <div className="fixed inset-0 z-[100]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setMonitorDetailProduct(null)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[760px] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                                            <div>
+                                                <h3 className="text-base font-semibold text-gray-900">计费节点进度明细</h3>
+                                                <p className="mt-0.5 text-[13px] text-gray-500">{monitorDetailProduct.productName}</p>
+                                            </div>
+                                            <button onClick={() => setMonitorDetailProduct(null)} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-auto px-6 py-4">
+                                            <div className="mb-4 flex flex-wrap items-center gap-6 text-[13px] text-gray-600">
+                                                <span>所属产线：<span className="text-gray-900">{monitorDetailProduct.productLine}</span></span>
+                                                <span>结算单元：<span className="text-gray-900">{monitorDetailProduct.settlementUnit}</span></span>
+                                                <span>出账周期：<span className="text-gray-900">{formatBillingCycle(monitorDetailProduct.billingCycle)}</span></span>
+                                                <span>账期：<span className="text-gray-900">{monitorPeriodLabel}</span></span>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                {monitorNodeDefs.map((n, idx) => {
+                                                    // 结算节点：内含抵扣、扣费两个环节
+                                                    if (n.key === "settle") {
+                                                        return (
+                                                            <div key={n.key} className="rounded-lg border border-gray-200 p-4">
+                                                                <div className="mb-3 flex items-center gap-2">
+                                                                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[12px] font-medium text-gray-600">{idx + 1}</span>
+                                                                    <span className="text-sm font-medium text-gray-900">{n.name}</span>
+                                                                </div>
+                                                                <div className="space-y-4 pl-4">
+                                                                    {monitorSettleStages.map((stage) => {
+                                                                        const st = stage.key === "offset" ? monitorDetailProduct.nodes.offset : monitorDetailProduct.nodes.charge;
+                                                                        const na = stage.key === "offset" && !monitorDetailProduct.hasPackage;
+                                                                        const c = monitorStatusColor(st?.status);
+                                                                        return (
+                                                                            <div key={stage.key}>
+                                                                                <div className="mb-1.5 flex items-center justify-between">
+                                                                                    <span className="inline-flex items-center gap-2 text-[13px] font-medium text-gray-700">
+                                                                                        {stage.name}
+                                                                                        {na && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] leading-none text-gray-400">不涉及</span>}
+                                                                                    </span>
+                                                                                    <span className={`inline-flex items-center gap-1 text-[12px] leading-none ${na ? "text-gray-400" : c.text}`}>
+                                                                                        {na ? (
+                                                                                            <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />
+                                                                                        ) : (
+                                                                                            <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                                                                                        )}
+                                                                                        {na ? "无资源包抵扣，不涉及" : st?.status === "fail" && st.failReason ? `异常（${st.failReason}）` : c.label}
+                                                                                    </span>
+                                                                                </div>
+                                                                                {!na && (
+                                                                                    <>
+                                                                                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                                                                            <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${st?.progress ?? 0}%` }} />
+                                                                                        </div>
+                                                                                        <div className="mt-1 flex items-center justify-between text-[12px] text-gray-400">
+                                                                                            <span>{st?.progress ?? 0}%</span>
+                                                                                            {st?.status === "done" && st.doneTime && <span>{st.doneTime}</span>}
+                                                                                        </div>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    const st = monitorDetailProduct.nodes[n.key];
+                                                    const c = monitorStatusColor(st?.status);
+                                                    return (
+                                                        <div key={n.key} className="rounded-lg border border-gray-200 p-4">
+                                                            <div className="mb-2 flex items-center justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[12px] font-medium text-gray-600">{idx + 1}</span>
+                                                                    <span className="text-sm font-medium text-gray-900">{n.name}</span>
+                                                                    <span className={`inline-flex items-center gap-1 text-[12px] leading-none ${c.text}`}>
+                                                                        <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                                                                        {c.label}
+                                                                    </span>
+                                                                </div>
+                                                                {st?.status === "done" && st.doneTime && (
+                                                                    <span className="text-[12px] text-gray-400">{st.doneTime}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                                                <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${st?.progress ?? 0}%` }} />
+                                                            </div>
+                                                            <div className="mt-1.5 text-right text-[12px] text-gray-400">{st?.progress ?? 0}%</div>
+
+                                                            {n.key === "verify" && (st?.verifySubs ?? []).length > 0 && (
+                                                                <div className="mt-3 border-t border-gray-100 pt-3">
+                                                                    <div className="mb-2 text-[12px] text-gray-400">账单核验字段</div>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        {(st?.verifySubs ?? []).map((sub) => {
+                                                                            const vc = monitorVerifyStatusColor(sub.status);
+                                                                            return (
+                                                                                <div key={sub.name} className={`rounded border px-2.5 py-1.5 ${vc.chip}`}>
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${vc.dot}`} />
+                                                                                        <span className="text-[12px] font-medium">{sub.name}</span>
+                                                                                        <span className="ml-auto text-[11px] leading-none opacity-70">{vc.label}</span>
+                                                                                    </div>
+                                                                                    <div className="mt-1 pl-[21px] text-[11px] leading-none opacity-70">{sub.detail}</div>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
+                                            <button
+                                                onClick={() => setMonitorDetailProduct(null)}
+                                                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                                            >
+                                                关闭
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {currentMenu === 'platform-portal' && (
                         <div className="flex-1 bg-gray-50 overflow-auto">
                             {/* 页面标题 */}
@@ -11419,7 +12764,6 @@ export default function AdminPage() {
                                                         </span>
                                                     </th>
                                                     <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">可用区ID</th>
-                                                    <th rowSpan={2} className="text-left py-3 px-4 text-sm font-medium text-gray-700 border-r border-gray-200 whitespace-nowrap">可用区名称</th>
                                                     {zonePortalOptions.map(portalName => (
                                                         <th key={portalName} colSpan={2} className="text-center py-2 px-4 text-sm font-medium text-gray-700 border-r border-gray-200">
                                                             <div className="inline-flex items-center gap-1.5">
@@ -11445,7 +12789,7 @@ export default function AdminPage() {
                                             <tbody>
                                                 {filteredRegionZones.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={7 + zonePortalOptions.length * 2} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                        <td colSpan={6 + zonePortalOptions.length * 2} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
                                                     </tr>
                                                 ) : (
                                                     filteredRegionZones.map((zone, idx) => {
@@ -11466,7 +12810,6 @@ export default function AdminPage() {
                                                                     </div>
                                                                     </td>
                                                                     <td className="py-3 px-4 text-xs font-mono whitespace-nowrap border-r border-gray-100 text-gray-500">{zone.zoneId || '--'}</td>
-                                                                    <td className="py-3 px-4 text-sm whitespace-nowrap border-r border-gray-100 text-gray-700">{zone.zoneName || '--'}</td>
                                                                     {/* 每个Portal的可用区名称、标识各占一列，方便横向对比 */}
                                                                 {zonePortalOptions.map(portalName => {
                                                                     const p = zone.portals.find(x => x.portalName === portalName);
@@ -11820,87 +13163,22 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
 
-                                            {/* 可用区ID：开启内部Portal时与内部Portal可用区标识一致；未开启内部Portal时需单独填写 */}
-                                            {(() => {
-                                                const innerEntry = regionZoneForm.portals.find(p => p.portalName === internalPortalName);
-                                                return (
-                                                    <div className="flex items-start gap-3">
-                                                        <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
-                                                            <span className="text-red-500 mr-0.5">*</span>可用区ID:
-                                                        </label>
-                                                        <div className="flex-1 min-w-0">
-                                                            {innerEntry ? (
-                                                                <>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={innerEntry.code}
-                                                                        disabled
-                                                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
-                                                                    />
-                                                                    <p className="mt-1.5 text-xs text-gray-400">
-                                                                        已开启内部Portal「{internalPortalName}」，可用区ID自动与内部Portal可用区标识保持一致
-                                                                    </p>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={regionZoneForm.zoneId}
-                                                                        onChange={(e) => { setRegionZoneForm({ ...regionZoneForm, zoneId: e.target.value }); setRegionZoneFormError(''); }}
-                                                                        placeholder="支持英文、数字、_、-(20个字符以内)"
-                                                                        maxLength={20}
-                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                                                    />
-                                                                    <p className="mt-1.5 text-xs text-gray-400">
-                                                                        未开启内部Portal，请单独设置可用区ID
-                                                                    </p>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
-
-                                            {/* 可用区名称：开启内部Portal时与内部Portal可用区名称一致；未开启内部Portal时需单独填写 */}
-                                            {(() => {
-                                                const innerEntry = regionZoneForm.portals.find(p => p.portalName === internalPortalName);
-                                                return (
-                                                    <div className="flex items-start gap-3">
-                                                        <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
-                                                            <span className="text-red-500 mr-0.5">*</span>可用区名称:
-                                                        </label>
-                                                        <div className="flex-1 min-w-0">
-                                                            {innerEntry ? (
-                                                                <>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={innerEntry.name}
-                                                                        disabled
-                                                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
-                                                                    />
-                                                                    <p className="mt-1.5 text-xs text-gray-400">
-                                                                        已开启内部Portal「{internalPortalName}」，可用区名称自动与内部Portal可用区名称保持一致
-                                                                    </p>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={regionZoneForm.zoneName}
-                                                                        onChange={(e) => { setRegionZoneForm({ ...regionZoneForm, zoneName: e.target.value }); setRegionZoneFormError(''); }}
-                                                                        placeholder="支持中英文、数字(20个字符以内)"
-                                                                        maxLength={20}
-                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                                                    />
-                                                                    <p className="mt-1.5 text-xs text-gray-400">
-                                                                        未开启内部Portal，请单独设置可用区名称
-                                                                    </p>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
+                                            {/* 可用区ID：可手动输入 */}
+                                            <div className="flex items-start gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-2">
+                                                    <span className="text-red-500 mr-0.5">*</span>可用区ID:
+                                                </label>
+                                                <div className="flex-1 min-w-0">
+                                                    <input
+                                                        type="text"
+                                                        value={regionZoneForm.zoneId}
+                                                        onChange={(e) => { setRegionZoneForm({ ...regionZoneForm, zoneId: e.target.value }); setRegionZoneFormError(''); }}
+                                                        placeholder="支持英文、数字、_、-(20个字符以内)"
+                                                        maxLength={20}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </div>
+                                            </div>
 
                                             {/* Portal 可用区配置：自动列出全部已开启独立Portal，仅支持开启/关闭，不支持增删 */}
                                             <div className="border border-gray-200 rounded-lg p-4 space-y-4">
