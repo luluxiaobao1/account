@@ -920,11 +920,13 @@ const deptProductRevenueMap: Record<string, { productName: string; amount: numbe
 };
 
 // ===== 经营分析 - 监控看板 =====
-// 计费节点定义：计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单核验（按字段逐项核验）
+// 计费节点定义：计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单聚合 → 成本（成本聚合、成本生产） → 账单核验（按字段逐项核验）
 const monitorNodeDefs = [
     { key: "meter", name: "计量上报", tip: "各产品计量数据按账期上报完成情况。" },
-    { key: "aggregate", name: "聚合出账", tip: "计量数据聚合后生成账单。" },
+    { key: "dataAggregate", name: "聚合", tip: "计量数据完成聚合处理的进度。" },
+    { key: "productBill", name: "出账", tip: "产品账单生成完成情况。" },
     { key: "settle", name: "结算", tip: "结算包含抵扣、扣费两个环节；无资源包抵扣的产品，抵扣环节展示「不涉及」。" },
+    { key: "cost", name: "成本", tip: "成本包含成本聚合、成本生产两个维度。" },
     { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
 ];
 
@@ -932,6 +934,19 @@ const monitorNodeDefs = [
 const monitorSettleStages = [
     { key: "offset", name: "抵扣", tip: "账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节。" },
     { key: "charge", name: "扣费", tip: "账单扣费处理完成情况。" },
+] as const;
+
+// 账单聚合列下的两个环节：天账单、月账单（结算列与账单核验列之间）
+// 天账单：仅展示「天账单」一列；月账单：同时展示「天账单」「月账单」两列
+const monitorBillAggStages = [
+    { key: "dayBillAgg", name: "天账单", tip: "按天维度聚合账单数据完成情况。" },
+    { key: "monthBillAgg", name: "月账单", tip: "按月维度聚合账单数据完成情况。" },
+] as const;
+
+// 成本列下的两个环节：成本聚合、成本生产（样式与结算列一致，展示进度监控）
+const monitorCostStages = [
+    { key: "costAgg", name: "成本聚合", tip: "产品成本聚合维度进度。" },
+    { key: "costProd", name: "成本生产", tip: "产品成本生产维度进度。" },
 ] as const;
 
 // 监控看板 - 监控统计矩阵：列 = 指标（状态）
@@ -974,6 +989,8 @@ interface MonitorProductRow {
     parentId: number | null;                  // 主产品为 null；子产品为其所属主产品 id
     subCount: number;                         // 主产品包含的子产品数量（用于「共N个子产品」），非主产品为 0
     hasPackage: boolean;                      // 是否有资源包抵扣（无则抵扣环节展示「不涉及」）
+    costAgg: number;                          // 成本聚合（元）
+    costProd: number;                         // 成本生产（元）
     nodes: Record<string, MonitorNodeState>;
 }
 
@@ -1230,12 +1247,7 @@ const MonitorProductFilter = ({
                                         </svg>
                                     )}
                                 </span>
-                                <span className={`truncate ${opt.parentId != null ? "pl-3 text-gray-500" : ""}`}>
-                                    {opt.parentId != null ? `└ ${cleanProductName(opt.name)}` : cleanProductName(opt.name)}
-                                </span>
-                                {opt.isMain && (
-                                    <span className="ml-auto flex-shrink-0 rounded bg-orange-50 px-1 py-0.5 text-[10px] leading-none text-orange-600">主</span>
-                                )}
+                                <span className="truncate">{cleanProductName(opt.name)}</span>
                             </button>
                         );
                     })}
@@ -1277,12 +1289,21 @@ const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boole
         ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 10, "08:00:00") }
         : { status: "running", progress: idx === 8 ? 72 : 45 };
 
-    // 聚合出账：前 5 完成，5~8 进行中，第 9 未开始
-    const aggregateDone = idx < 5;
-    const aggregateRunning = idx >= 5 && idx < 9;
-    const aggregate: MonitorNodeState = aggregateDone
+    // 聚合：前 6 完成，6~8 进行中，第 9 未开始
+    const dataAggregateDone = idx < 6;
+    const dataAggregateRunning = idx >= 6 && idx < 9;
+    const dataAggregate: MonitorNodeState = dataAggregateDone
+        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 11, "08:45:00") }
+        : dataAggregateRunning
+            ? { status: "running", progress: [68, 45, 22][idx - 6] }
+            : { status: "pending", progress: 0 };
+
+    // 出账：前 5 完成，5~8 进行中，第 9 未开始
+    const productBillDone = idx < 5;
+    const productBillRunning = idx >= 5 && idx < 9;
+    const productBill: MonitorNodeState = productBillDone
         ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 11, "09:30:00") }
-        : aggregateRunning
+        : productBillRunning
             ? { status: "running", progress: [58, 80, 35, 62][idx - 5] }
             : { status: "pending", progress: 0 };
 
@@ -1306,6 +1327,41 @@ const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boole
             ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 13, "10:40:00") }
             : { status: "pending", progress: 0 };
 
+    // 账单聚合：天账单（前 4 完成，4~7 进行中，其余未开始）
+    const dayBillAggDone = idx < 4;
+    const dayBillAggRunning = idx >= 4 && idx < 7;
+    const dayBillAgg: MonitorNodeState = dayBillAggDone
+        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 13, "15:00:00") }
+        : dayBillAggRunning
+            ? { status: "running", progress: [78, 55, 30][idx - 4] }
+            : { status: "pending", progress: 0 };
+    // 月账单：前 3 完成，3~6 进行中，其余未开始
+    const monthBillAggDone = idx < 3;
+    const monthBillAggRunning = idx >= 3 && idx < 6;
+    const monthBillAgg: MonitorNodeState = monthBillAggDone
+        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 14, "10:30:00") }
+        : monthBillAggRunning
+            ? { status: "running", progress: [65, 42, 18][idx - 3] }
+            : { status: "pending", progress: 0 };
+
+    // 成本聚合：前 3 完成，3~5 进行中，5~7 未开始，其余未开始
+    const costAggDone = idx < 3;
+    const costAggRunning = idx >= 3 && idx < 5;
+    const costAgg: MonitorNodeState = costAggDone
+        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 15, "14:30:00") }
+        : costAggRunning
+            ? { status: "running", progress: [45, 20][idx - 3] }
+            : { status: "pending", progress: 0 };
+
+    // 成本生产：前 2 完成，2~4 进行中，4~6 未开始，其余未开始
+    const costProdDone = idx < 2;
+    const costProdRunning = idx >= 2 && idx < 4;
+    const costProd: MonitorNodeState = costProdDone
+        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 15, "15:00:00") }
+        : costProdRunning
+            ? { status: "running", progress: [65, 35][idx - 2] }
+            : { status: "pending", progress: 0 };
+
     // 账单核验：各核验字段子节点；按产品/字段序号规律分配 验证通过/告警/异常 三种核验状态
     const verifySubs: MonitorVerifySubNode[] = monitorVerifySubDefs.map((def, si) => ({
         name: def.name,
@@ -1314,7 +1370,7 @@ const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boole
     }));
     const verify: MonitorNodeState = { status: "pending", progress: 0, verifySubs };
 
-    return { meter, aggregate, offset, charge, verify };
+    return { meter, dataAggregate, productBill, offset, charge, dayBillAgg, monthBillAgg, costAgg, costProd, verify };
 };
 
 // 监控看板 - 主产品下的子产品名称（mock：仅部分产品为主产品，其余为独立产品）
@@ -1343,8 +1399,14 @@ const formatBillingCycle = (cycles: MonitorBillingCycle): string => {
 
 const buildMonitorProductRows = (ctx: MonitorPeriodCtx): MonitorProductRow[] => {
     const rows: MonitorProductRow[] = [];
+    // mock 成本数据：将 productCost 按约 4:6 拆分为成本聚合与成本生产
+    const splitCost = (total: number): [number, number] => {
+        const agg = Math.round(total * 0.4);
+        return [agg, total - agg];
+    };
     productAnalysisData.forEach((p, idx) => {
         const subNames = monitorSubProductNames[p.id] ?? [];
+        const [agg, prod] = splitCost(p.productCost);
         // 主产品作为独立行
         rows.push({
             id: p.id,
@@ -1356,11 +1418,14 @@ const buildMonitorProductRows = (ctx: MonitorPeriodCtx): MonitorProductRow[] => 
             parentId: null,
             subCount: subNames.length,
             hasPackage: monitorHasResourcePackage(idx),
+            costAgg: agg,
+            costProd: prod,
             nodes: buildMonitorNodes(idx, ctx, monitorHasResourcePackage(idx)),
         });
         // 子产品同样作为独立行（子产品也是一个个单独的产品，直接出现在列表中）
         subNames.forEach((name, si) => {
             const subIdx = (idx + si + 1) % 10;
+            const [subAgg, subProd] = splitCost(p.productCost * 0.25);
             rows.push({
                 id: p.id * 100 + si + 1,
                 productName: name,
@@ -1371,6 +1436,8 @@ const buildMonitorProductRows = (ctx: MonitorPeriodCtx): MonitorProductRow[] => 
                 parentId: p.id,
                 subCount: 0,
                 hasPackage: monitorHasResourcePackage(subIdx),
+                costAgg: subAgg,
+                costProd: subProd,
                 nodes: buildMonitorNodes(subIdx, ctx, monitorHasResourcePackage(subIdx)),
             });
         });
@@ -5160,13 +5227,19 @@ export default function AdminPage() {
     const [monitorHour, setMonitorHour] = useState(8);                                   // 账期（小时账单，0~23）
     const [monitorNodeFilter, setMonitorNodeFilter] = useState("");                       // 计费节点状态筛选
     const [monitorMeterFilter, setMonitorMeterFilter] = useState("");                     // 计量上报列头状态筛选
-    const [monitorAggregateFilter, setMonitorAggregateFilter] = useState("");             // 聚合出账列头状态筛选
+    const [monitorDataAggregateFilter, setMonitorDataAggregateFilter] = useState("");     // 聚合列头状态筛选
+    const [monitorProductBillFilter, setMonitorProductBillFilter] = useState("");         // 出账列头状态筛选
     const [monitorOffsetFilter, setMonitorOffsetFilter] = useState("");                   // 结算-抵扣列头状态筛选
     const [monitorChargeFilter, setMonitorChargeFilter] = useState("");                   // 结算-扣费列头状态筛选
+    const [monitorDayBillAggFilter, setMonitorDayBillAggFilter] = useState("");           // 账单聚合-天账单列头状态筛选
+    const [monitorMonthBillAggFilter, setMonitorMonthBillAggFilter] = useState("");       // 账单聚合-月账单列头状态筛选
+    const [monitorCostAggFilter, setMonitorCostAggFilter] = useState("");                 // 成本-成本聚合列头状态筛选
+    const [monitorCostProdFilter, setMonitorCostProdFilter] = useState("");               // 成本-成本生产列头状态筛选
     const [monitorVerifyMetricFilter, setMonitorVerifyMetricFilter] = useState<string[]>([]); // 账单核验-监控指标筛选（多选）
     const [monitorVerifyStatusFilter, setMonitorVerifyStatusFilter] = useState("");       // 账单核验-指标状态筛选
     const [monitorProductFilter, setMonitorProductFilter] = useState<number[]>([]);       // 产品筛选（多选：主产品/子产品，可清除）
-    const [monitorKeyword, setMonitorKeyword] = useState("");                             // 产品名称关键字
+    const [monitorKeyword, setMonitorKeyword] = useState("");                             // 产品名称关键字（点击搜索后生效）
+    const [monitorKeywordInput, setMonitorKeywordInput] = useState("");                   // 产品名称关键字输入框临时值
     const [monitorDetailProduct, setMonitorDetailProduct] = useState<MonitorProductRow | null>(null); // 节点明细抽屉
 
     // 监控看板 - 当前选中账期上下文与展示标签
@@ -5228,14 +5301,29 @@ export default function AdminPage() {
             if (monitorMeterFilter) {
                 if (!monitorStageHit(row, "meter", monitorMeterFilter as MonitorNodeStatus)) return false;
             }
-            if (monitorAggregateFilter) {
-                if (!monitorStageHit(row, "aggregate", monitorAggregateFilter as MonitorNodeStatus)) return false;
+            if (monitorDataAggregateFilter) {
+                if (!monitorStageHit(row, "dataAggregate", monitorDataAggregateFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorProductBillFilter) {
+                if (!monitorStageHit(row, "productBill", monitorProductBillFilter as MonitorNodeStatus)) return false;
             }
             if (monitorOffsetFilter) {
                 if (!monitorStageHit(row, "offset", monitorOffsetFilter as MonitorNodeStatus)) return false;
             }
             if (monitorChargeFilter) {
                 if (!monitorStageHit(row, "charge", monitorChargeFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorDayBillAggFilter) {
+                if (!monitorStageHit(row, "dayBillAgg", monitorDayBillAggFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorMonthBillAggFilter) {
+                if (!monitorStageHit(row, "monthBillAgg", monitorMonthBillAggFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorCostAggFilter) {
+                if (!monitorStageHit(row, "costAgg", monitorCostAggFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorCostProdFilter) {
+                if (!monitorStageHit(row, "costProd", monitorCostProdFilter as MonitorNodeStatus)) return false;
             }
             if (monitorVerifyMetricFilter.length > 0 || monitorVerifyStatusFilter) {
                 if (!monitorVerifyHit(row)) return false;
@@ -5249,12 +5337,12 @@ export default function AdminPage() {
             }
             return true;
         });
-    }, [monitorRows, monitorKeyword, monitorNodeFilter, monitorMeterFilter, monitorAggregateFilter, monitorOffsetFilter, monitorChargeFilter, monitorVerifyMetricFilter, monitorVerifyStatusFilter, monitorBillType, monitorProductFilter]);
+    }, [monitorRows, monitorKeyword, monitorNodeFilter, monitorMeterFilter, monitorDataAggregateFilter, monitorProductBillFilter, monitorOffsetFilter, monitorChargeFilter, monitorDayBillAggFilter, monitorMonthBillAggFilter, monitorCostAggFilter, monitorCostProdFilter, monitorVerifyMetricFilter, monitorVerifyStatusFilter, monitorBillType, monitorProductFilter]);
 
-    // 监控看板 - 监控统计矩阵：行 = 产品（计费节点），列 = 指标（状态），数字为命中该节点该状态的产品数量
+    // 监控看板 - 监控统计矩阵：行 = 产品（计费节点），列 = 指标（状态），数字基于当前筛选后的列表统计
     const monitorNodeStats = useMemo(() => {
-        // 主产品与子产品均为独立行，全部参与统计
-        const allProducts: { nodes: Record<string, MonitorNodeState> }[] = monitorRows.map((row) => ({ nodes: row.nodes }));
+        // 主产品与子产品均为独立行，统计范围与列表展示一致（即基于 filteredMonitorRows）
+        const allProducts: { nodes: Record<string, MonitorNodeState> }[] = filteredMonitorRows.map((row) => ({ nodes: row.nodes }));
 
         const emptyCount = () => ({ done: 0, running: 0, pending: 0, fail: 0, warn: 0 });
         const cellOf = (key: string): { done: number; running: number; pending: number; fail: number; warn: number } => {
@@ -5277,24 +5365,39 @@ export default function AdminPage() {
             return c;
         };
 
+        // 三组：账单（计量上报~月账单）、成本（成本聚合+成本生产）、账单核验
+        const stageGroup = (key: string): "bill" | "cost" | "verify" =>
+            key === "costAgg" || key === "costProd" ? "cost"
+                : key === "verify" ? "verify"
+                    : "bill";
         const stages = [
             { key: "meter", name: "计量上报", tip: "各产品计量数据按账期上报完成情况。" },
-            { key: "aggregate", name: "聚合出账", tip: "计量数据聚合后生成账单。" },
+            { key: "dataAggregate", name: "聚合", tip: "计量数据完成聚合处理的进度。" },
+            { key: "productBill", name: "出账", tip: "产品账单生成完成情况。" },
             { key: "offset", name: "抵扣", tip: "账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节。" },
             { key: "charge", name: "扣费", tip: "账单扣费处理完成情况。" },
+            ...(monitorBillType !== "hour" ? [{ key: "dayBillAgg", name: "天账单", tip: "按天维度聚合账单数据完成情况。" }] : []),
+            ...(monitorBillType === "month" ? [{ key: "monthBillAgg", name: "月账单", tip: "按月维度聚合账单数据完成情况。" }] : []),
+            { key: "costAgg", name: "成本聚合", tip: "产品成本聚合维度进度。" },
+            { key: "costProd", name: "成本生产", tip: "产品成本生产维度进度。" },
             { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
-        ].map((s) => ({ ...s, cells: cellOf(s.key) }));
+        ].map((s) => ({ ...s, group: stageGroup(s.key), cells: cellOf(s.key) }));
 
         return { total: allProducts.length, stages };
-    }, [monitorRows]);
+    }, [filteredMonitorRows]);
 
     // 监控看板 - 点击监控统计数字：筛选对应计费节点的对应状态（再次点击同一状态则清除）
     const handleMonitorStatClick = (stageKey: string, statusKey: string) => {
         const clear = (cur: string, set: (v: string) => void) => set(cur === statusKey ? "" : statusKey);
         if (stageKey === "meter") clear(monitorMeterFilter, setMonitorMeterFilter);
-        else if (stageKey === "aggregate") clear(monitorAggregateFilter, setMonitorAggregateFilter);
+        else if (stageKey === "dataAggregate") clear(monitorDataAggregateFilter, setMonitorDataAggregateFilter);
+        else if (stageKey === "productBill") clear(monitorProductBillFilter, setMonitorProductBillFilter);
         else if (stageKey === "offset") clear(monitorOffsetFilter, setMonitorOffsetFilter);
         else if (stageKey === "charge") clear(monitorChargeFilter, setMonitorChargeFilter);
+        else if (stageKey === "dayBillAgg") clear(monitorDayBillAggFilter, setMonitorDayBillAggFilter);
+        else if (stageKey === "monthBillAgg") clear(monitorMonthBillAggFilter, setMonitorMonthBillAggFilter);
+        else if (stageKey === "costAgg") clear(monitorCostAggFilter, setMonitorCostAggFilter);
+        else if (stageKey === "costProd") clear(monitorCostProdFilter, setMonitorCostProdFilter);
         else if (stageKey === "verify") clear(monitorVerifyStatusFilter, setMonitorVerifyStatusFilter);
     };
 
@@ -5302,13 +5405,18 @@ export default function AdminPage() {
     const monitorStatActive = useMemo(() => {
         const map: Record<string, string> = {
             meter: monitorMeterFilter,
-            aggregate: monitorAggregateFilter,
+            dataAggregate: monitorDataAggregateFilter,
+            productBill: monitorProductBillFilter,
             offset: monitorOffsetFilter,
             charge: monitorChargeFilter,
+            dayBillAgg: monitorDayBillAggFilter,
+            monthBillAgg: monitorMonthBillAggFilter,
+            costAgg: monitorCostAggFilter,
+            costProd: monitorCostProdFilter,
             verify: monitorVerifyStatusFilter,
         };
         return map;
-    }, [monitorMeterFilter, monitorAggregateFilter, monitorOffsetFilter, monitorChargeFilter, monitorVerifyStatusFilter]);
+    }, [monitorMeterFilter, monitorDataAggregateFilter, monitorProductBillFilter, monitorOffsetFilter, monitorChargeFilter, monitorDayBillAggFilter, monitorMonthBillAggFilter, monitorCostAggFilter, monitorCostProdFilter, monitorVerifyStatusFilter]);
 
     // ===== 平台配置 - 地域可用区 =====
     // 单个 Portal 下的可用区配置：地域下「每个已开启独立Portal的Portal」都固定存在一条配置，
@@ -11218,7 +11326,7 @@ export default function AdminPage() {
                             {/* 数据口径说明 */}
                             <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
                                 <p className="text-[13px] leading-[1.9] text-blue-600">
-                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单核验</span>（账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
+                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单聚合 → 成本 → 账单核验</span>（账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
                                 </p>
                             </div>
 
@@ -11276,111 +11384,131 @@ export default function AdminPage() {
                                     onChange={setMonitorProductFilter}
                                 />
 
-                                {/* 计费节点状态 */}
-                                <select
-                                    value={monitorNodeFilter}
-                                    onChange={(e) => setMonitorNodeFilter(e.target.value)}
-                                    className="h-9 w-[150px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="">节点状态</option>
-                                    <option value="done">已完成</option>
-                                    <option value="running">进行中</option>
-                                    <option value="pending">未开始</option>
-                                    <option value="fail">异常</option>
-                                </select>
-
-                                {/* 产品名称关键字 */}
+                                {/* 产品名称关键字 + 搜索按钮：点击搜索后生效 */}
                                 <input
                                     type="text"
-                                    value={monitorKeyword}
-                                    onChange={(e) => setMonitorKeyword(e.target.value)}
+                                    value={monitorKeywordInput}
+                                    onChange={(e) => setMonitorKeywordInput(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") setMonitorKeyword(monitorKeywordInput); }}
                                     placeholder="产品名称关键字"
                                     className="h-9 w-[200px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
                                 />
-
                                 <button
-                                    onClick={() => {}}
+                                    onClick={() => setMonitorKeyword(monitorKeywordInput)}
                                     className="h-9 rounded-lg bg-blue-600 px-5 text-sm text-white transition-colors hover:bg-blue-700"
                                 >
                                     搜索
                                 </button>
+
                             </div>
 
-                            {/* 监控统计：卡片式布局，每个计费节点一张卡片，内含各状态数量；点击数字即筛选对应计费节点的对应状态 */}
+                            {/* 监控统计：进度轴布局，每个计费节点是轴线上从 1-N 标记的节点，节点间以连接线串联 */}
                             <div className="mb-4">
                                 <div className="mb-3 flex items-center justify-between">
                                     <h3 className="text-sm font-semibold text-gray-900">监控统计</h3>
                                     <span className="text-[12px] text-gray-400">点击数字可按对应计费节点的对应状态筛选列表</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
-                                    {monitorNodeStats.stages.map((stage) => (
-                                        <div key={stage.key} className="rounded-lg border border-gray-200 bg-white p-4">
-                                            <div className="mb-2 flex items-center justify-between gap-2 pr-2.5">
-                                                <div className="flex min-w-0 items-center gap-1.5">
-                                                <span className="truncate whitespace-nowrap text-[13px] font-medium text-gray-900">{stage.name}</span>
-                                                <span className="group/tip relative inline-flex flex-shrink-0">
-                                                    <svg className="h-3.5 w-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[220px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                        {stage.tip}
-                                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                                    </span>
-                                                </span>
-                                                </div>
-                                                <span className="flex-shrink-0 whitespace-nowrap text-[11px] font-normal text-gray-400">
-                                                    {stage.key === "verify" ? "指标数量" : "产品数量"}
-                                                </span>
-                                            </div>
-                                            <div className="space-y-1">
-                                                {monitorStatStatusCols
-                                                    .filter((col) =>
-                                                        stage.key === "verify"
-                                                            ? col.key === "warn" || col.key === "fail"
-                                                            : col.key !== "warn"
-                                                    )
-                                                    .map((col) => {
-                                                    const count = stage.cells[col.key as keyof typeof stage.cells];
-                                                    const active = monitorStatActive[stage.key] === col.key;
-                                                    const dotColor =
-                                                        col.key === "done" ? "bg-green-500"
-                                                            : col.key === "running" ? "bg-blue-500"
-                                                                : col.key === "pending" ? "bg-gray-300"
-                                                                    : col.key === "fail" ? "bg-red-500"
-                                                                        : "bg-yellow-500";
-                                                    const textColor =
-                                                        col.key === "done" ? "text-green-600"
-                                                            : col.key === "running" ? "text-blue-600"
-                                                                : col.key === "pending" ? "text-gray-500"
-                                                                    : col.key === "fail" ? "text-red-600"
-                                                                        : "text-yellow-600";
-                                                    return (
-                                                        <button
-                                                            key={col.key}
-                                                            onClick={() => handleMonitorStatClick(stage.key, col.key)}
-                                                            disabled={count === 0}
-                                                            title={`筛选「${stage.name}」为「${col.label}」的产品`}
-                                                            className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
-                                                                active
-                                                                    ? "bg-blue-600 text-white"
-                                                                    : count === 0
-                                                                        ? "text-gray-300 cursor-default"
-                                                                        : "hover:bg-gray-50"
-                                                            }`}
-                                                        >
-                                                            <span className="inline-flex items-center gap-1.5">
-                                                                <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : dotColor}`} />
-                                                                {col.label}
+                                <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gradient-to-b from-blue-50/30 to-white p-6">
+                                    <div className="flex min-w-max items-start">
+                                        {monitorNodeStats.stages.map((stage, idx) => {
+                                            const nodeNumber = idx + 1;
+                                            const isLast = idx === monitorNodeStats.stages.length - 1;
+                                            const nextGroup = !isLast ? monitorNodeStats.stages[idx + 1]?.group : null;
+                                            const isGroupEnd = !isLast && stage.group !== nextGroup;
+                                            // 分组颜色：账单=蓝、成本=琥珀、账单核验=翠绿
+                                            const groupColor =
+                                                stage.group === "cost" ? { circle: "bg-amber-500", ring: "ring-amber-50" }
+                                                    : stage.group === "verify" ? { circle: "bg-emerald-500", ring: "ring-emerald-50" }
+                                                        : { circle: "bg-blue-600", ring: "ring-blue-50" };
+                                            return (
+                                                <Fragment key={stage.key}>
+                                                    <div className="flex flex-col items-center flex-shrink-0" style={{ width: '175px' }}>
+                                                        {/* 序号圆圈 */}
+                                                        <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full ${groupColor.circle} text-[13px] font-bold text-white shadow-md ring-4 ${groupColor.ring}`}>
+                                                            {nodeNumber}
+                                                        </div>
+                                                        {/* 节点名称 + 提示 */}
+                                                        <div className="mt-2 flex items-center gap-1">
+                                                            <span className="text-[13px] font-medium text-gray-900">{stage.name}</span>
+                                                            <span className="group/tip relative inline-flex flex-shrink-0">
+                                                                <svg className="h-3.5 w-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-[220px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                    {stage.tip}
+                                                                    <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                                                </span>
                                                             </span>
-                                                            <span className={`font-medium ${active ? "text-white" : count === 0 ? "text-gray-300" : textColor}`}>
-                                                                {count}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
+                                                        </div>
+                                                        {/* 统计卡片 */}
+                                                        <div className="mt-2 w-full rounded-lg border border-gray-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
+                                                            <div className="space-y-0.5">
+                                                                {monitorStatStatusCols
+                                                                    .filter((col) =>
+                                                                        stage.key === "verify"
+                                                                            ? col.key === "warn" || col.key === "fail"
+                                                                            : col.key !== "warn"
+                                                                    )
+                                                                    .map((col) => {
+                                                                    const count = stage.cells[col.key as keyof typeof stage.cells];
+                                                                    const active = monitorStatActive[stage.key] === col.key;
+                                                                    const dotColor =
+                                                                        col.key === "done" ? "bg-green-500"
+                                                                            : col.key === "running" ? "bg-blue-500"
+                                                                                : col.key === "pending" ? "bg-gray-300"
+                                                                                    : col.key === "fail" ? "bg-red-500"
+                                                                                        : "bg-yellow-500";
+                                                                    const textColor =
+                                                                        col.key === "done" ? "text-green-600"
+                                                                            : col.key === "running" ? "text-blue-600"
+                                                                                : col.key === "pending" ? "text-gray-500"
+                                                                                    : col.key === "fail" ? "text-red-600"
+                                                                                        : "text-yellow-600";
+                                                                    return (
+                                                                        <button
+                                                                            key={col.key}
+                                                                            onClick={() => handleMonitorStatClick(stage.key, col.key)}
+                                                                            disabled={count === 0}
+                                                                            title={`筛选「${stage.name}」为「${col.label}」的产品`}
+                                                                            className={`flex w-full items-center justify-between rounded px-2 py-1 text-[12px] transition-colors ${
+                                                                                active
+                                                                                    ? "bg-blue-600 text-white"
+                                                                                    : count === 0
+                                                                                        ? "text-gray-300 cursor-default"
+                                                                                        : "hover:bg-gray-50"
+                                                                            }`}
+                                                                        >
+                                                                            <span className="inline-flex items-center gap-1.5">
+                                                                                <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : dotColor}`} />
+                                                                                {col.label}
+                                                                            </span>
+                                                                            <span className={`font-medium ${active ? "text-white" : count === 0 ? "text-gray-300" : textColor}`}>
+                                                                                {count}
+                                                                            </span>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                        {/* 底部统计标签 */}
+                                                        <span className="mt-1.5 text-[11px] text-gray-400">
+                                                            {stage.key === "verify" ? "指标数量" : "产品数量"}
+                                                        </span>
+                                                    </div>
+                                                    {/* 节点间连接线：组间用竖分割线，组内用横连接线 */}
+                                                    {isGroupEnd ? (
+                                                        <div className="flex flex-shrink-0 items-center pt-4" style={{ width: '24px' }}>
+                                                            <div className="h-10 w-px rounded-full bg-gray-400" />
+                                                        </div>
+                                                    ) : !isLast ? (
+                                                        <div className="flex flex-shrink-0 items-start pt-4" style={{ width: '32px' }}>
+                                                            <div className="h-0.5 w-full rounded-full bg-gray-300" />
+                                                        </div>
+                                                    ) : null}
+                                                </Fragment>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
 
@@ -11393,8 +11521,19 @@ export default function AdminPage() {
                                                 <AnalysisTh label="产品名称" align="left" width="280px" rowSpan={2} />
                                                 <AnalysisTh label="出账周期" align="left" width="140px" rowSpan={2} tip="该产品的出账周期：小时 / 天 / 月；多种周期同时存在时展示多个周期（如 小时、天）。" />
                                                 <MonitorFilterTh label="计量上报" tip="各产品计量数据按账期上报完成情况，点击下拉可按状态筛选。" value={monitorMeterFilter} onChange={setMonitorMeterFilter} width="180px" rowSpan={2} />
-                                                <MonitorFilterTh label="聚合出账" tip="计量数据聚合后生成账单，点击下拉可按状态筛选。" value={monitorAggregateFilter} onChange={setMonitorAggregateFilter} width="180px" rowSpan={2} />
+                                                <AnalysisTh label="聚合出账" align="left" width="320px" colSpan={2} divider tip="聚合出账包含聚合、出账两个环节。" />
                                                 <AnalysisTh label="结算" align="left" width="320px" colSpan={2} divider />
+                                                {monitorBillType !== "hour" && (
+                                                    <AnalysisTh
+                                                        label="账单聚合"
+                                                        align="left"
+                                                        width={monitorBillType === "day" ? "160px" : "320px"}
+                                                        colSpan={monitorBillType === "day" ? 1 : 2}
+                                                        divider
+                                                        tip="账单聚合包含天账单和月账单两个环节；天账单仅展示天账单，月账单同时展示天账单和月账单。"
+                                                    />
+                                                )}
+                                                <AnalysisTh label="成本" align="left" width="320px" colSpan={2} divider tip="产品成本展示，包含成本聚合与成本生产两个维度。" />
                                                 <MonitorVerifyFilterTh
                                                     metric={monitorVerifyMetricFilter}
                                                     onMetricChange={setMonitorVerifyMetricFilter}
@@ -11405,8 +11544,20 @@ export default function AdminPage() {
                                                 />
                                             </tr>
                                             <tr className="border-b border-gray-200 bg-gray-50">
+                                                <MonitorFilterTh label="聚合" tip="计量数据完成聚合处理的进度，点击下拉可按状态筛选。" value={monitorDataAggregateFilter} onChange={setMonitorDataAggregateFilter} width="160px" />
+                                                <MonitorFilterTh label="出账" tip="产品账单生成完成情况，点击下拉可按状态筛选。" value={monitorProductBillFilter} onChange={setMonitorProductBillFilter} width="160px" divider={false} />
                                                 <MonitorFilterTh label="抵扣" tip="账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节，点击下拉可按状态筛选。" value={monitorOffsetFilter} onChange={setMonitorOffsetFilter} width="160px" />
                                                 <MonitorFilterTh label="扣费" tip="账单扣费处理完成情况，点击下拉可按状态筛选。" value={monitorChargeFilter} onChange={setMonitorChargeFilter} width="160px" divider={false} />
+                                                {monitorBillType !== "hour" && (
+                                                    <>
+                                                        <MonitorFilterTh label="天账单" tip="按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorDayBillAggFilter} onChange={setMonitorDayBillAggFilter} width="160px" />
+                                                        {monitorBillType === "month" && (
+                                                            <MonitorFilterTh label="月账单" tip="按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorMonthBillAggFilter} onChange={setMonitorMonthBillAggFilter} width="160px" divider={false} />
+                                                        )}
+                                                    </>
+                                                )}
+                                                <MonitorFilterTh label="成本聚合" tip="产品成本聚合维度进度，点击下拉可按状态筛选。" value={monitorCostAggFilter} onChange={setMonitorCostAggFilter} width="160px" />
+                                                <MonitorFilterTh label="成本生产" tip="产品成本生产维度进度，点击下拉可按状态筛选。" value={monitorCostProdFilter} onChange={setMonitorCostProdFilter} width="160px" divider={false} />
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
@@ -11430,7 +11581,6 @@ export default function AdminPage() {
                                                                         </span>
                                                                         <button
                                                                             onClick={() => {
-                                                                                // 点击后自动在产品筛选框中选中该主产品及其全部子产品
                                                                                 const subIds = monitorRows.filter((r) => r.parentId === row.id).map((r) => r.id);
                                                                                 setMonitorProductFilter([row.id, ...subIds]);
                                                                             }}
@@ -11439,13 +11589,6 @@ export default function AdminPage() {
                                                                         >
                                                                             共 {row.subCount} 个子产品
                                                                         </button>
-                                                                    </div>
-                                                                )}
-                                                                {row.parentId != null && (
-                                                                    <div className="mt-1">
-                                                                        <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[11px] leading-none text-gray-500">
-                                                                            子产品
-                                                                        </span>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -11458,10 +11601,23 @@ export default function AdminPage() {
                                                     </td>
                                                     {/* 计量上报 */}
                                                     <MonitorProgressCell node={row.nodes.meter} onClick={() => setMonitorDetailProduct(row)} />
-                                                    {/* 聚合出账 */}
-                                                    <MonitorProgressCell node={row.nodes.aggregate} onClick={() => setMonitorDetailProduct(row)} />
+                                                    {/* 聚合出账（聚合、出账两个环节，样式同结算列） */}
+                                                    <SettleStageCell name="聚合" na={false} node={row.nodes.dataAggregate} divider onClick={() => setMonitorDetailProduct(row)} />
+                                                    <SettleStageCell name="出账" na={false} node={row.nodes.productBill} onClick={() => setMonitorDetailProduct(row)} />
                                                     {/* 结算（抵扣、扣费两个环节） */}
                                                     <MonitorSettleCell hasPackage={row.hasPackage} offset={row.nodes.offset} charge={row.nodes.charge} onClick={() => setMonitorDetailProduct(row)} />
+                                                    {/* 账单聚合（天账单、月账单两个环节；小时账单不展示） */}
+                                                    {monitorBillType !== "hour" && (
+                                                        <>
+                                                            <SettleStageCell name="天账单" na={false} node={row.nodes.dayBillAgg} divider onClick={() => setMonitorDetailProduct(row)} />
+                                                            {monitorBillType === "month" && (
+                                                                <SettleStageCell name="月账单" na={false} node={row.nodes.monthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    {/* 成本（成本聚合、成本生产两个环节，样式与结算列一致） */}
+                                                    <SettleStageCell name="成本聚合" na={false} node={row.nodes.costAgg} divider onClick={() => setMonitorDetailProduct(row)} />
+                                                    <SettleStageCell name="成本生产" na={false} node={row.nodes.costProd} onClick={() => setMonitorDetailProduct(row)} />
                                                     {/* 账单核验 */}
                                                     <MonitorVerifyCell
                                                         subs={row.nodes.verify?.verifySubs ?? []}
@@ -11473,7 +11629,7 @@ export default function AdminPage() {
                                             ))}
                                             {filteredMonitorRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={2 + monitorNodeDefs.length + 1} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={2 + monitorNodeDefs.length + 3} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -11560,6 +11716,44 @@ export default function AdminPage() {
                                                                                         </div>
                                                                                     </>
                                                                                 )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    // 成本节点：内含成本聚合、成本生产两个环节
+                                                    if (n.key === "cost") {
+                                                        return (
+                                                            <div key={n.key} className="rounded-lg border border-gray-200 p-4">
+                                                                <div className="mb-3 flex items-center gap-2">
+                                                                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[12px] font-medium text-gray-600">{idx + 1}</span>
+                                                                    <span className="text-sm font-medium text-gray-900">{n.name}</span>
+                                                                </div>
+                                                                <div className="space-y-4 pl-4">
+                                                                    {monitorCostStages.map((stage) => {
+                                                                        const st = stage.key === "costAgg" ? monitorDetailProduct.nodes.costAgg : monitorDetailProduct.nodes.costProd;
+                                                                        const c = monitorStatusColor(st?.status);
+                                                                        return (
+                                                                            <div key={stage.key}>
+                                                                                <div className="mb-1.5 flex items-center justify-between">
+                                                                                    <span className="inline-flex items-center gap-2 text-[13px] font-medium text-gray-700">
+                                                                                        {stage.name}
+                                                                                    </span>
+                                                                                    <span className={`inline-flex items-center gap-1 text-[12px] leading-none ${c.text}`}>
+                                                                                        <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                                                                                        {st?.status === "fail" && st.failReason ? `异常（${st.failReason}）` : c.label}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                                                                    <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${st?.progress ?? 0}%` }} />
+                                                                                </div>
+                                                                                <div className="mt-1 flex items-center justify-between text-[12px] text-gray-400">
+                                                                                    <span>{st?.progress ?? 0}%</span>
+                                                                                    {st?.status === "done" && st.doneTime && <span>{st.doneTime}</span>}
+                                                                                </div>
                                                                             </div>
                                                                         );
                                                                     })}
