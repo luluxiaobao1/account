@@ -8,10 +8,10 @@ import {
 } from "@/lib/packages-api";
 
 // 智汇云产品数据
-// portal：上架Portal，值为 Portal 名称（即企业名称，对应「平台配置-企业配置」中已开启独立Portal的企业：360集团 / 外部/公共(360.cn)）
-//         或 '__all__'（所有portal，一个产品）
-// linkedProductId：关联的另一个Portal下的同一产品ID。当前所有产品均为「内部Portal产品 ⇄ 外部/公共Portal产品」一一关联，
-//                  内部产品标识统一以 _in 结尾，外部产品沿用原始标识
+// portal：上架Portal，值为 Portal 名称（即企业名称，对应「平台配置-企业配置」中已开启独立Portal的企业：360集团 / 公共Portal）
+//         或 '__all__'（所有portal）
+// linkedProductId：关联的另一个Portal下的同一产品ID。当前所有产品均为「内部Portal产品 ⇄ 公共Portal产品」一一关联，
+//                  内部产品标识统一以 _in 结尾，公共产品沿用原始标识
 const zhihuiProductsData = [
     {
         id: 1,
@@ -94,7 +94,7 @@ const zhihuiProductsData = [
         status: "online",
         onlineTime: "2026-03-25 11:05:20",
         icon: "database",
-        portal: "外部/公共(360.cn)",
+        portal: "公共Portal",
         linkedProductId: 1 as number | null,
     },
     {
@@ -106,7 +106,7 @@ const zhihuiProductsData = [
         status: "online",
         onlineTime: "2026-03-20 09:18:04",
         icon: "storage",
-        portal: "外部/公共(360.cn)",
+        portal: "公共Portal",
         linkedProductId: 2 as number | null,
     },
     {
@@ -118,7 +118,7 @@ const zhihuiProductsData = [
         status: "online",
         onlineTime: "2026-03-18 14:25:37",
         icon: "db",
-        portal: "外部/公共(360.cn)",
+        portal: "公共Portal",
         linkedProductId: 3 as number | null,
     },
     {
@@ -130,7 +130,7 @@ const zhihuiProductsData = [
         status: "offline",
         onlineTime: "2026-03-10 16:48:12",
         icon: "container",
-        portal: "外部/公共(360.cn)",
+        portal: "公共Portal",
         linkedProductId: 4 as number | null,
     },
     {
@@ -142,7 +142,7 @@ const zhihuiProductsData = [
         status: "offline",
         onlineTime: "2026-03-08 10:32:11",
         icon: "compute",
-        portal: "外部/公共(360.cn)",
+        portal: "公共Portal",
         linkedProductId: 5 as number | null,
     },
     {
@@ -154,7 +154,7 @@ const zhihuiProductsData = [
         status: "online",
         onlineTime: "2026-03-05 08:15:49",
         icon: "queue",
-        portal: "外部/公共(360.cn)",
+        portal: "公共Portal",
         linkedProductId: 6 as number | null,
     },
     {
@@ -243,14 +243,13 @@ interface ProductAnalysisRow {
     settlementUnit: string;         // 归属结算单元(ops)
     productName: string;            // 产品名称
     totalRevenue: number;           // 总收入(元)
-    innerRevenue: number;           // 公司内收入(元)
-    innerNonMidRevenue: number;     // 公司内非中台收入(元)
-    midNonZyunRevenue: number;      // 中台内非智汇云收入(元)
+    innerRevenue: number;           // 企业内收入(元)
+    innerNonZyunRevenue: number;    // 企业内非智汇云收入(元)
     zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
     unitRevenue: number;            // 本结算单元收入(元)
-    outerRevenue: number;           // 公司外收入(元) = 集团内外部事业部 + 外部(360.cn)
-    outerGroupRevenue: number;      // 公司外收入 - 集团内外部事业部(元)：内部portal下标记为「外部」的客户收入
-    outerPortalRevenue: number;     // 公司外收入 - 外部(360.cn)(元)：非内部portal（外部portal）的收入
+    outerRevenue: number;           // 企业外收入(元) = 集团内外部事业部 + 外部(360.cn)
+    outerGroupRevenue: number;      // 企业外收入 - 集团内外部事业部(元)：内部portal下标记为「外部」的客户收入
+    outerPortalRevenue: number;     // 企业外收入 - 外部(360.cn)(元)：非内部portal（外部portal）的收入
     hasOuterPortal: boolean;        // 该产品是否关联了外部portal（内外部portal产品合并展示）
     outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
     innerTotalRevenue: number;      // 内结算总收入(元)
@@ -266,8 +265,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 1, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部-弹性计算",
         productName: "云服务器 ECS_裸金属CPU(计量)(cloud_server)",
-        totalRevenue: 42139500, innerRevenue: 38257000, innerNonMidRevenue: 12768600,
-        midNonZyunRevenue: 114800, zyunNonUnitRevenue: 12430583.01, unitRevenue: 12943000,
+        totalRevenue: 42139500, innerRevenue: 38257000, innerNonZyunRevenue: 12883400,
+        zyunNonUnitRevenue: 12430583.01, unitRevenue: 12943000,
         outerRevenue: 3882500, outerGroupRevenue: 2482500, outerPortalRevenue: 1400000, hasOuterPortal: true,
         outerInnerPriceRevenue: 2968000, innerTotalRevenue: 41225000,
         productCost: 34417000, innerProfit: 6808000, outerProfit: 914500,
@@ -276,8 +275,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 2, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-基础架构部-中间件",
         productName: "托管集群服务 MCS_容器服务(cluster)",
-        totalRevenue: 25950500, innerRevenue: 25721900, innerNonMidRevenue: 60100,
-        midNonZyunRevenue: 0, zyunNonUnitRevenue: 25661800, unitRevenue: 0,
+        totalRevenue: 25950500, innerRevenue: 25721900, innerNonZyunRevenue: 60100,
+        zyunNonUnitRevenue: 25661800, unitRevenue: 0,
         outerRevenue: 228600, outerGroupRevenue: 148600, outerPortalRevenue: 80000, hasOuterPortal: true,
         outerInnerPriceRevenue: 165700, innerTotalRevenue: 25887500,
         productCost: 26003000, innerProfit: -115500, outerProfit: 62900,
@@ -286,8 +285,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 3, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-云平台部-裸金属",
         productName: "云服务器 ECS_裸金属GPU(计量)(cloud_server)",
-        totalRevenue: 14374000, innerRevenue: 14374000, innerNonMidRevenue: 530900,
-        midNonZyunRevenue: 150500, zyunNonUnitRevenue: 10400, unitRevenue: 13682200,
+        totalRevenue: 14374000, innerRevenue: 14374000, innerNonZyunRevenue: 681400,
+        zyunNonUnitRevenue: 10400, unitRevenue: 13682200,
         outerRevenue: 0, outerGroupRevenue: 0, outerPortalRevenue: 0, hasOuterPortal: false,
         outerInnerPriceRevenue: 0, innerTotalRevenue: 14374000,
         productCost: 14399600, innerProfit: -25600, outerProfit: 0,
@@ -296,8 +295,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 4, period: "202608", productLine: "弹性计算", settlementUnit: "智汇云-基础架构部-Serverless",
         productName: "托管集群服务 MCS_A机器(cluster)",
-        totalRevenue: 13662800, innerRevenue: 13545000, innerNonMidRevenue: 11921900,
-        midNonZyunRevenue: 1623300, zyunNonUnitRevenue: 6977500, unitRevenue: 0,
+        totalRevenue: 13662800, innerRevenue: 13545000, innerNonZyunRevenue: 13545200,
+        zyunNonUnitRevenue: 6977500, unitRevenue: 0,
         outerRevenue: 117800, outerGroupRevenue: 77800, outerPortalRevenue: 40000, hasOuterPortal: true,
         outerInnerPriceRevenue: 110200, innerTotalRevenue: 13655200,
         productCost: 13648100, innerProfit: 70823.90, outerProfit: 75783.25,
@@ -306,8 +305,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 5, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-系统部-存储",
         productName: "对象存储 OSS_标准存储(计量)(oss_storage)",
-        totalRevenue: 9834600, innerRevenue: 8912300, innerNonMidRevenue: 3421000,
-        midNonZyunRevenue: 88900, zyunNonUnitRevenue: 2903400, unitRevenue: 2499000,
+        totalRevenue: 9834600, innerRevenue: 8912300, innerNonZyunRevenue: 3509900,
+        zyunNonUnitRevenue: 2903400, unitRevenue: 2499000,
         outerRevenue: 922300, outerGroupRevenue: 602300, outerPortalRevenue: 320000, hasOuterPortal: true,
         outerInnerPriceRevenue: 704500, innerTotalRevenue: 9616800,
         productCost: 7845200, innerProfit: 1771600, outerProfit: 217800,
@@ -316,8 +315,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 6, period: "202608", productLine: "存储服务", settlementUnit: "智汇云-系统部-存储",
         productName: "块存储 EBS_高效云盘(计量)(ebs_disk)",
-        totalRevenue: 7218900, innerRevenue: 7010400, innerNonMidRevenue: 2145700,
-        midNonZyunRevenue: 62300, zyunNonUnitRevenue: 2312800, unitRevenue: 2489600,
+        totalRevenue: 7218900, innerRevenue: 7010400, innerNonZyunRevenue: 2208000,
+        zyunNonUnitRevenue: 2312800, unitRevenue: 2489600,
         outerRevenue: 208500, outerGroupRevenue: 148500, outerPortalRevenue: 60000, hasOuterPortal: true,
         outerInnerPriceRevenue: 158900, innerTotalRevenue: 7169300,
         productCost: 6534100, innerProfit: 635200, outerProfit: 49600,
@@ -326,8 +325,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 7, period: "202608", productLine: "网络服务", settlementUnit: "智汇云-应用平台部-视频云",
         productName: "内容分发 CDN_流量(计量)(cdn_flow)",
-        totalRevenue: 6543200, innerRevenue: 4321800, innerNonMidRevenue: 1876500,
-        midNonZyunRevenue: 145200, zyunNonUnitRevenue: 1200100, unitRevenue: 1100000,
+        totalRevenue: 6543200, innerRevenue: 4321800, innerNonZyunRevenue: 2021700,
+        zyunNonUnitRevenue: 1200100, unitRevenue: 1100000,
         outerRevenue: 2221400, outerGroupRevenue: 1321400, outerPortalRevenue: 900000, hasOuterPortal: true,
         outerInnerPriceRevenue: 1698300, innerTotalRevenue: 6020100,
         productCost: 5612700, innerProfit: 407400, outerProfit: 523100,
@@ -336,8 +335,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 8, period: "202608", productLine: "数据库", settlementUnit: "智汇云-系统部-大数据",
         productName: "云数据库 PGSQL_基础版(计量)(pgsql)",
-        totalRevenue: 5127400, innerRevenue: 5127400, innerNonMidRevenue: 1023400,
-        midNonZyunRevenue: 34500, zyunNonUnitRevenue: 2145600, unitRevenue: 1923900,
+        totalRevenue: 5127400, innerRevenue: 5127400, innerNonZyunRevenue: 1057900,
+        zyunNonUnitRevenue: 2145600, unitRevenue: 1923900,
         outerRevenue: 0, outerGroupRevenue: 0, outerPortalRevenue: 0, hasOuterPortal: false,
         outerInnerPriceRevenue: 0, innerTotalRevenue: 5127400,
         productCost: 4890200, innerProfit: 237200, outerProfit: 0,
@@ -346,8 +345,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 9, period: "202608", productLine: "大模型", settlementUnit: "智汇云-智能部",
         productName: "大模型服务 LLM_推理(计量)(llm_infer)",
-        totalRevenue: 4312800, innerRevenue: 3105600, innerNonMidRevenue: 1502300,
-        midNonZyunRevenue: 210400, zyunNonUnitRevenue: 892900, unitRevenue: 500000,
+        totalRevenue: 4312800, innerRevenue: 3105600, innerNonZyunRevenue: 1712700,
+        zyunNonUnitRevenue: 892900, unitRevenue: 500000,
         outerRevenue: 1207200, outerGroupRevenue: 757200, outerPortalRevenue: 450000, hasOuterPortal: true,
         outerInnerPriceRevenue: 923100, innerTotalRevenue: 4028700,
         productCost: 3921500, innerProfit: 107200, outerProfit: 284100,
@@ -356,8 +355,8 @@ const productAnalysisData: ProductAnalysisRow[] = [
     {
         id: 10, period: "202608", productLine: "安全服务", settlementUnit: "智汇云-应用平台部",
         productName: "Web应用防火墙 WAF_标准版(waf)",
-        totalRevenue: 2876500, innerRevenue: 2210300, innerNonMidRevenue: 780200,
-        midNonZyunRevenue: 45600, zyunNonUnitRevenue: 684500, unitRevenue: 700000,
+        totalRevenue: 2876500, innerRevenue: 2210300, innerNonZyunRevenue: 825800,
+        zyunNonUnitRevenue: 684500, unitRevenue: 700000,
         outerRevenue: 666200, outerGroupRevenue: 416200, outerPortalRevenue: 250000, hasOuterPortal: true,
         outerInnerPriceRevenue: 509600, innerTotalRevenue: 2719900,
         productCost: 2401300, innerProfit: 318600, outerProfit: 156600,
@@ -1478,7 +1477,7 @@ const getProductRevenueDetailRows = (row: ProductAnalysisRow) => {
 };
 
 // 产品分析 - 通用结算单元账单金额明细：每个结算单元都可能关联外部portal账号，
-// 因此列表结构与「公司内收入」明细一致：来源一结算单元账单 + 来源二外部portal账号。
+// 因此列表结构与「企业内收入」明细一致：来源一结算单元账单 + 来源二外部portal账号。
 const outerGroupSettlementUnits = ["智汇云-云平台部", "智汇云-智能工程部", "智汇云-系统部"];
 const getUnitBillDetailRows = (row: ProductAnalysisRow, amount: number, title?: string) => {
     const rows: { period: string; unitName: string; source: string; amount: number; type: "internal" | "portal" }[] = [];
@@ -1532,7 +1531,7 @@ const outerPortalTenants = [
     { name: "李四" },
 ];
 
-// 产品分析 - 「公司外收入」明细：拆分「收入来源」与「来源名称」两列，
+// 产品分析 - 「企业外收入」明细：拆分「收入来源」与「来源名称」两列，
 // 合并「集团下外部结算单元账单」与「外部Portal名称(域名)」两类收入来源
 const getOuterRevenueDetailRows = (row: ProductAnalysisRow) => {
     const rows: { period: string; unitName: string; source: string; sourceName: string; amount: number }[] = [];
@@ -1572,7 +1571,7 @@ const getOuterRevenueDetailRows = (row: ProductAnalysisRow) => {
     return rows;
 };
 
-// 产品分析 - 「公司内收入」明细：来源一为集团内部结算单元账单，来源二为内部结算单元账号在外部portal上
+// 产品分析 - 「企业内收入」明细：来源一为集团内部结算单元账单，来源二为内部结算单元账号在外部portal上
 // 使用产生的费用（该费用关联回内部结算单元，计入内部收入）。仅当 hasOuterPortal 为 true 时才存在来源二。
 const innerRevenuePortalUsageAccounts = ["智汇云-云平台部@外部portal账号A", "智汇云-智能工程部@外部portal账号B"];
 
@@ -1612,7 +1611,7 @@ const getInnerRevenuePortalUsageRows = (row: ProductAnalysisRow) => {
     });
 };
 
-// 产品分析 - 「公司内收入」明细：将「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」
+// 产品分析 - 「企业内收入」明细：将「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」
 // 合并为一张表展示。收入来源列取值：内部结算单元名称（来源一）或 外部Portal账号（来源二）
 const getInnerRevenueMergedRows = (row: ProductAnalysisRow) => {
     const rows: { period: string; unitName: string; source: string; amount: number; type: "internal" | "portal" }[] = [];
@@ -1626,17 +1625,43 @@ const getInnerRevenueMergedRows = (row: ProductAnalysisRow) => {
 };
 
 // ===== 经营分析 - 整体分析 =====
+
+// 结算单元 → 经营属性映射（与「内部折扣设置」initialUnitDiscounts 保持一致，此处提前定义供整体分析模块使用）
+const UNIT_DEPT_ATTR_MAP: Record<string, 'inner' | 'biz' | ''> = {
+    '智汇云-应用平台部': 'inner',
+    '智汇云-商业化产品部': 'inner',
+    '智汇云-云平台部': 'inner',
+    '智汇云-系统运维部': 'inner',
+    '智汇云-基础架构部': 'biz',
+    '智汇云-安全技术部': 'biz',
+    '智汇云-系统部': 'biz',
+    '智汇云-数据平台部': 'biz',
+    '360人工智能研究院': 'biz',
+    '智汇云-交付服务部': 'biz',
+    '智汇云-智能工程部': 'biz',
+    '智汇云-研发效能部': '',
+};
+
+// 根据结算单元名称匹配经营属性（前缀匹配 UNIT_DEPT_ATTR_MAP 的 key）
+const getUnitDeptAttr = (settlementUnit: string): 'inner' | 'biz' | '' => {
+    const keys = Object.keys(UNIT_DEPT_ATTR_MAP).sort((a, b) => b.length - a.length); // 长 key 优先匹配
+    const matched = keys.find((k) => settlementUnit.startsWith(k));
+    if (matched) return UNIT_DEPT_ATTR_MAP[matched];
+    return ''; // 未配置的结算单元默认为空，后续按业务需要处理
+};
+
 // 整体分析行：字段与「产品分析」保持一致，数值为平台侧全部产品的合计值
 interface OverallAnalysisRow {
     id: number;
     period: string;                 // 账期（按月/天/小时）
     totalRevenue: number;           // 总收入(元)
-    innerRevenue: number;           // 公司内收入(元)
-    innerNonMidRevenue: number;     // 公司内非中台收入(元)
-    midNonZyunRevenue: number;      // 中台内非智汇云收入(元)
+    innerRevenue: number;           // 企业内收入(元)
+    innerSettleRevenue: number;     // 内结收入(元)：标记为内部企业的账号中，经营属性为「内结」的结算单元账单金额
+    innerBizRevenue: number;        // 经营收入(元)：标记为内部企业的账号中，经营属性为「经营」的结算单元账单金额
+    innerNonZyunRevenue: number;    // 企业内非智汇云收入(元)
     zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
     unitRevenue: number;            // 本结算单元收入(元)
-    outerRevenue: number;           // 公司外收入(元)
+    outerRevenue: number;           // 企业外收入(元)
     outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
     innerTotalRevenue: number;      // 内结算总收入(元)
     productCost: number;            // 产品成本(元)
@@ -1651,23 +1676,28 @@ interface OverallAnalysisRow {
 
 // 整体分析 - 产品分析各列求和（作为单账期的基准值）
 const overallBaseTotals = productAnalysisData.reduce(
-    (acc, row) => ({
-        totalRevenue: acc.totalRevenue + row.totalRevenue,
-        innerRevenue: acc.innerRevenue + row.innerRevenue,
-        innerNonMidRevenue: acc.innerNonMidRevenue + row.innerNonMidRevenue,
-        midNonZyunRevenue: acc.midNonZyunRevenue + row.midNonZyunRevenue,
-        zyunNonUnitRevenue: acc.zyunNonUnitRevenue + row.zyunNonUnitRevenue,
-        unitRevenue: acc.unitRevenue + row.unitRevenue,
-        outerRevenue: acc.outerRevenue + row.outerRevenue,
-        outerInnerPriceRevenue: acc.outerInnerPriceRevenue + row.outerInnerPriceRevenue,
-        innerTotalRevenue: acc.innerTotalRevenue + row.innerTotalRevenue,
-        productCost: acc.productCost + row.productCost,
-        innerProfit: acc.innerProfit + row.innerProfit,
-        outerProfit: acc.outerProfit + row.outerProfit,
-        balance: acc.balance + row.balance,
-    }),
+    (acc, row) => {
+        const attr = getUnitDeptAttr(row.settlementUnit);
+        return {
+            totalRevenue: acc.totalRevenue + row.totalRevenue,
+            innerRevenue: acc.innerRevenue + row.innerRevenue,
+            innerSettleRevenue: acc.innerSettleRevenue + (attr === 'inner' ? row.innerRevenue : 0),
+            innerBizRevenue: acc.innerBizRevenue + (attr === 'biz' ? row.innerRevenue : 0),
+            innerNonZyunRevenue: acc.innerNonZyunRevenue + row.innerNonZyunRevenue,
+            zyunNonUnitRevenue: acc.zyunNonUnitRevenue + row.zyunNonUnitRevenue,
+            unitRevenue: acc.unitRevenue + row.unitRevenue,
+            outerRevenue: acc.outerRevenue + row.outerRevenue,
+            outerInnerPriceRevenue: acc.outerInnerPriceRevenue + row.outerInnerPriceRevenue,
+            innerTotalRevenue: acc.innerTotalRevenue + row.innerTotalRevenue,
+            productCost: acc.productCost + row.productCost,
+            innerProfit: acc.innerProfit + row.innerProfit,
+            outerProfit: acc.outerProfit + row.outerProfit,
+            balance: acc.balance + row.balance,
+        };
+    },
     {
-        totalRevenue: 0, innerRevenue: 0, innerNonMidRevenue: 0, midNonZyunRevenue: 0,
+        totalRevenue: 0, innerRevenue: 0, innerSettleRevenue: 0, innerBizRevenue: 0,
+        innerNonZyunRevenue: 0,
         zyunNonUnitRevenue: 0, unitRevenue: 0, outerRevenue: 0, outerInnerPriceRevenue: 0,
         innerTotalRevenue: 0, productCost: 0, innerProfit: 0, outerProfit: 0, balance: 0,
     }
@@ -1687,6 +1717,8 @@ const buildOverallRow = (id: number, period: string, scale: number, seed: number
 
     const totalRevenue = b.totalRevenue * revFactor;
     const innerRevenue = b.innerRevenue * revFactor;
+    const innerSettleRevenue = b.innerSettleRevenue * revFactor;
+    const innerBizRevenue = b.innerBizRevenue * revFactor;
     const outerRevenue = b.outerRevenue * revFactor;
     const outerInnerPriceRevenue = b.outerInnerPriceRevenue * revFactor;
     const innerTotalRevenue = b.innerTotalRevenue * revFactor;
@@ -1701,8 +1733,9 @@ const buildOverallRow = (id: number, period: string, scale: number, seed: number
         period,
         totalRevenue,
         innerRevenue,
-        innerNonMidRevenue: b.innerNonMidRevenue * revFactor,
-        midNonZyunRevenue: b.midNonZyunRevenue * revFactor,
+        innerSettleRevenue,
+        innerBizRevenue,
+        innerNonZyunRevenue: b.innerNonZyunRevenue * revFactor,
         zyunNonUnitRevenue: b.zyunNonUnitRevenue * revFactor,
         unitRevenue: b.unitRevenue * revFactor,
         outerRevenue,
@@ -2093,11 +2126,14 @@ interface OverallProductRow {
     id: number;
     productName: string;            // 产品名称（已去除英文标识后缀）
     settlementUnit: string;         // 归属结算单元
+    deptAttr: string;               // 结算单元的经营属性：inner / biz / 空
     totalRevenue: number;           // 总收入(元)
     productCost: number;            // 总成本(元)
     innerCost: number;              // 内部成本(元) = 总成本 - 外部成本
     outerCost: number;              // 外部成本(元) = 外部收入
     innerRevenue: number;           // 集团内收入(元)
+    innerSettleRevenue: number;     // 内结收入(元)：经营属性为内结的结算单元对应的内部收入
+    innerBizRevenue: number;        // 经营收入(元)：经营属性为经营的结算单元对应的内部收入
     outerRevenue: number;           // 集团外收入(元)
     innerMargin: number;            // 内结毛利率(%)
     outerMargin: number;            // 外部毛利率(%)
@@ -2114,6 +2150,7 @@ const buildOverallProductRows = (period: string, billType: string): OverallProdu
     const raw = productAnalysisData.map((p, idx) => {
         const rw = 0.82 + overallWave(seed + (idx + 1) * 13) * 0.38;   // 收入波动
         const cw = 0.85 + overallWave(seed + (idx + 1) * 29) * 0.34;   // 成本波动
+        const attr = getUnitDeptAttr(p.settlementUnit);
         return {
             source: p,
             revenue: p.totalRevenue * rw,
@@ -2122,6 +2159,7 @@ const buildOverallProductRows = (period: string, billType: string): OverallProdu
             outerInnerPrice: p.outerInnerPriceRevenue * rw,
             innerTotal: p.innerTotalRevenue * rw,
             cost: p.productCost * cw,
+            deptAttr: attr,
         };
     });
 
@@ -2148,15 +2186,21 @@ const buildOverallProductRows = (period: string, billType: string): OverallProdu
         const innerCost = productCost - outerCost;  // 内部成本(元) = 总成本 - 外部成本
         const innerProfit = innerTotalRevenue - productCost;
         const outerProfit = outerRevenue - outerInnerPrice;
+        // 按结算单元经营属性拆分内结/经营收入
+        const innerSettleRevenue = r.deptAttr === 'inner' ? innerRevenue : 0;
+        const innerBizRevenue = r.deptAttr === 'biz' ? innerRevenue : 0;
         return {
             id: idx + 1,
             productName: cleanProductName(r.source.productName),
             settlementUnit: r.source.settlementUnit,
+            deptAttr: r.deptAttr,
             totalRevenue,
             productCost,
             innerCost,
             outerCost,
             innerRevenue,
+            innerSettleRevenue,
+            innerBizRevenue,
             outerRevenue,
             innerMargin: innerTotalRevenue === 0 ? 0 : (innerProfit / innerTotalRevenue) * 100,
             outerMargin: outerRevenue === 0 ? 0 : (outerProfit / outerRevenue) * 100,
@@ -2180,8 +2224,11 @@ const buildOverallProductStats = (rows: OverallProductRow[]) => ({
 // 整体分析 - 结算单元维度聚合行
 interface OverallUnitRow {
     unit: string;                   // 结算单元名称
+    deptAttr: string;               // 经营属性：inner / biz / 空
     totalRevenue: number;           // 收入(元)
     innerRevenue: number;           // 内部收入(元)
+    innerSettleRevenue: number;     // 内结收入(元)
+    innerBizRevenue: number;        // 经营收入(元)
     outerRevenue: number;           // 外部收入(元)
     productCost: number;            // 成本(元)
     innerCost: number;              // 内部成本(元)
@@ -2198,8 +2245,11 @@ const buildOverallUnitRows = (rows: OverallProductRow[]): OverallUnitRow[] => {
             map.get(r.settlementUnit) ??
             {
                 unit: r.settlementUnit,
+                deptAttr: r.deptAttr,
                 totalRevenue: 0,
                 innerRevenue: 0,
+                innerSettleRevenue: 0,
+                innerBizRevenue: 0,
                 outerRevenue: 0,
                 productCost: 0,
                 innerCost: 0,
@@ -2209,6 +2259,8 @@ const buildOverallUnitRows = (rows: OverallProductRow[]): OverallUnitRow[] => {
             };
         cur.totalRevenue += r.totalRevenue;
         cur.innerRevenue += r.innerRevenue;
+        cur.innerSettleRevenue += r.innerSettleRevenue;
+        cur.innerBizRevenue += r.innerBizRevenue;
         cur.outerRevenue += r.outerRevenue;
         cur.productCost += r.productCost;
         cur.innerCost += r.innerCost;
@@ -2255,13 +2307,15 @@ interface OverallDeptRow {
     name: string;
     path: string;
     members: OverallDeptMember[];
-    totalRevenue: number;  // 部门收入(元) = 各结算单元收入求和
-    innerRevenue: number;  // 部门内部收入(元)
-    outerRevenue: number;  // 部门外部收入(元)
-    productCost: number;   // 部门成本(元) = 各结算单元成本求和
-    innerCost: number;     // 部门内部成本(元)
-    outerCost: number;     // 部门外部成本(元)
-    profit: number;        // 收支差额(元)
+    totalRevenue: number;       // 部门收入(元) = 各结算单元收入求和
+    innerRevenue: number;       // 部门内部收入(元)
+    innerSettleRevenue: number; // 部门内结收入(元)
+    innerBizRevenue: number;    // 部门经营收入(元)
+    outerRevenue: number;       // 部门外部收入(元)
+    productCost: number;        // 部门成本(元) = 各结算单元成本求和
+    innerCost: number;          // 部门内部成本(元)
+    outerCost: number;          // 部门外部成本(元)
+    profit: number;             // 收支差额(元)
 }
 
 // 注：部门聚合在组件内基于 overallUnitRows 计算（与「结算单元概览」同源、随账期联动）
@@ -4113,17 +4167,17 @@ const collectTenantSettlementUnits = (tenantId: string): TenantSettlementUnit[] 
     return result;
 };
 
-// 内部折扣设置 - 经营属性（固定两类，不可增删改）
-// 内结：内部结算部门，经营分析时是内部收入
-// 经营：单独定价的部门，经营分析时归类到外部收入
+// 内部折扣设置 - 结算属性（固定两类，不可增删改）
+// 内部结算：内部结算部门，经营分析时是内部收入
+// 外部结算：单独定价的部门，经营分析时归类到外部收入
 type UnitDeptAttr = 'biz' | 'inner';
 const unitDeptAttrOptions: { value: UnitDeptAttr; label: string }[] = [
-    { value: 'biz', label: '经营' },
-    { value: 'inner', label: '内结' },
+    { value: 'biz', label: '外部结算' },
+    { value: 'inner', label: '内部结算' },
 ];
-const unitDeptAttrTip = '内结：内部结算部门，经营分析时是内部收入。经营：单独定价的部门，经营分析时归类到外部收入。';
+const unitDeptAttrTip = '内部结算：内部结算部门，经营分析时是内部收入。外部结算：单独定价的部门，经营分析时归类到外部收入。';
 
-// 内部折扣设置 - 折扣类型（内结固定为「内部折扣」，经营可选 SVIP/VIP）
+// 内部折扣设置 - 折扣类型（内部结算固定为「内部折扣」，外部结算可选 SVIP/VIP）
 // 结算单元命中哪种折扣类型，计费时即取产品定义中对应的折扣值
 type UnitDiscountType = 'internal' | 'svip' | 'vip';
 const unitDiscountTypeOptions: { value: UnitDiscountType; label: string }[] = [
@@ -4150,21 +4204,21 @@ const standaloneProductOptions: Record<StandaloneBillingType, { id: number; name
 // 单独设置折扣的优先级说明（列头提示 + 弹窗温馨提示）
 const standaloneDiscountTip = '折扣优先级：单独设置的产品或资源包折扣 > 客户计费标签 > 租户折扣 > 官方折扣。';
 
-// 内部折扣设置 - 结算单元的经营属性与折扣配置
-// 规则：内结固定为内部折扣，不可再编辑；经营可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
+// 内部折扣设置 - 结算单元的结算属性与折扣配置
+// 规则：内部结算固定为内部折扣，不可再编辑；外部结算可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
 type UnitDiscountConfig = {
-    deptAttr: UnitDeptAttr | '';            // 经营属性，空字符串代表未配置
-    discount: UnitDiscountType | null;      // 折扣类型（内结固定 internal；经营可选 svip/vip）
-    standaloneProducts: StandaloneProduct[]; // 单独设置计费的产品/资源包，仅「经营」可设置
+    deptAttr: UnitDeptAttr | '';            // 结算属性，空字符串代表未配置
+    discount: UnitDiscountType | null;      // 折扣类型（内部结算固定 internal；外部结算可选 svip/vip）
+    standaloneProducts: StandaloneProduct[]; // 单独设置计费的产品/资源包，仅「外部结算」可设置
     updateTime: string;
 };
 const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
-    // 内结：内部结算，折扣固定为「内部折扣」，不再编辑
+    // 内部结算：折扣固定为「内部折扣」，不再编辑
     '智汇云-应用平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
     '智汇云-商业化产品部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
     '智汇云-云平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-20 09:12:45' },
     '智汇云-系统运维部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-20 09:14:02' },
-    // 经营部门：可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
+    // 外部结算部门：可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
     '智汇云-基础架构部': { deptAttr: 'biz', discount: 'svip', standaloneProducts: [], updateTime: '2025-11-28 15:02:31' },
     '智汇云-安全技术部': {
         deptAttr: 'biz', discount: 'svip', updateTime: '2025-11-28 15:03:47',
@@ -4189,7 +4243,7 @@ const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
             { id: 10001, name: '旗舰版（test0320）', type: 'package', discount: 9 },
         ],
     },
-    // 未配置示例：新同步的结算单元，部门属性与折扣均待配置
+    // 未配置示例：新同步的结算单元，结算属性与折扣均待配置
     '智汇云-研发效能部': { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' },
 };
 
@@ -4197,7 +4251,7 @@ const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
 const formatDiscount = (v: UnitDiscountType | null) =>
     v == null ? '--' : (unitDiscountTypeOptions.find(o => o.value === v)?.label || '--');
 
-// 内部折扣设置 - 经营属性配色
+// 内部折扣设置 - 结算属性配色
 const unitDeptAttrColors: Record<UnitDeptAttr, string> = {
     biz: 'bg-blue-50 text-blue-600',
     inner: 'bg-amber-50 text-amber-600',
@@ -4802,6 +4856,156 @@ const OverallHorizontalBarCard = ({
     );
 };
 
+// 整体分析 - 总收入层级结构卡片（根据多企业开关展示不同层级：企业内收入 → 内结/外结；多企业开启时额外展示企业外收入）
+const OverallHierarchicalRevenueCard = ({
+    label,
+    tip,
+    totalValue,
+    mom,
+    valueClass = "text-blue-600",
+    allowMultiEnterprise,
+    innerRevenue,
+    innerSettleRevenue,
+    innerBizRevenue,
+    outerRevenue,
+    innerMom,
+    innerSettleMom,
+    innerBizMom,
+    outerMom,
+}: {
+    label: string;
+    tip: string;
+    totalValue: number;
+    mom: { pct: number; up: boolean; valid?: boolean };
+    valueClass?: string;
+    allowMultiEnterprise: boolean;
+    innerRevenue: number;
+    innerSettleRevenue: number;
+    innerBizRevenue: number;
+    outerRevenue: number;
+    innerMom: { pct: number; up: boolean; valid?: boolean };
+    innerSettleMom: { pct: number; up: boolean; valid?: boolean };
+    innerBizMom: { pct: number; up: boolean; valid?: boolean };
+    outerMom: { pct: number; up: boolean; valid?: boolean };
+}) => {
+    const maxVal = Math.max(innerRevenue, innerSettleRevenue, innerBizRevenue, ...(allowMultiEnterprise ? [outerRevenue] : []), 1);
+    return (
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
+            {/* 卡片头部：总收入 + 环比 */}
+            <div className="mb-2 flex items-center gap-1 text-sm text-gray-500">
+                <span>{label}</span>
+                <OverallTipIcon tip={tip} />
+            </div>
+            <div className="flex items-end justify-between gap-2">
+                <span className={`group/amt relative inline-block text-2xl font-bold ${valueClass}`}>
+                    {formatWan(totalValue)}
+                    <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                        {formatExactAmount(totalValue)}
+                        <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                    </span>
+                </span>
+                <OverallMomBadge mom={mom} />
+            </div>
+
+            {/* 企业内收入分组（始终展示） */}
+            <div className="mt-4 rounded-md border border-blue-100 bg-blue-50/40 p-3">
+                <div className="mb-2 flex items-center justify-between text-[12px] text-gray-600">
+                    <span className="inline-flex items-center gap-1 font-medium">
+                        <span>企业内收入(元)</span>
+                        <OverallTipIcon tip="标记为内部企业的账号的账单金额总和" />
+                    </span>
+                    <span className="flex items-center gap-2">
+                        <span className="group/amt relative inline-block font-medium text-gray-800">
+                            {formatWan(innerRevenue)}
+                            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                {formatExactAmount(innerRevenue)}
+                                <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                            </span>
+                        </span>
+                        <OverallMomBadge mom={innerMom} />
+                    </span>
+                </div>
+                <div className="mb-3 h-2.5 w-full overflow-hidden rounded-full bg-blue-100">
+                    <div className="h-2.5 rounded-full bg-blue-500" style={{ width: `${(innerRevenue / maxVal) * 100}%` }} />
+                </div>
+
+                {/* 企业内收入子项：内结收入 + 外结收入 */}
+                <div className="space-y-2 border-l-2 border-blue-200 pl-3">
+                    {/* 内结收入 */}
+                    <div>
+                        <div className="mb-1 flex items-center justify-between text-[12px] text-gray-500">
+                            <span className="inline-flex items-center gap-1">
+                                <span>内结收入(元)</span>
+                                <OverallTipIcon tip="经营属性为「内结」的结算单元账单金额和" />
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <span className="group/amt relative inline-block text-gray-700">
+                                    {formatWan(innerSettleRevenue)}
+                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                        {formatExactAmount(innerSettleRevenue)}
+                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                    </span>
+                                </span>
+                                <OverallMomBadge mom={innerSettleMom} />
+                            </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div className="h-2 rounded-full" style={{ width: `${(innerSettleRevenue / maxVal) * 100}%`, backgroundColor: "#1d4ed8" }} />
+                        </div>
+                    </div>
+                    {/* 外结收入 */}
+                    <div>
+                        <div className="mb-1 flex items-center justify-between text-[12px] text-gray-500">
+                            <span className="inline-flex items-center gap-1">
+                                <span>外结收入(元)</span>
+                                <OverallTipIcon tip="标记为内部企业的账号中，经营属性为「经营」的结算单元账单金额和" />
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <span className="group/amt relative inline-block text-gray-700">
+                                    {formatWan(innerBizRevenue)}
+                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                        {formatExactAmount(innerBizRevenue)}
+                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                    </span>
+                                </span>
+                                <OverallMomBadge mom={innerBizMom} />
+                            </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div className="h-2 rounded-full" style={{ width: `${(innerBizRevenue / maxVal) * 100}%`, backgroundColor: "#3b82f6" }} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 企业外收入（仅多企业开启时展示） */}
+            {allowMultiEnterprise && (
+                <div className="mt-3">
+                    <div className="mb-1 flex items-center justify-between text-[12px] text-gray-600">
+                        <span className="inline-flex items-center gap-1 font-medium">
+                            <span>企业外收入(元)</span>
+                            <OverallTipIcon tip="非标记为内部企业的账号的账单金额" />
+                        </span>
+                        <span className="flex items-center gap-2">
+                            <span className="group/amt relative inline-block font-medium text-gray-800">
+                                {formatWan(outerRevenue)}
+                                <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                                    {formatExactAmount(outerRevenue)}
+                                    <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                                </span>
+                            </span>
+                            <OverallMomBadge mom={outerMom} />
+                        </span>
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                        <div className="h-2.5 rounded-full bg-blue-300" style={{ width: `${(outerRevenue / maxVal) * 100}%` }} />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // 整体分析 - 毛利率合并卡片（整体内结毛利率 + 整体外部毛利率）
 const OverallMarginCard = ({
     innerLabel,
@@ -4862,13 +5066,32 @@ const OverallMarginCard = ({
 );
 
 export default function AdminPage() {
+    const [presalesMenuExpanded, setPresalesMenuExpanded] = useState(true); // 售前管理菜单展开状态
     const [adminMenuExpanded, setAdminMenuExpanded] = useState(false); // 管理后台菜单展开状态
     const [productMenuExpanded, setProductMenuExpanded] = useState(true); // 产品管理菜单展开状态
     const [zhiqiBillMenuExpanded, setZhiqiBillMenuExpanded] = useState(true); // 账单管理菜单展开状态
     const [bizAnalysisMenuExpanded, setBizAnalysisMenuExpanded] = useState(true); // 经营分析菜单展开状态
     const [platformConfigMenuExpanded, setPlatformConfigMenuExpanded] = useState(false); // 密钥管理菜单展开状态
     const [platformSettingMenuExpanded, setPlatformSettingMenuExpanded] = useState(true); // 平台配置菜单展开状态
-    const [currentMenu, setCurrentMenu] = useState("product-define"); // 当前选中的菜单: product-define, product-addon, product-billing, product-package, zhiqi-bill-customer, zhiqi-bill-product, zhiqi-bill-intranet, analysis-overall, analysis-product, analysis-department, analysis-monitor, platform-key, platform-api, platform-portal, platform-region, platform-billing, zhiqi-admin
+    const [currentMenu, setCurrentMenu] = useState("product-define"); // 当前选中的菜单
+    const [customerTab, setCustomerTab] = useState<'outer' | 'inner'>('inner'); // 客户管理Tab：企业内/企业外
+    const [customerBillTab, setCustomerBillTab] = useState<'outer' | 'inner'>('outer'); // 客户账单Tab：企业内/企业外
+    const [allowMultiEnterprise, setAllowMultiEnterprise] = useState(true); // 是否允许多企业
+    const [allowCustomerRegister, setAllowCustomerRegister] = useState(true); // 是否允许注册：开启后客户侧可自助注册，关闭后只能在后台添加客户
+
+    // 关闭多企业开关时，自动切换到「企业内」Tab
+    useEffect(() => {
+        if (!allowMultiEnterprise && customerTab === 'outer') {
+            setCustomerTab('inner');
+        }
+    }, [allowMultiEnterprise, customerTab]);
+
+    // 关闭多企业开关时，客户账单Tab也自动切换到「企业内」
+    useEffect(() => {
+        if (!allowMultiEnterprise && customerBillTab === 'outer') {
+            setCustomerBillTab('inner');
+        }
+    }, [allowMultiEnterprise, customerBillTab]);
 
     // ===== 经营分析 - 整体分析 =====
     const [overallBillType, setOverallBillType] = useState("month");     // 账单类型：month / day / hour
@@ -4981,6 +5204,8 @@ export default function AdminPage() {
             innerCost: cur.innerCost,
             outerCost: cur.outerCost,
             innerRevenue: cur.innerRevenue,
+            innerSettleRevenue: cur.innerSettleRevenue,
+            innerBizRevenue: cur.innerBizRevenue,
             outerRevenue: cur.outerRevenue,
             innerMargin: cur.innerMargin,
             outerMargin: cur.outerMargin,
@@ -4990,6 +5215,8 @@ export default function AdminPage() {
                 innerCost: mom(cur.innerCost, prev?.innerCost),
                 outerCost: mom(cur.outerCost, prev?.outerCost),
                 innerRevenue: mom(cur.innerRevenue, prev?.innerRevenue),
+                innerSettleRevenue: mom(cur.innerSettleRevenue, prev?.innerSettleRevenue),
+                innerBizRevenue: mom(cur.innerBizRevenue, prev?.innerBizRevenue),
                 outerRevenue: mom(cur.outerRevenue, prev?.outerRevenue),
                 innerMargin: marginMom(cur.innerMargin, prev?.innerMargin),
                 outerMargin: marginMom(cur.outerMargin, prev?.outerMargin),
@@ -5068,10 +5295,12 @@ export default function AdminPage() {
             const path = cfg?.path ?? u.unit;
             const cur =
                 deptMap.get(name) ??
-                { name, path, members: [] as OverallDeptMember[], totalRevenue: 0, innerRevenue: 0, outerRevenue: 0, productCost: 0, innerCost: 0, outerCost: 0, profit: 0 };
+                { name, path, members: [] as OverallDeptMember[], totalRevenue: 0, innerRevenue: 0, innerSettleRevenue: 0, innerBizRevenue: 0, outerRevenue: 0, productCost: 0, innerCost: 0, outerCost: 0, profit: 0 };
             cur.members.push({ unit: u.unit, totalRevenue: u.totalRevenue, productCost: u.productCost });
             cur.totalRevenue += u.totalRevenue;
             cur.innerRevenue += u.innerRevenue;
+            cur.innerSettleRevenue += u.innerSettleRevenue;
+            cur.innerBizRevenue += u.innerBizRevenue;
             cur.outerRevenue += u.outerRevenue;
             cur.productCost += u.productCost;
             cur.innerCost += u.innerCost;
@@ -5096,10 +5325,11 @@ export default function AdminPage() {
     const [analysisPeriod, setAnalysisPeriod] = useState("2026-08");          // 账期（月账单）
     const [analysisDate, setAnalysisDate] = useState("2026-08-20");           // 账期（天/小时账单）
     const [analysisHour, setAnalysisHour] = useState(10);                     // 账期（小时账单，0~23）
-    const [analysisProductLine, setAnalysisProductLine] = useState("");       // 所属产线
+    const [analysisProductLine, setAnalysisProductLine] = useState("");       // 所属产线（保留供 goToProductAnalysis 兼容）
     const [analysisSettlementUnit, setAnalysisSettlementUnit] = useState(""); // 结算单元
-    const [analysisProductTags, setAnalysisProductTags] = useState<string[]>(["云数据库 PGSQL (p..."]); // 产品名称多选标签
-    const [analysisProductPickerOpen, setAnalysisProductPickerOpen] = useState(false); // 产品下拉是否展开
+    const [analysisProductSearch, setAnalysisProductSearch] = useState("");   // 产品名称模糊搜索
+    const [analysisProductTags, setAnalysisProductTags] = useState<string[]>(["云数据库 PGSQL (p..."]); // 保留供 goToProductAnalysis 跳转兼容
+    const [analysisProductPickerOpen, setAnalysisProductPickerOpen] = useState(false); // 保留（未使用）
     const [analysisGoalTipOpen, setAnalysisGoalTipOpen] = useState(false);   // 右上角虚浮球：预期目标说明面板
     const [analysisPage, setAnalysisPage] = useState(1);                     // 当前页
     const [analysisPageSize, setAnalysisPageSize] = useState(10);            // 每页条数
@@ -5107,15 +5337,17 @@ export default function AdminPage() {
     // 产品分析 - 总收入明细抽屉（趋势 / 收入明细 / 成本明细）
     const [revenueDetailRow, setRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
     const [revenueDetailTab, setRevenueDetailTab] = useState<"trend" | "revenue" | "cost">("revenue");
-    // 产品分析 - 「公司内收入」明细抽屉（结算单元账单 / 外部portal使用费用 两部分来源）
+    // 产品分析 - 「企业内收入」明细抽屉（结算单元账单 / 外部portal使用费用 两部分来源）
     const [innerRevenueDetailRow, setInnerRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
     const [innerRevenueDetailTab, setInnerRevenueDetailTab] = useState<"trend" | "revenue">("revenue");
-    // 产品分析 - 「公司外收入」明细抽屉（集团内外部客户 + 外部Portal 合并展示）
+    // 产品分析 - 「企业外收入」明细抽屉（集团内外部客户 + 外部Portal 合并展示）
     const [outerRevenueDetailRow, setOuterRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
     const [outerRevenueDetailTab, setOuterRevenueDetailTab] = useState<"trend" | "revenue">("revenue");
-    // 产品分析 - 结算单元账单金额明细抽屉（公司内非中台收入 / 中台内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
+    // 产品分析 - 结算单元账单金额明细抽屉（企业内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
     const [unitBillDetail, setUnitBillDetail] = useState<{ row: ProductAnalysisRow; title: string; amount: number } | null>(null);
     const [unitBillDetailTab, setUnitBillDetailTab] = useState<"trend" | "revenue">("revenue");
+    // 产品分析 - 说明弹框
+    const [analysisExplainOpen, setAnalysisExplainOpen] = useState(false);
 
     // 产品分析 - 单列趋势数据源（各列抽屉「趋势」Tab 共用）
     const productColumnTrendPoints = useMemo(() => {
@@ -5137,6 +5369,7 @@ export default function AdminPage() {
         const targetName = match ? match.productName : productName;
         const short = targetName.length > 22 ? `${targetName.slice(0, 22)}...` : targetName;
         setAnalysisProductTags([short]);
+        setAnalysisProductSearch(cleanProductName(targetName));
         // 产品分析页账期为「月」格式（YYYY-MM）：兼容 YYYYMM 与 YYYY-MM-DD 两种来源
         const s = period.trim();
         if (/^\d{6}$/.test(s)) setAnalysisPeriod(`${s.slice(0, 4)}-${s.slice(4, 6)}`);
@@ -5146,14 +5379,15 @@ export default function AdminPage() {
         setCurrentMenu("analysis-product");
     };
 
-    // 产品分析 - 按筛选条件过滤
+    // 产品分析 - 按筛选条件过滤（产品名称为模糊匹配，忽略大小写与首尾空格）
     const filteredAnalysisRows = useMemo(() => {
+        const keyword = analysisProductSearch.trim().toLowerCase();
         return productAnalysisData.filter((row) => {
-            if (analysisProductLine && row.productLine !== analysisProductLine) return false;
             if (analysisSettlementUnit && row.settlementUnit !== analysisSettlementUnit) return false;
+            if (keyword && !row.productName.toLowerCase().includes(keyword)) return false;
             return true;
         });
-    }, [analysisProductLine, analysisSettlementUnit]);
+    }, [analysisProductSearch, analysisSettlementUnit]);
 
     // 产品分析 - 当前页数据
     const analysisTotalPages = Math.max(1, Math.ceil(filteredAnalysisRows.length / analysisPageSize));
@@ -5162,17 +5396,18 @@ export default function AdminPage() {
         return filteredAnalysisRows.slice(start, start + analysisPageSize);
     }, [filteredAnalysisRows, analysisPage, analysisPageSize]);
 
-    // 产品分析 - 合计（公司外收入为「集团内外部客户」与「外部Portal」求和）
+    // 产品分析 - 合计（企业外收入为「集团内外部客户」与「外部Portal」求和）
     const analysisTotals = useMemo(() => {
         return filteredAnalysisRows.reduce(
             (acc, row) => ({
                 totalRevenue: acc.totalRevenue + row.totalRevenue,
                 innerRevenue: acc.innerRevenue + row.innerRevenue,
-                innerNonMidRevenue: acc.innerNonMidRevenue + row.innerNonMidRevenue,
-                midNonZyunRevenue: acc.midNonZyunRevenue + row.midNonZyunRevenue,
+                innerNonZyunRevenue: acc.innerNonZyunRevenue + row.innerNonZyunRevenue,
                 zyunNonUnitRevenue: acc.zyunNonUnitRevenue + row.zyunNonUnitRevenue,
                 unitRevenue: acc.unitRevenue + row.unitRevenue,
                 outerRevenue: acc.outerRevenue + row.outerRevenue,
+                outerGroupRevenue: acc.outerGroupRevenue + row.outerGroupRevenue,
+                outerPortalRevenue: acc.outerPortalRevenue + row.outerPortalRevenue,
                 outerInnerPriceRevenue: acc.outerInnerPriceRevenue + row.outerInnerPriceRevenue,
                 innerTotalRevenue: acc.innerTotalRevenue + row.innerTotalRevenue,
                 productCost: acc.productCost + row.productCost,
@@ -5181,8 +5416,9 @@ export default function AdminPage() {
                 balance: acc.balance + row.balance,
             }),
             {
-                totalRevenue: 0, innerRevenue: 0, innerNonMidRevenue: 0, midNonZyunRevenue: 0,
+                totalRevenue: 0, innerRevenue: 0, innerNonZyunRevenue: 0,
                 zyunNonUnitRevenue: 0, unitRevenue: 0, outerRevenue: 0,
+                outerGroupRevenue: 0, outerPortalRevenue: 0,
                 outerInnerPriceRevenue: 0, innerTotalRevenue: 0, productCost: 0,
                 innerProfit: 0, outerProfit: 0, balance: 0,
             }
@@ -5438,9 +5674,9 @@ export default function AdminPage() {
         createTime: string;
         updateTime: string;
     };
-    // 当前仅有两个 Portal：内部Portal「360集团」与外部/公共Portal「外部/公共(360.cn)」（Portal名称即企业名称）
+    // 当前仅有两个 Portal：内部Portal「360集团」与公共Portal「公共Portal」（Portal名称即企业名称）
     const INNER_PORTAL = '360集团';
-    const OUTER_PORTAL = '外部/公共(360.cn)';
+    const OUTER_PORTAL = '公共Portal';
     const [regionZones, setRegionZones] = useState<RegionZone[]>([
         {
             id: 1, region: '北京', cloudServer: '360集团', zoneId: 'bjwdt', zoneName: '北京电信', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01',
@@ -5927,7 +6163,7 @@ export default function AdminPage() {
     // ===== 平台配置 - 计费配置 =====
     // 四个二级Tab：计量单位 / 计费标签 / 客户计费标签 / 计费小产品
     type BillingUnit = { id: number; name: string; symbol: string; remark: string; createTime: string; updateTime: string };
-    // 标签值：标识 + 外部/公共Portal名称(必填) + 内部Portal名称(非必填，默认与外部一致)
+    // 标签值：标识 + 公共Portal名称(必填) + 内部Portal名称(非必填，默认与公共一致)
     type BillingTagValue = { id: number; code: string; outerName: string; innerName: string };
     type BillingTag = {
         id: number;
@@ -5956,7 +6192,7 @@ export default function AdminPage() {
     const [billingTags, setBillingTags] = useState<BillingTag[]>([
         {
             // 「可用区」置顶：由原「内网可用区」更名，标签值同步「地域可用区」列表。
-            // 标签值标识 = 内部Portal的地域标识；外部名称 = 外部/公共Portal可用区名称；内部名称 = 内部Portal可用区名称
+            // 标签值标识 = 内部Portal的地域标识；外部名称 = 公共Portal可用区名称；内部名称 = 内部Portal可用区名称
             id: 9, name: '可用区', status: '使用中', createTime: '2025-11-12 13:09:01', updateTime: '2026-07-08 17:40:25',
             values: [
                 { id: 1, code: 'bjwdt', outerName: '北京1区', innerName: '北京电信' },
@@ -6033,7 +6269,7 @@ export default function AdminPage() {
 
     const [customerBillingTags, setCustomerBillingTags] = useState<CustomerBillingTag[]>([
         { id: 1, name: '大客户专属可用区', enterprise: '360集团', tagName: '可用区', status: '使用中', createTime: '2025-03-12 10:20:31', updateTime: '2025-11-02 16:41:09' },
-        { id: 2, name: '短信定制标签', enterprise: '外部/公共(360.cn)', tagName: '短信计费标签', status: '使用中', createTime: '2025-05-21 14:08:52', updateTime: '2025-05-21 14:08:52' },
+        { id: 2, name: '短信定制标签', enterprise: '公共Portal', tagName: '短信计费标签', status: '使用中', createTime: '2025-05-21 14:08:52', updateTime: '2025-05-21 14:08:52' },
         { id: 3, name: '存储地域定制', enterprise: '360集团', tagName: 'OBS_Polefs_HDFS地域', status: '未使用', createTime: '2025-09-18 11:36:04', updateTime: '2025-09-18 11:36:04' },
         { id: 4, name: 'TAI优先级定制', enterprise: '360集团', tagName: 'TAI优先级别', status: '使用中', createTime: '2026-01-15 09:52:17', updateTime: '2026-03-04 18:20:45' },
     ]);
@@ -6306,7 +6542,7 @@ export default function AdminPage() {
             innerName: v.innerName.trim() || v.outerName.trim(),
         }));
         if (cleaned.some(v => !v.outerName || !v.code)) {
-            setBillingTagValueError('标签值标识与外部/公共Portal名称均不能为空');
+            setBillingTagValueError('标签值标识与公共Portal名称均不能为空');
             return;
         }
         const codes = cleaned.map(v => v.code);
@@ -6334,20 +6570,23 @@ export default function AdminPage() {
         name: string;          // 企业名称（开启独立Portal时同时作为Portal名称）
         internal: boolean;     // 是否是内部企业
         enablePortal: boolean; // 是否开启独立Portal
+        enableInternalPortal: boolean; // 是否开启内部独立Portal（仅内部企业可用）
         tenantId: string;      // 所属租户ID（内部企业必填）
         tenantName: string;    // 所属租户名称
         bizDeptId: string;     // 经营部门ID（仅内部企业可选）
         bizDeptName: string;   // 经营部门名称
+        enableOuterSettlement: boolean; // 是否开启外部结算（仅内部企业、且已选经营部门时可配置）
         portalDomain: string;  // Portal域名（开启独立Portal时必填）
+        internalPortalDomain: string; // 内部独立Portal域名（开启内部独立Portal时必填）
         remark: string;        // 备注说明
-        builtin?: boolean;     // 系统内置企业（外部/公共(360.cn)），不可删除
+        builtin?: boolean;     // 系统内置企业（公共Portal），不可删除
         createTime: string;
         updateTime: string;
     };
-    // 当前仅保留两个 Portal：内部Portal「360集团」与外部/公共Portal「外部/公共(360.cn)」（均取企业名称）
+    // 当前仅保留两个 Portal：内部Portal「360集团」与公共Portal「公共Portal」（均取企业名称）
     const [enterpriseConfigs, setEnterpriseConfigs] = useState<EnterpriseConfig[]>([
-        { id: 1, name: '360集团', internal: true, enablePortal: true, tenantId: '100000001', tenantName: '360集团', bizDeptId: 'd-1', bizDeptName: '技术中台', portalDomain: 'zyun.qihoo.net', remark: '360集团内部员工访问入口', createTime: '2024-08-10 13:09:22', updateTime: '2025-12-18 16:40:12' },
-        { id: 2, name: '外部/公共(360.cn)', internal: false, enablePortal: true, tenantId: '', tenantName: '', bizDeptId: '', bizDeptName: '', portalDomain: 'zyun.360.cn', remark: '系统内置企业，承载全部外部/公共客户，不可删除', builtin: true, createTime: '2024-08-10 13:07:01', updateTime: '2025-11-02 10:21:36' },
+        { id: 1, name: '360集团', internal: true, enablePortal: true, enableInternalPortal: true, tenantId: '100000001', tenantName: '360集团', bizDeptId: 'd-1', bizDeptName: '技术中台', enableOuterSettlement: true, portalDomain: 'zyun.qihoo.net', internalPortalDomain: 'internal.zyun.qihoo.net', remark: '360集团内部员工访问入口', createTime: '2024-08-10 13:09:22', updateTime: '2025-12-18 16:40:12' },
+        { id: 2, name: '公共Portal', internal: false, enablePortal: true, enableInternalPortal: false, tenantId: '', tenantName: '', bizDeptId: '', bizDeptName: '', enableOuterSettlement: false, portalDomain: 'zyun.360.cn', internalPortalDomain: '', remark: '系统内置企业，承载全部公共Portal客户，不可删除', builtin: true, createTime: '2024-08-10 13:07:01', updateTime: '2025-11-02 10:21:36' },
     ]);
     const [enterpriseSearch, setEnterpriseSearch] = useState('');
     // 可用区「所属Portal」下拉选项：来源于企业配置中已开启独立Portal的企业（Portal名称即企业名称）
@@ -6356,13 +6595,13 @@ export default function AdminPage() {
     ));
 
     // ===== 产品定义 - 「上架Portal」选项 =====
-    // 选项来源：企业配置中已开启独立Portal的企业（Portal名称即企业名称，展示为 企业名称(域名后缀)），外加固定项「所有portal(一个产品)」
+    // 选项来源：企业配置中已开启独立Portal的企业（Portal名称即企业名称，展示为 企业名称(域名后缀)），外加固定项「所有portal」
     const ALL_PORTAL_VALUE = '__all__';
     type ProductPortalOption = {
         value: string;        // 选项值：portal名称 或 ALL_PORTAL_VALUE
         label: string;        // 展示文案：portal名称(域名后缀)
         internal: boolean;    // 是否为内部企业的portal
-        builtin: boolean;     // 是否为系统内置的外部/公共(360.cn)企业portal
+        builtin: boolean;     // 是否为系统内置的公共Portal企业portal
         tenantId: string;     // 该portal所属企业关联的租户ID
         tenantName: string;   // 该portal所属企业关联的租户名称
     };
@@ -6378,11 +6617,11 @@ export default function AdminPage() {
         }));
     // 内部portal（内部企业的portal），其关联租户用于展示范围联动
     const internalPortalOption = productPortalOptions.find(o => o.internal);
-    // 外部/公共portal（系统内置的 360.cn 企业portal）
+    // 公共Portal（系统内置的企业portal）
     const publicPortalOption = productPortalOptions.find(o => o.builtin);
     // 两个 Portal 的展示名称：用于表单/提示文案中直接展示实际 Portal 名称
     const internalPortalName = internalPortalOption ? internalPortalOption.value : '内部Portal';
-    const publicPortalName = publicPortalOption ? publicPortalOption.value : '外部/公共Portal';
+    const publicPortalName = publicPortalOption ? publicPortalOption.value : '公共Portal';
     const getProductPortalOption = (value: string) => productPortalOptions.find(o => o.value === value);
 
     // ===== 产品定义 - 卡片上的「上架Portal」展示与关联关系 =====
@@ -6392,7 +6631,7 @@ export default function AdminPage() {
         const opt = getProductPortalOption(portal);
         return opt ? opt.value : portal;
     };
-    // Portal 徽标配色：所有portal-蓝、内部portal-紫、外部/公共及其他portal-青
+    // Portal 徽标配色：所有portal-蓝、内部portal-紫、公共Portal及其他portal-青
     const getProductPortalBadgeClass = (portal: string) => {
         if (portal === ALL_PORTAL_VALUE) return 'bg-blue-100 text-blue-700 border border-blue-300';
         return getProductPortalOption(portal)?.internal
@@ -6429,19 +6668,19 @@ export default function AdminPage() {
     }[] = [
         {
             key: 'internal', title: '内部Portal', subTitle: internalPortalName,
-            desc: '仅内部企业可见，每个产品关联一个外部Portal产品，账单与经营分析按同一产品合并统计',
+            desc: '仅面向内部企业可见的产品',
             dotClass: 'bg-purple-500', titleClass: 'text-purple-700',
             countClass: 'bg-purple-100 text-purple-700 border border-purple-300',
         },
         {
-            key: 'external', title: '外部Portal', subTitle: publicPortalName,
-            desc: '面向外部/公共客户上架的产品',
+            key: 'external', title: '公共Portal', subTitle: publicPortalName,
+            desc: '仅面向公共Portal客户上架的产品',
             dotClass: 'bg-teal-500', titleClass: 'text-teal-700',
             countClass: 'bg-teal-100 text-teal-700 border border-teal-300',
         },
         {
             key: 'all', title: '所有Portal', subTitle: '一个产品，全部Portal通用',
-            desc: '同一个产品在全部Portal下上架，无需内外关联',
+            desc: '同一个产品在全部Portal下上架，所有企业可见',
             dotClass: 'bg-blue-500', titleClass: 'text-blue-700',
             countClass: 'bg-blue-100 text-blue-700 border border-blue-300',
         },
@@ -6458,10 +6697,11 @@ export default function AdminPage() {
     const [enterpriseDialogOpen, setEnterpriseDialogOpen] = useState(false);
     const [editingEnterpriseId, setEditingEnterpriseId] = useState<number | null>(null);
     const emptyEnterpriseForm = {
-        name: '', internal: false, enablePortal: false,
+        name: '', internal: false, enablePortal: false, enableInternalPortal: false,
         tenantId: '', tenantName: '',
         bizDeptId: '', bizDeptName: '',
-        portalDomain: '', remark: '',
+        enableOuterSettlement: false,
+        portalDomain: '', internalPortalDomain: '', remark: '',
     };
     const [enterpriseForm, setEnterpriseForm] = useState(emptyEnterpriseForm);
     const [enterpriseFormError, setEnterpriseFormError] = useState('');
@@ -6473,6 +6713,134 @@ export default function AdminPage() {
     const [expandedOrgNodes, setExpandedOrgNodes] = useState<string[]>([]);
     // 删除确认
     const [enterpriseDeleteTarget, setEnterpriseDeleteTarget] = useState<EnterpriseConfig | null>(null);
+
+    // ===== 企业配置1 专用状态（行式配置项，逐项即时保存） =====
+    // 企业配置1 - 域名输入草稿（公共Portal域名 / 内部Portal域名共用，点击保存后提交）
+    const [portalDomainDrafts, setPortalDomainDrafts] = useState<Record<number, string>>({});
+    // 企业配置1 - 公共Portal域名编辑态：已保存域名后默认只读展示，点击「编辑」才进入可编辑状态
+    const [publicDomainEditing, setPublicDomainEditing] = useState(false);
+    // 企业配置1 - 租户搜索选器
+    const [config1TenantKeyword, setConfig1TenantKeyword] = useState('');
+    const [config1TenantDropdownOpen, setConfig1TenantDropdownOpen] = useState(false);
+    const config1TenantSuggestions = enterpriseTenantOptions.filter(t => {
+        const kw = config1TenantKeyword.trim().toLowerCase();
+        if (!kw) return true;
+        return t.id.includes(kw) || t.name.toLowerCase().includes(kw);
+    });
+    // 企业配置1 - 经营部门选器
+    const [config1BizDeptPickerOpen, setConfig1BizDeptPickerOpen] = useState(false);
+    const [config1ExpandedOrgNodes, setConfig1ExpandedOrgNodes] = useState<string[]>([]);
+
+    // ===== 企业配置1 - 内部企业配置：整模块统一编辑 =====
+    // 编辑态下所有字段（租户 / 经营部门 / 内部Portal开关 / 内部Portal域名）写入草稿，点击「保存」一起提交
+    type InternalConfigDraft = {
+        tenantId: string;
+        tenantName: string;
+        bizDeptId: string;
+        bizDeptName: string;
+        enableOuterSettlement: boolean;
+        enableInternalPortal: boolean;
+        internalPortalDomain: string;
+    };
+    const [internalConfigDraft, setInternalConfigDraft] = useState<InternalConfigDraft | null>(null);
+    const [internalConfigError, setInternalConfigError] = useState('');
+
+    // 进入编辑态：以当前实际值初始化草稿
+    const handleStartEditInternalConfig = (ent: EnterpriseConfig) => {
+        setInternalConfigDraft({
+            tenantId: ent.tenantId,
+            tenantName: ent.tenantName,
+            bizDeptId: ent.bizDeptId,
+            bizDeptName: ent.bizDeptName,
+            enableOuterSettlement: ent.enableOuterSettlement,
+            enableInternalPortal: ent.enableInternalPortal,
+            internalPortalDomain: ent.internalPortalDomain,
+        });
+        setInternalConfigError('');
+        setConfig1TenantKeyword('');
+        setConfig1TenantDropdownOpen(false);
+        setConfig1BizDeptPickerOpen(false);
+    };
+
+    // 退出编辑态：丢弃草稿
+    const handleCancelEditInternalConfig = () => {
+        setInternalConfigDraft(null);
+        setInternalConfigError('');
+        setConfig1TenantKeyword('');
+        setConfig1TenantDropdownOpen(false);
+        setConfig1BizDeptPickerOpen(false);
+    };
+
+    // 草稿字段更新
+    const handleUpdateInternalConfigDraft = (patch: Partial<InternalConfigDraft>) => {
+        setInternalConfigDraft(prev => (prev ? { ...prev, ...patch } : prev));
+        setInternalConfigError('');
+    };
+
+    // 保存整个内部企业配置（统一校验后一次性提交）
+    const handleSaveInternalConfig = (enterpriseId: number) => {
+        if (!internalConfigDraft) return;
+        if (!internalConfigDraft.tenantId) {
+            setInternalConfigError('请选择租户');
+            return;
+        }
+        if (internalConfigDraft.enableInternalPortal && !internalConfigDraft.internalPortalDomain.trim()) {
+            setInternalConfigError('开启内部Portal后必须配置一个域名');
+            return;
+        }
+        const now = formatNow();
+        setEnterpriseConfigs(prev => prev.map(e => e.id === enterpriseId
+            ? {
+                ...e,
+                tenantId: internalConfigDraft.tenantId,
+                tenantName: internalConfigDraft.tenantName,
+                bizDeptId: internalConfigDraft.bizDeptId,
+                bizDeptName: internalConfigDraft.bizDeptName,
+                // 未选择经营部门时，外部结算开关不生效，统一置为关闭
+                enableOuterSettlement: internalConfigDraft.bizDeptId ? internalConfigDraft.enableOuterSettlement : false,
+                enableInternalPortal: internalConfigDraft.enableInternalPortal,
+                internalPortalDomain: internalConfigDraft.enableInternalPortal ? internalConfigDraft.internalPortalDomain.trim() : '',
+                updateTime: now,
+            }
+            : e));
+        handleCancelEditInternalConfig();
+    };
+
+    // 企业配置1 - 卡片上直接切换内部独立Portal开关（即时保存）
+    const handleToggleInternalPortal = (enterpriseId: number, enabled: boolean) => {
+        const now = formatNow();
+        setEnterpriseConfigs(prev => prev.map(e => e.id === enterpriseId
+            ? { ...e, enableInternalPortal: enabled, internalPortalDomain: enabled ? e.internalPortalDomain : '', updateTime: now }
+            : e));
+        // 关闭时清除草稿
+        if (!enabled) {
+            setPortalDomainDrafts(prev => { const { [enterpriseId]: _, ...rest } = prev; return rest; });
+        }
+    };
+
+    // 企业配置1 - 卡片上更新内部独立Portal域名草稿（本地编辑）
+    const handleUpdatePortalDomainDraft = (enterpriseId: number, domain: string) => {
+        setPortalDomainDrafts(prev => ({ ...prev, [enterpriseId]: domain }));
+    };
+
+    // 企业配置1 - 卡片上保存内部独立Portal域名（域名不得为空）
+    const handleSaveInternalPortalDomain = (enterpriseId: number) => {
+        const domain = portalDomainDrafts[enterpriseId] ?? '';
+        if (!domain.trim()) return;
+        const now = formatNow();
+        setEnterpriseConfigs(prev => prev.map(e => {
+            if (e.id !== enterpriseId) return e;
+            return { ...e, internalPortalDomain: domain.trim(), updateTime: now };
+        }));
+        // 保存后清除草稿，之后 input 显示实际值
+        setPortalDomainDrafts(prev => { const { [enterpriseId]: _, ...rest } = prev; return rest; });
+    };
+
+    // 企业配置1 - 行内配置项即时保存（租户 / 经营部门 / 公共Portal域名等）
+    const handlePatchEnterpriseConfig = (enterpriseId: number, patch: Partial<EnterpriseConfig>) => {
+        const now = formatNow();
+        setEnterpriseConfigs(prev => prev.map(e => e.id === enterpriseId ? { ...e, ...patch, updateTime: now } : e));
+    };
 
     // ===== 部门分析 - 基于经营部门的数据聚合 =====
     // 经营部门候选：企业配置中已选择了经营部门（组织架构部门）的企业
@@ -6552,11 +6920,14 @@ export default function AdminPage() {
             name: enterprise.name,
             internal: enterprise.internal,
             enablePortal: enterprise.enablePortal,
+            enableInternalPortal: enterprise.enableInternalPortal,
             tenantId: enterprise.tenantId,
             tenantName: enterprise.tenantName,
             bizDeptId: enterprise.bizDeptId,
             bizDeptName: enterprise.bizDeptName,
+            enableOuterSettlement: enterprise.enableOuterSettlement,
             portalDomain: enterprise.portalDomain,
+            internalPortalDomain: enterprise.internalPortalDomain,
             remark: enterprise.remark,
         });
         setEnterpriseFormError('');
@@ -6566,11 +6937,12 @@ export default function AdminPage() {
         setEnterpriseDialogOpen(true);
     };
 
-    // 切换「是否是内部企业」：非内部企业无需配置所属租户与经营部门，切换为「否」时清空两者
+    // 切换「是否是内部企业」：非内部企业无需配置所属租户、经营部门、内部独立Portal，切换为「否」时清空两者
     const handleChangeEnterpriseInternal = (internal: boolean) => {
         setEnterpriseForm(prev => ({
             ...prev,
             internal,
+            enableInternalPortal: internal ? prev.enableInternalPortal : false,
             tenantId: internal ? prev.tenantId : '',
             tenantName: internal ? prev.tenantName : '',
             bizDeptId: internal ? prev.bizDeptId : '',
@@ -6622,7 +6994,7 @@ export default function AdminPage() {
         setEnterpriseDialogOpen(false);
     };
 
-    // 删除企业：内部企业、系统内置企业（外部/公共(360.cn)）不可删除
+    // 删除企业：内部企业、系统内置企业（公共Portal）不可删除
     const handleDeleteEnterprise = () => {
         if (!enterpriseDeleteTarget || enterpriseDeleteTarget.internal || enterpriseDeleteTarget.builtin) return;
         setEnterpriseConfigs(prev => prev.filter(e => e.id !== enterpriseDeleteTarget.id));
@@ -6700,30 +7072,30 @@ export default function AdminPage() {
             });
     }, [tenantUnitRows, unitDiscounts, discountSearch, discountAttrFilter, discountDeptFilter]);
 
-    // 部门属性配色
+    // 结算属性配色
     const getDeptAttrColor = (attr: UnitDeptAttr | '') =>
         attr === '' ? 'bg-gray-100 text-gray-500' : unitDeptAttrColors[attr];
 
-    // 经营属性展示
+    // 结算属性展示
     const getDeptAttrLabel = (attr: UnitDeptAttr | '') =>
         attr === '' ? '--' : (unitDeptAttrOptions.find(o => o.value === attr)?.label || '--');
 
-    // 判断结算单元的经营属性是否为「内结」（不可再编辑折扣）
+    // 判断结算单元是否为「内部结算」（不可再编辑折扣）
     const isInnerDept = (unit: string) => unitDiscounts[unit]?.deptAttr === 'inner';
 
-    // 批量设置折扣仅对「经营」生效：「内结」固定内部折扣、未配置经营属性的单元均不可批量改折扣
+    // 批量设置折扣仅对「外部结算」生效：「内部结算」固定内部折扣、未配置结算属性的单元均不可批量改折扣
     const selectedBizUnits = useMemo(
         () => selectedDiscountUnits.filter(u => unitDiscounts[u]?.deptAttr === 'biz'),
         [selectedDiscountUnits, unitDiscounts]
     );
 
     // 打开折扣配置弹窗（units 为 1 个即单条编辑，多个即批量编辑）
-    // mode：'both' 部门属性+折扣一起编辑；'attr' 仅部门属性；'discount' 仅折扣
+    // mode：'both' 结算属性+折扣一起编辑；'attr' 仅结算属性；'discount' 仅折扣
     const [discountDialogMode, setDiscountDialogMode] = useState<'both' | 'attr' | 'discount'>('both');
     const handleOpenDiscountDialog = (units: string[], mode: 'both' | 'attr' | 'discount' = 'both') => {
         if (units.length === 0) return;
         const base = units.length === 1 ? unitDiscounts[units[0]] : undefined;
-        // 仅设置折扣模式：只针对经营部门，预设 deptAttr 为经营部门，直接展示 SVIP/VIP 折扣选择，无需先选部门属性
+        // 仅设置折扣模式：只针对外部结算部门，预设 deptAttr 为外部结算，直接展示 SVIP/VIP 折扣选择，无需先选结算属性
         const presetDeptAttr = mode === 'discount' ? 'biz' : (base?.deptAttr || '');
         setDiscountForm({
             deptAttr: presetDeptAttr,
@@ -6734,11 +7106,11 @@ export default function AdminPage() {
         setDiscountDialogUnits(units);
     };
 
-    // 保存折扣配置（部门属性 / 折扣，支持批量）
+    // 保存折扣配置（结算属性 / 折扣，支持批量）
     const handleSaveDiscount = () => {
         if (!discountDialogUnits) return;
         
-        // 仅设置折扣模式：只更新经营部门的折扣类型
+        // 仅设置折扣模式：只更新外部结算部门的折扣类型
         if (discountDialogMode === 'discount') {
             const discount = discountForm.discount;
             if (!discount) {
@@ -6750,7 +7122,7 @@ export default function AdminPage() {
                 const next = { ...prev };
                 discountDialogUnits.forEach(u => {
                     const old = prev[u] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' };
-                    // 仅更新经营部门的折扣，保持部门属性和单独设置的产品不变
+                    // 仅更新外部结算部门的折扣，保持结算属性和单独设置的产品不变
                     if (old.deptAttr === 'biz') {
                         next[u] = { ...old, discount: discount as UnitDiscountType, updateTime: now };
                     }
@@ -6763,13 +7135,13 @@ export default function AdminPage() {
             return;
         }
         
-        // 设置部门属性或完整设置模式
+        // 设置结算属性或完整设置模式
         const deptAttr = discountForm.deptAttr;
         if (!deptAttr) {
-            setDiscountFormError('请选择经营属性');
+            setDiscountFormError('请选择结算属性');
             return;
         }
-        // 经营部门需选择折扣类型（SVIP/VIP）
+        // 外部结算部门需选择折扣类型（SVIP/VIP）
         const discount = discountForm.discount;
         if (deptAttr === 'biz' && !discount) {
             setDiscountFormError('请选择计费标签');
@@ -6780,7 +7152,7 @@ export default function AdminPage() {
             const next = { ...prev };
             discountDialogUnits.forEach(u => {
                 const old = prev[u] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' };
-                // 「内结」固定为内部折扣，且清空单独设置的产品；「经营」按所选折扣类型取值，单独设置的产品保持不变
+                // 「内部结算」固定为内部折扣，且清空单独设置的产品；「外部结算」按所选折扣类型取值，单独设置的产品保持不变
                 if (deptAttr === 'inner') {
                     next[u] = { deptAttr, discount: 'internal', standaloneProducts: [], updateTime: now };
                 } else {
@@ -6871,6 +7243,11 @@ export default function AdminPage() {
     const [productStatusFilter, setProductStatusFilter] = useState("all");
     const [productPortalFilter, setProductPortalFilter] = useState("all"); // 上架Portal筛选：all / Portal名称 / __all__(所有portal)
     const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false);
+    const [currentProductSettingsId, setCurrentProductSettingsId] = useState<number | null>(null); // 当前页内产品设置-选中的产品ID
+    // 产品设置页左侧子菜单：产品信息 / 工单管理 / 内网工单管理 / 文档管理 / 产品介绍页 / 菜单配置
+    const [productSettingsNav, setProductSettingsNav] = useState<'info' | 'workorder' | 'intranet' | 'doc' | 'intro' | 'menu'>('info');
+    // 产品设置页-产品信息：false=只读详情态，true=编辑表单态
+    const [productSettingsEditing, setProductSettingsEditing] = useState(false);
     
     // 产品计费项相关状态
     const [billingItemSearch, setBillingItemSearch] = useState("");
@@ -6913,13 +7290,10 @@ export default function AdminPage() {
         tags: [] as string[], // 产品标签
         tagInput: '',       // 标签输入
         icon: null as File | null, // 产品图标
-        url: '',            // URL地址（单Portal时通用；所有portal时作为相对地址/默认地址）
-        urlDistinct: false, // 所有portal时：是否区分内/外部Portal的URL地址（默认否）
-        urlInner: '',       // 所有portal时（urlDistinct=true）：内部Portal URL
-        urlOuter: '',       // 所有portal时（urlDistinct=true）：外部Portal URL
+        url: '',            // URL地址
         introUrl: '',       // 介绍页地址
         portal: '',          // 上架Portal：portal名称（对应企业配置）或 ALL_PORTAL_VALUE（所有portal，一个产品）
-        linkedPublicProduct: '', // 关联的外部/公共portal产品标识符，仅选中「内部portal」时必填
+        linkedPublicProduct: '', // 关联的公共Portal产品标识符，仅选中「内部portal」时必填
         visibility: 'all',  // 展示范围：all / specified / excluded
         visibilityTenants: [] as { id: string; name: string }[], // 展示范围关联的租户列表
         auditType: 'default',     // 产品审核开通：default / manual / auto / none
@@ -6927,15 +7301,9 @@ export default function AdminPage() {
         billingEnabled: true,     // 计费开通
         docEnabled: false,        // 产品文档
         docType: 'apicloud',      // 产品文档类型
-        docDistinct: false,       // 所有portal时：是否区分内/外部Portal的产品文档地址（默认否）
-        docUrl: '',               // 产品文档链接（单Portal或通用/相对地址）
-        docUrlInner: '',          // 产品文档链接-内部Portal（docDistinct=true）
-        docUrlOuter: '',          // 产品文档链接-外部Portal（docDistinct=true）
+        docUrl: '',               // 产品文档链接
         apiDocEnabled: false,     // API文档
-        apiDocDistinct: false,    // 所有portal时：是否区分内/外部Portal的API文档地址（默认否）
-        apiDocUrl: '',            // API文档链接（单Portal或通用/相对地址）
-        apiDocUrlInner: '',       // API文档链接-内部Portal（apiDocDistinct=true）
-        apiDocUrlOuter: '',       // API文档链接-外部Portal（apiDocDistinct=true）
+        apiDocUrl: '',            // API文档链接
         showInConsole: true,      // 是否在控制台展示
         showInWebsite: true,      // 是否在官网展示
         resourceGroupAuth: false, // 资源组授权
@@ -6955,7 +7323,7 @@ export default function AdminPage() {
     const [descTipOpen, setDescTipOpen] = useState(false);
 
     // 打开创建产品抽屉
-    // 上架Portal 默认选中「外部/公共Portal」，展示范围随之联动为「指定企业不可见」+ 内部portal关联租户
+    // 上架Portal 默认选中「公共Portal」，展示范围随之联动为「指定企业不可见」+ 内部portal关联租户
     const openCreateProduct = () => {
         setProductDrawerMode('create');
         const defaultPortal = publicPortalOption ? publicPortalOption.value : ALL_PORTAL_VALUE;
@@ -6967,14 +7335,8 @@ export default function AdminPage() {
         setCreateProductDialogOpen(true);
     };
 
-    // 打开编辑产品抽屉（用已有产品数据回填）
-    const openEditProduct = (product: typeof zhihuiProductsData[0]) => {
-        setProductDrawerMode('edit');
-        // 关联产品：内部Portal产品回填其关联的外部/公共Portal产品标识
-        const linkedProduct = product.linkedProductId
-            ? zhihuiProductsData.find(p => p.id === product.linkedProductId)
-            : undefined;
-        const isInner = !!getProductPortalOption(product.portal)?.internal;
+    // 用已有产品数据回填创建/编辑表单
+    const fillProductForm = (product: typeof zhihuiProductsData[0]) => {
         setNewProduct({
             ...emptyProductForm,
             name: product.name,
@@ -6990,22 +7352,19 @@ export default function AdminPage() {
                 : (product.visibility === '指定企业不可见' ? 'excluded' : 'specified'),
             auditType: 'auto',
             portal: product.portal,
-            linkedPublicProduct: isInner && linkedProduct ? linkedProduct.identifier : '',
+            linkedPublicProduct: '',
             visibilityTenants: product.visibility === '所有企业可见' ? [] : internalPortalTenant,
-            urlDistinct: product.portal === ALL_PORTAL_VALUE,
-            urlInner: product.portal === ALL_PORTAL_VALUE ? `https://zyun.qihoo.net/${product.identifier}` : '',
-            urlOuter: product.portal === ALL_PORTAL_VALUE ? `https://zyun.360.cn/${product.identifier}` : '',
             docEnabled: true,
-            docDistinct: product.portal === ALL_PORTAL_VALUE,
             docUrl: product.portal === ALL_PORTAL_VALUE ? '' : 'https://apicloud.360.cn/user/apistore',
-            docUrlInner: product.portal === ALL_PORTAL_VALUE ? `https://doc.qihoo.net/${product.identifier}` : '',
-            docUrlOuter: product.portal === ALL_PORTAL_VALUE ? 'https://apicloud.360.cn/user/apistore' : '',
             apiDocEnabled: true,
-            apiDocDistinct: product.portal === ALL_PORTAL_VALUE,
             apiDocUrl: product.portal === ALL_PORTAL_VALUE ? '' : `https://apicloud.360.cn/api/${product.identifier}`,
-            apiDocUrlInner: product.portal === ALL_PORTAL_VALUE ? `https://doc.qihoo.net/api/${product.identifier}` : '',
-            apiDocUrlOuter: product.portal === ALL_PORTAL_VALUE ? `https://apicloud.360.cn/api/${product.identifier}` : '',
         });
+    };
+
+    // 打开编辑产品抽屉（用已有产品数据回填）
+    const openEditProduct = (product: typeof zhihuiProductsData[0]) => {
+        setProductDrawerMode('edit');
+        fillProductForm(product);
         setCreateProductDialogOpen(true);
     };
 
@@ -7017,29 +7376,37 @@ export default function AdminPage() {
     const isSinglePortalSelected = (portal: string) => !!portal && portal !== ALL_PORTAL_VALUE;
     // 展示范围是否可切换：仅「内部portal」时锁定
     const visibilityLocked = isInternalPortalSelected(newProduct.portal);
-    // 展示范围可选项：内部portal仅「指定企业可见」；外部portal仅「指定企业可见/不可见」；所有portal为全部
+    // 展示范围可选项：内部portal仅「指定企业可见」；外部portal所有选项可选；所有portal为全部
     const visibilityOptionsForPortal = (portal: string) => {
         if (isInternalPortalSelected(portal)) return ['specified'];
-        if (isSinglePortalSelected(portal)) return ['specified', 'excluded'];
         return ['all', 'specified', 'excluded'];
     };
 
     // 切换「上架Portal」
     const handleChangeProductPortal = (portal: string) => {
         setNewProduct(prev => {
-            const next = { ...prev, portal };
+            const wasLinked = !!prev.linkedPublicProduct;
+            // 从内部portal（已关联外部产品）切换到外部portal或所有portal：清空自动填充的全部数据
+            if (!isInternalPortalSelected(portal) && wasLinked) {
+                return {
+                    ...emptyProductForm,
+                    portal,
+                    linkedPublicProduct: '',
+                    visibility: isSinglePortalSelected(portal) ? 'excluded' : 'all',
+                    visibilityTenants: isSinglePortalSelected(portal) ? internalPortalTenant : [],
+                };
+            }
+            const next = { ...prev, portal, linkedPublicProduct: '' };
             if (isInternalPortalSelected(portal)) {
-                // 内部portal：锁定「指定企业可见」+ 内部portal关联租户；需关联一个外部/公共portal的产品
+                // 内部portal(360集团)：锁定「指定企业可见」+ 内部portal关联租户；无需关联外部portal产品
                 next.visibility = 'specified';
                 next.visibilityTenants = internalPortalTenant;
             } else if (isSinglePortalSelected(portal)) {
                 // 外部/其他portal：默认「指定企业不可见」+ 内部portal关联租户，可修改
-                next.linkedPublicProduct = '';
                 next.visibility = 'excluded';
                 next.visibilityTenants = internalPortalTenant;
             } else {
                 // 所有portal：不做限制
-                next.linkedPublicProduct = '';
                 next.visibility = 'all';
                 next.visibilityTenants = [];
             }
@@ -7047,24 +7414,58 @@ export default function AdminPage() {
         });
     };
 
-    // 选中内部portal并关联外部/公共portal产品后：自动同步名称、分类等配置，仅产品标识为空
+    // 选中内部portal并关联公共Portal产品后：自动同步基础配置、推广配置、高级配置
     const handleLinkPublicProduct = (identifier: string) => {
         const src = zhihuiProductsData.find(p => p.identifier === identifier);
+        // 根据产品分类映射所属产线
+        const mapProductLine = (category: string): string => {
+            if (category.includes('存储')) return '云存储';
+            if (category.includes('计算')) return '云计算';
+            if (category.includes('数据库')) return '云数据库';
+            if (category.includes('大数据')) return '大数据平台';
+            if (category.includes('AI') || category.includes('智能')) return 'AI平台';
+            return '其他';
+        };
         setNewProduct(prev => {
             if (!src) return { ...prev, linkedPublicProduct: '' };
+            const srcCategoryPath = src.category.replace('/', ' / ');
             return {
                 ...prev,
                 linkedPublicProduct: identifier,
-                // 同步产品配置字段
+                // ===== 基础配置 =====
                 name: src.name,
                 shortName: src.identifier,
-                categories: [src.category.replace('/', ' / ')],
+                categories: [srcCategoryPath],
+                productLine: mapProductLine(src.category),
                 description: `${src.name}相关能力，提供稳定可靠的云服务`,
-                tags: ['标签', 'New'],
                 url: `/${src.identifier}`,
                 introUrl: `/intro/${src.identifier}`,
-                // 产品标识符不同步，需单独填写
-                identifier: '',
+                // 关联外部portal产品后，产品标识符自动填充且锁定不可修改
+                identifier: src.identifier,
+                // ===== 文档配置 =====
+                docEnabled: true,
+                docType: 'apicloud',
+                docUrl: 'https://apicloud.360.cn/user/apistore',
+                apiDocEnabled: true,
+                apiDocUrl: `https://apicloud.360.cn/api/${src.identifier}`,
+                // ===== 推广配置 =====
+                hotOfficial: true,
+                hotConsole: true,
+                promoTag: 'new',
+                tags: ['推荐', 'New'],
+                // ===== 高级配置 =====
+                auditType: 'auto',
+                workOrderSchedule: false,
+                billingEnabled: true,
+                showInConsole: true,
+                showInWebsite: true,
+                resourceGroupAuth: false,
+                resourceReport: false,
+                onlyInWorkOrder: false,
+                reserveAmount: 0,
+                adminBackend: 'none',
+                adminBackendUrl: '',
+                regionEnabled: false,
             };
         });
     };
@@ -7897,11 +8298,49 @@ export default function AdminPage() {
 
                 {/* 菜单 */}
                 <nav className="py-2 px-2 flex-1">
+                    {/* 一级菜单：运营管理 */}
+                    <div>
+                        <div
+                            className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
+                                ['presales-customer'].includes(currentMenu)
+                                    ? 'bg-[#0f73f6] text-white'
+                                    : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
+                            }`}
+                            onClick={() => {
+                                setPresalesMenuExpanded(!presalesMenuExpanded);
+                                if (!presalesMenuExpanded) {
+                                    setCurrentMenu('presales-customer');
+                                }
+                            }}
+                        >
+                            <span className="text-[13px]">运营管理</span>
+                            <svg className={`w-3.5 h-3.5 transition-transform duration-[160ms] ${presalesMenuExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                        {/* 二级菜单 */}
+                        {presalesMenuExpanded && (
+                            <div className="mt-0.5 space-y-0.5">
+                                <div
+                                    onClick={() => setCurrentMenu('presales-customer')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'presales-customer'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>客户计费配置</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* 一级菜单：产品管理 */}
                     <div>
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['product-define', 'product-addon', 'product-billing', 'product-package'].includes(currentMenu)
+                                ['product-define', 'product-addon', 'product-billing', 'product-package', 'product-settings'].includes(currentMenu)
                                     ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
@@ -7965,11 +8404,11 @@ export default function AdminPage() {
                         )}
                     </div>
 
-                    {/* 一级菜单：账单管理 */}
+                    {/* 一级菜单：账单查询 */}
                     <div className="mt-0.5">
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['zhiqi-bill-customer', 'zhiqi-bill-product', 'zhiqi-bill-intranet'].includes(currentMenu)
+                                ['zhiqi-bill-customer'].includes(currentMenu)
                                     ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
@@ -7980,7 +8419,8 @@ export default function AdminPage() {
                                 }
                             }}
                         >
-                            <span className="text-[13px]">账单管理</span>
+                            <span className="text-[13px]">账单查询</span>
+                            <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                             <svg className={`w-3.5 h-3.5 transition-transform duration-[160ms] ${zhiqiBillMenuExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -7997,27 +8437,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     客户账单
-                                </div>
-                                <div
-                                    onClick={() => setCurrentMenu('zhiqi-bill-product')}
-                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
-                                        currentMenu === 'zhiqi-bill-product'
-                                            ? 'bg-[#3d3d3d] text-white'
-                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
-                                    }`}
-                                >
-                                    <span>产品账单</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
-                                </div>
-                                <div
-                                    onClick={() => setCurrentMenu('zhiqi-bill-intranet')}
-                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] ${
-                                        currentMenu === 'zhiqi-bill-intranet'
-                                            ? 'bg-[#3d3d3d] text-white'
-                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
-                                    }`}
-                                >
-                                    内网账单
                                 </div>
                             </div>
                         )}
@@ -8145,14 +8564,14 @@ export default function AdminPage() {
                     <div className="mt-0.5">
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['platform-portal', 'platform-region', 'platform-billing'].includes(currentMenu)
+                                ['platform-portal', 'platform-enterprise-1', 'platform-region', 'platform-billing'].includes(currentMenu)
                                     ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
                             onClick={() => {
                                 setPlatformSettingMenuExpanded(!platformSettingMenuExpanded);
                                 if (!platformSettingMenuExpanded) {
-                                    setCurrentMenu('platform-portal');
+                                    setCurrentMenu('platform-enterprise-1');
                                 }
                             }}
                         >
@@ -8165,9 +8584,9 @@ export default function AdminPage() {
                         {platformSettingMenuExpanded && (
                             <div className="mt-0.5 space-y-0.5">
                                 <div
-                                    onClick={() => { setCurrentMenu('platform-portal'); setPortalPageTab('enterprise'); }}
+                                    onClick={() => setCurrentMenu('platform-enterprise-1')}
                                     className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
-                                        currentMenu === 'platform-portal'
+                                        currentMenu === 'platform-enterprise-1'
                                             ? 'bg-[#3d3d3d] text-white'
                                             : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
                                     }`}
@@ -8249,6 +8668,405 @@ export default function AdminPage() {
             {/* 主内容区 */}
             <main className="pl-[198px]">
                 <div className="min-h-screen flex">
+                    {/* 客户管理页面 */}
+                    {currentMenu === 'presales-customer' && (
+                        <div className="flex-1 bg-gray-50 overflow-auto">
+                            {/* 页面标题 */}
+                            <div className="px-6 pt-4 bg-white">
+                                <h2 className="text-base font-medium text-gray-900">客户计费配置</h2>
+                            </div>
+
+                            {/* Tab 切换：企业内 / 企业外（开启多企业时展示两个 Tab；未开启时仅展示企业内） */}
+                            <div className="px-6 bg-white border-b border-gray-200">
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={() => setCustomerTab('inner')}
+                                        className={`px-1 py-3 text-sm font-medium transition-colors relative flex items-center ${customerTab === 'inner' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                    >
+                                        企业内
+                                        {customerTab === 'inner' && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                        )}
+                                    </button>
+                                    {allowMultiEnterprise && (
+                                        <button
+                                            onClick={() => setCustomerTab('outer')}
+                                            className={`px-1 py-3 text-sm font-medium transition-colors relative ${customerTab === 'outer' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                        >
+                                            企业外
+                                            {customerTab === 'outer' && (
+                                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 企业外 Tab：现有客户列表 */}
+                            {allowMultiEnterprise && customerTab === 'outer' && (
+                                <div className="p-6">
+                                    {/* 搜索筛选区域 */}
+                                    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            {/* 搜索框 */}
+                                            <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+                                                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                                <input
+                                                    type="text"
+                                                    placeholder="支持客户名称、客户标识搜索"
+                                                    className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+
+                                            {/* 客户行业筛选 */}
+                                            <select className="h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                                                <option value="all">全部行业</option>
+                                                <option value="internet">互联网</option>
+                                                <option value="finance">金融</option>
+                                                <option value="manufacturing">制造业</option>
+                                                <option value="education">教育</option>
+                                                <option value="medical">医疗</option>
+                                            </select>
+
+                                            {/* 客户状态筛选 */}
+                                            <select className="h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                                                <option value="all">全部状态</option>
+                                                <option value="active">合作中</option>
+                                                <option value="potential">潜在客户</option>
+                                                <option value="inactive">已终止</option>
+                                            </select>
+
+                                            {/* 新增客户按钮 */}
+                                            <button className="ml-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                新增客户
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 客户列表表格 */}
+                                    <div className="bg-white rounded-lg border border-gray-200">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200 bg-gray-50">
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[60px]">
+                                                            <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                                                        </th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客户ID</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客户名称</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客户标识</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">所属行业</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">联系人</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">联系电话</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">合作状态</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {[
+                                                        { id: 'C001', name: '某科技有限公司', identifier: 'tech_keji', industry: '互联网', contact: '张三', phone: '138****1234', status: '合作中', time: '2026-01-15 10:30:00' },
+                                                        { id: 'C002', name: '智慧金融集团', identifier: 'fin_zhihui', industry: '金融', contact: '李四', phone: '139****5678', status: '合作中', time: '2026-02-20 14:22:00' },
+                                                        { id: 'C003', name: '云端制造有限公司', identifier: 'mfg_yunduan', industry: '制造业', contact: '王五', phone: '137****9012', status: '潜在客户', time: '2026-03-08 09:15:00' },
+                                                        { id: 'C004', name: '教育在线平台', identifier: 'edu_online', industry: '教育', contact: '赵六', phone: '136****3456', status: '合作中', time: '2026-03-18 16:45:00' },
+                                                        { id: 'C005', name: '健康医疗科技', identifier: 'med_health', industry: '医疗', contact: '孙七', phone: '135****7890', status: '已终止', time: '2026-04-02 11:08:00' },
+                                                        { id: 'C006', name: '数据信息服务', identifier: 'data_info', industry: '互联网', contact: '周八', phone: '133****2345', status: '潜在客户', time: '2026-04-25 08:50:00' },
+                                                        { id: 'C007', name: '智能物流网络', identifier: 'logi_smart', industry: '制造业', contact: '吴九', phone: '132****6789', status: '合作中', time: '2026-05-12 13:30:00' },
+                                                    ].map((row, idx) => (
+                                                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                                            <td className="px-4 py-3">
+                                                                <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                                                            </td>
+                                                            <td className="px-4 py-3 text-sm text-gray-900">{row.id}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.name}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{row.identifier}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{row.industry}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{row.contact}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{row.phone}</td>
+                                                            <td className="px-4 py-3 text-sm">
+                                                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                                    row.status === '合作中' ? 'bg-green-50 text-green-700' :
+                                                                    row.status === '潜在客户' ? 'bg-blue-50 text-blue-700' :
+                                                                    'bg-gray-100 text-gray-500'
+                                                                }`}>
+                                                                    {row.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{row.time}</td>
+                                                            <td className="px-4 py-3 text-sm">
+                                                                <div className="flex items-center gap-2">
+                                                                    <button className="text-blue-600 hover:text-blue-700 text-xs">编辑</button>
+                                                                    <button className="text-red-500 hover:text-red-600 text-xs">删除</button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* 分页 */}
+                                        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                                            <span className="text-sm text-gray-500">共 7 条记录</span>
+                                            <div className="flex items-center gap-1">
+                                                <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" disabled>上一页</button>
+                                                <button className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded">1</button>
+                                                <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">下一页</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 企业内 Tab：内部折扣设置页面 */}
+                            {customerTab === 'inner' && (
+                                <div className="p-6">
+                                    {/* 说明：数据来源与规则 */}
+                                    <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+                                        <p className="text-[13px] leading-[1.9] text-blue-600">
+                                            同步内部企业
+                                            <span className="font-medium">
+                                                {internalEnterprise ? `「${internalEnterprise.name}」` : ''}
+                                            </span>
+                                            的结算单元，可以给内部企业下个结算单元配置单独折扣。在
+                                            <a
+                                                href={internalEnterprise?.portalDomain ? `https://${internalEnterprise.portalDomain}` : undefined}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title={internalEnterprise?.portalDomain ? `跳转至内部企业Portal：https://${internalEnterprise.portalDomain}` : '内部企业未配置Portal域名'}
+                                                className="mx-0.5 inline-flex items-center gap-0.5 font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700"
+                                            >
+                                                控制台
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </a>
+                                            管理结算单元。
+                                        </p>
+                                    </div>
+
+                                    {!internalEnterprise || !internalEnterprise.tenantId ? (
+                                        <div className="bg-white rounded-lg border border-gray-200 py-20 text-center text-sm text-gray-400">
+                                            当前尚未配置内部企业或内部企业未关联租户，请先在「企业配置」中完成配置
+                                        </div>
+                                    ) : (
+                                    <div className="bg-white rounded-lg border border-gray-200">
+                                        {/* 操作栏 */}
+                                        <div className="flex items-center justify-between gap-3 px-5 py-4 flex-wrap">
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                <input
+                                                    type="text"
+                                                    value={discountSearch}
+                                                    onChange={(e) => setDiscountSearch(e.target.value)}
+                                                    placeholder="结算单元名称/归属组织部门"
+                                                    className="w-64 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                />
+                                                {/* 归属组织部门筛选 */}
+                                                <select
+                                                    value={discountDeptFilter}
+                                                    onChange={(e) => setDiscountDeptFilter(e.target.value)}
+                                                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500 max-w-[260px]"
+                                                >
+                                                    <option value="all">全部归属组织部门</option>
+                                                    {discountDeptOptions.map(d => (
+                                                        <option key={d.id} value={d.id}>{d.path}（{d.count}）</option>
+                                                    ))}
+                                                    <option value="__unlinked__">未关联组织部门</option>
+                                                </select>
+                                                {/* 结算属性筛选 */}
+                                                <select
+                                                    value={discountAttrFilter}
+                                                    onChange={(e) => setDiscountAttrFilter(e.target.value)}
+                                                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
+                                                >
+                                                    <option value="all">全部结算属性</option>
+                                                    {unitDeptAttrOptions.filter(o => o.value !== 'biz' || !!enterpriseConfigs.find(e => e.internal)?.enableOuterSettlement).map(o => (
+                                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                                    ))}
+                                                    <option value="__unset__">未配置结算属性</option>
+                                                </select>
+                                            </div>
+                                            {/* 批量操作 */}
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => handleOpenDiscountDialog(selectedDiscountUnits, 'attr')}
+                                                    disabled={selectedDiscountUnits.length === 0}
+                                                    className={`px-4 py-2 text-sm rounded-lg border transition-colors ${selectedDiscountUnits.length === 0
+                                                        ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                                                >
+                                                    批量设置结算属性{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleOpenDiscountDialog(selectedBizUnits, 'discount')}
+                                                    disabled={selectedBizUnits.length === 0}
+                                                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${selectedBizUnits.length === 0
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-[#006bff] text-white hover:bg-blue-600'}`}
+                                                >
+                                                    批量设置计费标签{selectedBizUnits.length > 0 ? `（${selectedBizUnits.length}）` : ''}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* 列表 */}
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full min-w-[960px]">
+                                                   <thead>
+                                                       <tr className="bg-gray-50 border-y border-gray-200">
+                                                           <th className="text-left py-3 px-4 w-12">
+                                                               <input
+                                                                   type="checkbox"
+                                                                   className="w-4 h-4"
+                                                                   checked={filteredDiscountRows.length > 0 && filteredDiscountRows.every(r => selectedDiscountUnits.includes(r.unit))}
+                                                                   onChange={(e) => {
+                                                                       const all = filteredDiscountRows.map(r => r.unit);
+                                                                       setSelectedDiscountUnits(e.target.checked
+                                                                           ? Array.from(new Set([...selectedDiscountUnits, ...all]))
+                                                                           : selectedDiscountUnits.filter(u => !all.includes(u)));
+                                                                   }}
+                                                               />
+                                                           </th>
+                                                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-14">序号</th>
+                                                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[200px]">结算单元名称</th>
+                                                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[240px]">归属组织部门</th>
+                                                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">
+                                                               <span className="inline-flex items-center gap-1">
+                                                                   结算属性
+                                                                   <span className="group/tip relative inline-flex flex-shrink-0">
+                                                                       <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                       </svg>
+                                                                       <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                           {unitDeptAttrTip}
+                                                                           <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                                       </span>
+                                                                   </span>
+                                                               </span>
+                                                           </th>
+                                                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">计费标签</th>
+                                                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-44">
+                                                            <span className="inline-flex items-center gap-1">
+                                                                单独设置折扣
+                                                                <span className="group/tip relative inline-flex flex-shrink-0">
+                                                                    <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[300px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                        {standaloneDiscountTip}
+                                                                        <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                                    </span>
+                                                                </span>
+                                                            </span>
+                                                        </th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">更新时间</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredDiscountRows.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={8} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                        </tr>
+                                                    ) : (
+                                                        filteredDiscountRows.map((row, idx) => (
+                                                            <tr key={row.unit} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                <td className="py-3 px-4 align-top">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="w-4 h-4"
+                                                                        checked={selectedDiscountUnits.includes(row.unit)}
+                                                                        onChange={(e) => setSelectedDiscountUnits(prev => e.target.checked
+                                                                            ? [...prev, row.unit]
+                                                                            : prev.filter(u => u !== row.unit))}
+                                                                    />
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm text-gray-600 align-top">{idx + 1}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700 align-top">{row.unit}</td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                    {row.deptId ? (
+                                                                        <div className="leading-tight">
+                                                                            <div>{row.deptName}</div>
+                                                                            <div className="mt-1 text-xs text-gray-400">{row.deptPath}</div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-xs text-gray-400">未关联组织部门</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-4 align-top">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {row.config.deptAttr ? (
+                                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getDeptAttrColor(row.config.deptAttr)}`}>
+                                                                                {getDeptAttrLabel(row.config.deptAttr)}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-xs text-gray-400">--</span>
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => handleOpenDiscountDialog([row.unit], 'attr')}
+                                                                            title="设置结算属性"
+                                                                            className="text-gray-300 hover:text-blue-600 transition-colors"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {row.config.discount == null
+                                                                            ? <span className="text-xs text-gray-400">未设置</span>
+                                                                            : formatDiscount(row.config.discount)}
+                                                                        {row.config.deptAttr === 'biz' && (
+                                                                            <button
+                                                                                onClick={() => handleOpenDiscountDialog([row.unit], 'discount')}
+                                                                                title="设置计费标签"
+                                                                                className="text-gray-300 hover:text-blue-600 transition-colors"
+                                                                            >
+                                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm text-gray-700 align-top">
+                                                                    {row.config.deptAttr !== 'biz' ? (
+                                                                        <span className="text-xs text-gray-400">--</span>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => handleOpenStandaloneProducts(row.unit)}
+                                                                            className="text-[#006bff] hover:text-blue-700 hover:underline"
+                                                                        >
+                                                                            {row.config.standaloneProducts.length}
+                                                                        </button>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm text-gray-600 align-top">{row.config.updateTime}</td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* 底部统计 */}
+                                        <div className="px-5 py-3 border-t border-gray-100 text-sm text-gray-500">
+                                            共 {filteredDiscountRows.length} 个结算单元
+                                            {filteredDiscountRows.length !== tenantUnitRows.length && `（全部 ${tenantUnitRows.length} 个）`}
+                                        </div>
+                                    </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* 产品定义页面 */}
                     {currentMenu === 'product-define' && (
                         <div className="flex-1 bg-gray-50 p-6 overflow-auto">
@@ -8301,7 +9119,7 @@ export default function AdminPage() {
                                         {productPortalOptions.map(o => (
                                             <option key={o.value} value={o.value}>{o.label}</option>
                                         ))}
-                                        <option value={ALL_PORTAL_VALUE}>所有portal(一个产品)</option>
+                                        <option value={ALL_PORTAL_VALUE}>所有portal</option>
                                     </select>
                                     
                                     {/* 右侧按钮 */}
@@ -8326,7 +9144,7 @@ export default function AdminPage() {
                                         product.identifier.toLowerCase().includes(productSearchKeyword.toLowerCase());
                                     const matchCategory = productCategoryFilter === 'all' || product.category.startsWith(productCategoryFilter);
                                     const matchStatus = productStatusFilter === 'all' || product.status === productStatusFilter;
-                                    // 上架Portal筛选：选中具体Portal时，「所有portal(一个产品)」的产品也命中（它在每个Portal下都上架）
+                                    // 上架Portal筛选：选中具体Portal时，「所有portal」的产品也命中（它在每个Portal下都上架）
                                     const matchPortal = productPortalFilter === 'all'
                                         || product.portal === productPortalFilter
                                         || (productPortalFilter !== ALL_PORTAL_VALUE && product.portal === ALL_PORTAL_VALUE);
@@ -8364,8 +9182,43 @@ export default function AdminPage() {
                                                             // 外部Portal产品不再展示关联的内部Portal产品，仅保留外部Portal标识
                                                             const isInner = group.key === 'internal';
                                                             const linked = isInner ? getLinkedProduct(product) : undefined;
+                                                            // 统一产品标识：内部Portal产品关联外部产品时，使用外部产品的标识（去除_in后缀）
+                                                            const displayIdentifier = linked ? linked.identifier : product.identifier;
                                                             return (
-                                                            <div key={product.id} className={`bg-white rounded-lg border p-3 relative hover:shadow-md transition-shadow ${getProductCardBorderClass(product.portal)}`}>
+                                                            <div
+                                                                key={product.id}
+                                                                onClick={() => {
+                                                                    setCurrentProductSettingsId(product.id);
+                                                                    // 用已有产品数据回填表单
+                                                                    setProductDrawerMode('edit');
+                                                                    setNewProduct({
+                                                                        ...emptyProductForm,
+                                                                        name: product.name,
+                                                                        shortName: product.identifier,
+                                                                        categories: [product.category.replace('/', ' / ')],
+                                                                        identifier: linked ? linked.identifier : product.identifier,
+                                                                        description: `${product.name}相关能力，提供稳定可靠的云服务`,
+                                                                        tags: ['标签', 'New'],
+                                                                        url: `/${product.identifier}`,
+                                                                        hotConsole: true,
+                                                                        visibility: product.visibility === '所有企业可见'
+                                                                            ? 'all'
+                                                                            : (product.visibility === '指定企业不可见' ? 'excluded' : 'specified'),
+                                                                        auditType: 'auto',
+                                                                        portal: product.portal,
+                                                                        linkedPublicProduct: linked ? linked.identifier : '',
+                                                                        visibilityTenants: product.visibility === '所有企业可见' ? [] : internalPortalTenant,
+                                                                        docEnabled: true,
+                                                                        docUrl: product.portal === ALL_PORTAL_VALUE ? '' : 'https://apicloud.360.cn/user/apistore',
+                                                                        apiDocEnabled: true,
+                                                                        apiDocUrl: product.portal === ALL_PORTAL_VALUE ? '' : `https://apicloud.360.cn/api/${(linked ? linked.identifier : product.identifier)}`,
+                                                                    });
+                                                                    setProductSettingsNav('info');
+                                                                    setProductSettingsEditing(false);
+                                                                    setCurrentMenu('product-settings');
+                                                                }}
+                                                                className={`bg-white rounded-lg border p-3 relative hover:shadow-md transition-shadow cursor-pointer ${getProductCardBorderClass(product.portal)}`}
+                                                            >
                                                                 {/* 状态标签 */}
                                                                 <div className={`absolute top-3 right-3 px-1.5 py-0.5 text-xs rounded ${
                                                                     product.status === 'online'
@@ -8413,9 +9266,9 @@ export default function AdminPage() {
                                                                         <span className="truncate">{product.category}</span>
                                                                     </div>
                                                                     <div className="flex">
-                                                                        <span className="w-14 text-gray-400 flex-shrink-0">标识</span>
-                                                                        <span className="font-mono truncate">{product.identifier}</span>
-                                                                    </div>
+                                                                            <span className="w-14 text-gray-400 flex-shrink-0">标识</span>
+                                                                            <span className="font-mono truncate">{displayIdentifier}</span>
+                                                                        </div>
                                                                     <div className="flex">
                                                                         <span className="w-14 text-gray-400 flex-shrink-0">可见</span>
                                                                         <span className="truncate">{product.visibility}</span>
@@ -8457,7 +9310,643 @@ export default function AdminPage() {
                             })()}
                         </div>
                     )}
-                    
+
+                    {/* 产品设置页面 —— 点击产品卡片在当前页打开 */}
+                    {currentMenu === 'product-settings' && (() => {
+                        const settingsProduct = zhihuiProductsData.find(p => p.id === currentProductSettingsId);
+                        if (!settingsProduct) {
+                            return (
+                                <div className="flex-1 bg-gray-50 p-6 overflow-auto flex items-center justify-center">
+                                    <div className="text-center text-gray-400">
+                                        <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p>产品未找到</p>
+                                        <button onClick={() => setCurrentMenu('product-define')} className="mt-2 text-blue-600 hover:underline text-sm">返回产品定义</button>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        const linkedProduct = settingsProduct.linkedProductId ? zhihuiProductsData.find(p => p.id === settingsProduct.linkedProductId) : undefined;
+                        const displayIdentifier = linkedProduct ? linkedProduct.identifier : settingsProduct.identifier;
+                        // 左侧子菜单项
+                        const settingsNavItems: { key: typeof productSettingsNav; label: string }[] = [
+                            { key: 'info', label: '产品信息' },
+                            { key: 'workorder', label: '工单管理' },
+                            { key: 'intranet', label: '内网工单管理' },
+                            { key: 'doc', label: '文档管理' },
+                            { key: 'intro', label: '产品介绍页' },
+                            { key: 'menu', label: '菜单配置' },
+                        ];
+                        // 产品分类 -> 所属产线
+                        const categoryMain = settingsProduct.category.split('/')[0];
+                        const categorySub = settingsProduct.category.split('/')[1] || categoryMain;
+                        const productLineMap: Record<string, string> = {
+                            '存储': '云存储', '计算': '云计算', '数据库': '中间件', '大数据': '大数据平台',
+                            '容器': '云计算', '网络': '云网络', '安全': '安全服务', 'AI': 'AI平台', '中间件': '中间件',
+                        };
+                        const productLine = productLineMap[categoryMain] || '其他';
+                        // 产品简称：取名称最后一段（如「云数据库 MySQL」-> MySQL）
+                        const shortName = settingsProduct.name.split(' ').slice(-1)[0];
+                        const isInternalProduct = !!getProductPortalOption(settingsProduct.portal)?.internal;
+                        const isOnline = settingsProduct.status === 'online';
+                        // 只读详情行
+                        const InfoRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
+                            <div className="flex items-start text-sm leading-6">
+                                <span className="w-32 text-gray-500 flex-shrink-0">{label}：</span>
+                                <span className="text-gray-800 break-all">{children}</span>
+                            </div>
+                        );
+                        return (
+                            <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
+                                {/* 顶部返回栏 */}
+                                <div className="bg-white border-b border-gray-200 px-6 py-3.5 flex items-center flex-shrink-0">
+                                    <button
+                                        onClick={() => setCurrentMenu('product-define')}
+                                        className="flex items-center gap-2 text-gray-800 hover:text-blue-600 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        <span className="text-sm">产品设置</span>
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 flex bg-white overflow-hidden">
+                                    {/* 左侧子菜单 */}
+                                    <div className="w-56 border-r border-gray-200 py-4 flex-shrink-0 overflow-auto">
+                                        {settingsNavItems.map(item => {
+                                            const active = productSettingsNav === item.key;
+                                            return (
+                                                <button
+                                                    key={item.key}
+                                                    onClick={() => { setProductSettingsNav(item.key); setProductSettingsEditing(false); }}
+                                                    className={`w-full flex items-center gap-2 px-6 py-2.5 text-sm transition-colors relative ${active ? 'text-blue-600 bg-blue-50/60' : 'text-gray-700 hover:bg-gray-50'}`}
+                                                >
+                                                    <svg className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                                                    </svg>
+                                                    <span>{item.label}</span>
+                                                    {active && <span className="absolute right-0 top-1 bottom-1 w-0.5 bg-blue-600 rounded-full" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* 右侧内容区 */}
+                                    <div className="flex-1 overflow-auto p-6">
+                                    {productSettingsNav !== 'info' ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-400 py-24">
+                                            <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                                            </svg>
+                                            <p className="text-sm">{settingsNavItems.find(i => i.key === productSettingsNav)?.label}功能建设中</p>
+                                        </div>
+                                    ) : !productSettingsEditing ? (
+                                        /* ===== 产品信息（只读详情） ===== */
+                                        <div className="flex gap-6">
+                                            <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                                                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-start justify-between gap-4 mb-4">
+                                                    <h2 className="text-xl font-bold text-gray-900 whitespace-nowrap">{settingsProduct.name}</h2>
+                                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                                        <button
+                                                            onClick={() => { fillProductForm(settingsProduct); setCreateProductDialogOpen(false); setProductSettingsEditing(true); }}
+                                                            className="px-4 py-1.5 text-sm text-gray-700 border border-gray-300 rounded hover:border-blue-500 hover:text-blue-600 transition-colors"
+                                                        >
+                                                            编辑产品信息
+                                                        </button>
+                                                        <button
+                                                            onClick={() => alert(isOnline ? `已提交「${settingsProduct.name}」下线申请` : `已提交「${settingsProduct.name}」上线申请`)}
+                                                            className={`px-5 py-1.5 text-sm rounded transition-colors ${isOnline ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                                                        >
+                                                            {isOnline ? '下线' : '上线'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <InfoRow label="产品标识">{displayIdentifier}</InfoRow>
+                                                    <InfoRow label="产品简称">{shortName}</InfoRow>
+                                                    <InfoRow label="产品描述">稳定可靠、可弹性伸缩的{categorySub}</InfoRow>
+                                                    <InfoRow label="所属产线">{productLine}</InfoRow>
+                                                    <InfoRow label="产品分类">{settingsProduct.category}</InfoRow>
+                                                    <InfoRow label="不可见企业">{isInternalProduct ? '无' : internalPortalName}</InfoRow>
+                                                    <InfoRow label="内外属性">{isInternalProduct ? `内部(${internalPortalName})` : '外部(360.cn)'}</InfoRow>
+                                                    <InfoRow label="官网热门产品">否</InfoRow>
+                                                    <InfoRow label="控制台热门产品">否</InfoRow>
+                                                    <InfoRow label="产品审核开通">自动审核</InfoRow>
+                                                    <InfoRow label="是否在控制台展示">{isOnline ? '是' : '否'}</InfoRow>
+                                                    <InfoRow label="应用审核开通">否</InfoRow>
+                                                    <div className="flex items-start text-sm leading-6">
+                                                        <span className="w-32 text-gray-500 flex-shrink-0">工单管理开通：</span>
+                                                        <span className="text-gray-800">是</span>
+                                                        <span className="ml-8 text-gray-500">匹配排班表：</span>
+                                                        <span className="ml-2 text-gray-800">{shortName.toLowerCase()}</span>
+                                                    </div>
+                                                    <InfoRow label="留言板管理开通">否</InfoRow>
+                                                    <InfoRow label="文档管理开通">
+                                                        是 / https://apicloud.360.cn/user/apistore/detail?projectId=171860646916707009565&docId=&sharedId=auL_XxZABAAA_&config=header_menu_toc_search
+                                                    </InfoRow>
+                                                    <InfoRow label="资源组开通">是</InfoRow>
+                                                    <InfoRow label="资源上报">是</InfoRow>
+                                                    <InfoRow label="上架Portal">{getProductPortalLabel(settingsProduct.portal)}</InfoRow>
+                                                    <InfoRow label="展示范围">{settingsProduct.visibility}</InfoRow>
+                                                    <InfoRow label="上线时间">{settingsProduct.onlineTime}</InfoRow>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        /* ===== 产品信息（编辑表单） ===== */
+                                        <div className="max-w-4xl space-y-5">
+                                            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+                                                <h2 className="text-base font-semibold text-gray-900">编辑产品信息</h2>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setProductSettingsEditing(false)}
+                                                        className="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        取消
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setProductSettingsEditing(false)}
+                                                        className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                    >
+                                                        保存
+                                                    </button>
+                                                </div>
+                                            </div>
+                                    {/* 上架Portal + 展示范围 */}
+                                    <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-4 space-y-5">
+                                        {/* 上架Portal */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                上架Portal <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="flex items-center flex-wrap gap-x-6 gap-y-2">
+                                                {[
+                                                    ...productPortalOptions.map(o => ({ value: o.value, label: o.label })),
+                                                    { value: ALL_PORTAL_VALUE, label: '所有portal' },
+                                                ].map(option => (
+                                                    <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="productSettingsPortal"
+                                                            value={option.value}
+                                                            checked={newProduct.portal === option.value}
+                                                            onChange={(e) => handleChangeProductPortal(e.target.value)}
+                                                            className="w-4 h-4 text-blue-600"
+                                                        />
+                                                        <span className={`text-sm ${newProduct.portal === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {isInternalPortalSelected(newProduct.portal) && (
+                                                <div className="mt-4 pt-4 border-t border-blue-200">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                        关联外部Portal产品 <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <select
+                                                        value={newProduct.linkedPublicProduct}
+                                                        onChange={(e) => handleLinkPublicProduct(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 bg-white"
+                                                    >
+                                                        <option value="">请选择关联的外部产品</option>
+                                                        {zhihuiProductsData
+                                                            .filter(p => p.portal === publicPortalName)
+                                                            .map(p => (
+                                                                <option key={p.identifier} value={p.identifier}>
+                                                                    {p.name}（{p.identifier}）
+                                                                </option>
+                                                            ))}
+                                                    </select>
+                                                    <p className="mt-1 text-xs text-gray-400">
+                                                        选择关联的外部Portal产品后，将自动同步该产品的基础配置、推广配置和高级配置
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 展示范围 */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">展示范围</label>
+                                            <div className="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                                                {[
+                                                    { value: 'all', label: '所有企业可见' },
+                                                    { value: 'specified', label: '指定企业可见' },
+                                                    { value: 'excluded', label: '指定企业不可见' },
+                                                ].map((option, idx) => {
+                                                    const allowed = visibilityOptionsForPortal(newProduct.portal).includes(option.value);
+                                                    const active = newProduct.visibility === option.value;
+                                                    return (
+                                                        <button
+                                                            key={option.value}
+                                                            disabled={!allowed}
+                                                            onClick={() => allowed && setNewProduct({ ...newProduct, visibility: option.value })}
+                                                            className={`px-4 py-1.5 text-sm transition-colors ${idx > 0 ? 'border-l border-gray-300' : ''} ${
+                                                                active
+                                                                    ? 'bg-blue-50 text-blue-600'
+                                                                    : allowed
+                                                                        ? 'bg-white text-gray-600 hover:bg-gray-50'
+                                                                        : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                                            }`}
+                                                        >
+                                                            {option.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            {visibilityLocked && (
+                                                <span className="ml-3 text-xs text-gray-400">
+                                                    选中「{internalPortalName}」时，展示范围固定为「指定企业可见」且租户不可修改
+                                                </span>
+                                            )}
+                                            {newProduct.visibility !== 'all' && (
+                                                <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                                                    {newProduct.visibilityTenants.length === 0 && (
+                                                        <div className="text-sm text-gray-400 py-1">请添加租户</div>
+                                                    )}
+                                                    {newProduct.visibilityTenants.map((t, index) => (
+                                                        <div key={index} className="flex items-center gap-2">
+                                                            <select
+                                                                value={t.id}
+                                                                disabled={visibilityLocked}
+                                                                onChange={(e) => {
+                                                                    const opt = productTenantOptions.find(o => o.id === e.target.value);
+                                                                    const list = [...newProduct.visibilityTenants];
+                                                                    list[index] = { id: e.target.value, name: opt ? opt.name : '' };
+                                                                    setNewProduct({ ...newProduct, visibilityTenants: list });
+                                                                }}
+                                                                className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 ${visibilityLocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+                                                            >
+                                                                <option value="">请选择租户</option>
+                                                                {productTenantOptions.map(o => (
+                                                                    <option key={o.id} value={o.id}>{o.name}（{o.id}）</option>
+                                                                ))}
+                                                            </select>
+                                                            {!visibilityLocked && (
+                                                                <button
+                                                                    onClick={() => setNewProduct({ ...newProduct, visibilityTenants: newProduct.visibilityTenants.filter((_, i) => i !== index) })}
+                                                                    className="p-1.5 text-gray-400 hover:text-red-500"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                    {!visibilityLocked && (
+                                                        <button
+                                                            onClick={() => setNewProduct({ ...newProduct, visibilityTenants: [...newProduct.visibilityTenants, { id: '', name: '' }] })}
+                                                            className="w-full py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                                                        >
+                                                            添加租户
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* ── 基础配置 模块 ── */}
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                            <span className="text-sm font-semibold text-gray-800">基础配置</span>
+                                        </div>
+                                        <div className="p-4 space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">产品名称 <span className="text-red-500">*</span></label>
+                                                    <input type="text" maxLength={20} value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="可包含中文、英文字母、数字、下划线(_)、中划线" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">产品简称 <span className="text-red-500">*</span></label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input type="text" value={newProduct.shortName} onChange={(e) => setNewProduct({ ...newProduct, shortName: e.target.value })} placeholder="可包含中文、英文字母、数字、下划线(_)、中划线" className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                    产品标识符 <span className="text-red-500">*</span>
+                                                    {newProduct.linkedPublicProduct && (
+                                                        <span className="ml-2 text-xs text-orange-500 font-normal">（已关联外部产品，不可修改）</span>
+                                                    )}
+                                                </label>
+                                                <input type="text" value={newProduct.identifier} onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })} placeholder="请输入产品标识符" disabled={!!newProduct.linkedPublicProduct} className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono ${newProduct.linkedPublicProduct ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' : 'border-gray-300'}`} />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">产品分类 <span className="text-red-500">*</span></label>
+                                                    <div className="min-h-[38px] w-full px-2 py-1.5 border border-gray-300 rounded-lg flex flex-wrap items-center gap-1.5">
+                                                        {newProduct.categories.map((cat, index) => (
+                                                            <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                                                                {cat}
+                                                                <button onClick={() => setNewProduct({ ...newProduct, categories: newProduct.categories.filter((_, i) => i !== index) })} className="text-gray-400 hover:text-gray-600">
+                                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                                </button>
+                                                            </span>
+                                                        ))}
+                                                        <select value="" onChange={(e) => { if (e.target.value && !newProduct.categories.includes(e.target.value)) { setNewProduct({ ...newProduct, categories: [...newProduct.categories, e.target.value] }); } }} className="flex-1 min-w-[90px] bg-transparent text-sm text-gray-500 focus:outline-none">
+                                                            <option value="">请选择</option>
+                                                            <option value="计算 / 奇云计算">计算 / 奇云计算</option>
+                                                            <option value="计算 / 弹性计算">计算 / 弹性计算</option>
+                                                            <option value="存储 / 对象存储">存储 / 对象存储</option>
+                                                            <option value="存储 / 文件存储">存储 / 文件存储</option>
+                                                            <option value="数据库 / 关系型数据库">数据库 / 关系型数据库</option>
+                                                            <option value="容器 / 容器服务">容器 / 容器服务</option>
+                                                            <option value="中间件 / 消息队列">中间件 / 消息队列</option>
+                                                            <option value="大数据 / 数据计算">大数据 / 数据计算</option>
+                                                            <option value="网络 / 负载均衡">网络 / 负载均衡</option>
+                                                            <option value="安全 / 主机安全">安全 / 主机安全</option>
+                                                            <option value="AI / 智能应用">AI / 智能应用</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">所属产线</label>
+                                                    <select value={newProduct.productLine} onChange={(e) => setNewProduct({ ...newProduct, productLine: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                                                        <option value="其他">其他</option>
+                                                        <option value="云存储">云存储</option>
+                                                        <option value="云计算">云计算</option>
+                                                        <option value="云数据库">云数据库</option>
+                                                        <option value="大数据平台">大数据平台</option>
+                                                        <option value="AI平台">AI平台</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">产品描述 <span className="text-red-500">*</span></label>
+                                                <input type="text" maxLength={40} value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} placeholder="请输入" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                <div className="text-xs text-gray-400 mt-1 text-right">{newProduct.description.length}/40</div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">产品图标 <span className="text-red-500">*</span></label>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center bg-white flex-shrink-0">
+                                                        {newProduct.icon ? (
+                                                            <div className="text-xs text-gray-500">已上传</div>
+                                                        ) : (
+                                                            <svg className="w-8 h-8 text-[#626F84]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8a2 2 0 100-4 2 2 0 000 4zM12 20a2 2 0 100-4 2 2 0 000 4zM6 14a2 2 0 100-4 2 2 0 000 4zM18 14a2 2 0 100-4 2 2 0 000 4zM12 8v8M8 12h8" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <label className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer flex-shrink-0">
+                                                        上传图标
+                                                        <input type="file" accept=".svg" className="hidden" onChange={(e) => setNewProduct({ ...newProduct, icon: e.target.files?.[0] ?? null })} />
+                                                    </label>
+                                                    <span className="text-xs text-gray-400">SVG 格式且背景色透明，图标颜色为 #626F84</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">URL地址 <span className="text-red-500">*</span></label>
+                                                <input type="text" value={newProduct.url} onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })} placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                <p className="mt-1 text-xs text-gray-400">支持输入完整 URL（内部或外部Portal地址）或相对地址（如 /product/xxx）</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">介绍页地址</label>
+                                                <input type="text" value={newProduct.introUrl} onChange={(e) => setNewProduct({ ...newProduct, introUrl: e.target.value })} placeholder="请输入" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* ── 文档配置 模块 ── */}
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                            <span className="text-sm font-semibold text-gray-800">文档配置</span>
+                                            <span className="ml-2 text-xs text-gray-400">支持输入内部Portal、外部Portal的文档地址，也可输入相对地址</span>
+                                        </div>
+                                        <div className="p-4 space-y-5">
+                                            <div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">产品文档：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, docEnabled: !newProduct.docEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.docEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.docEnabled ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，产品详情页展示产品文档入口</span>
+                                                </div>
+                                                {newProduct.docEnabled && (
+                                                    <div className="ml-[140px] mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                                            <input type="radio" name="settingsDocType" value="apicloud" checked={newProduct.docType === 'apicloud'} onChange={(e) => setNewProduct({ ...newProduct, docType: e.target.value })} className="w-4 h-4 text-blue-600" />
+                                                            <span className="text-sm font-medium text-blue-600">APIcloud文档链接</span>
+                                                        </label>
+                                                        <input type="text" value={newProduct.docUrl} onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })} placeholder="https://apicloud.360.cn/user/apistore 或 /doc/xxx" className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                        <p className="text-xs text-gray-400">支持输入内部Portal或外部Portal的文档地址，也可输入相对地址（如 /doc/xxx）</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="border-t border-dashed border-gray-200" />
+                                            <div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">API文档：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, apiDocEnabled: !newProduct.apiDocEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.apiDocEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.apiDocEnabled ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，产品详情页展示API文档入口</span>
+                                                </div>
+                                                {newProduct.apiDocEnabled && (
+                                                    <div className="ml-[140px] mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                                                        <input type="text" value={newProduct.apiDocUrl} onChange={(e) => setNewProduct({ ...newProduct, apiDocUrl: e.target.value })} placeholder="https://apicloud.360.cn/api/xxx 或 /api-doc/xxx" className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                        <p className="text-xs text-gray-400">支持输入内部Portal或外部Portal的API文档地址，也可输入相对地址（如 /api-doc/xxx）</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* ── 推广配置 模块 ── */}
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                            <span className="text-sm font-semibold text-gray-800">推广配置</span>
+                                        </div>
+                                        <div className="p-4 space-y-4">
+                                            <div className="space-y-3">
+                                                <div className="text-sm font-medium text-gray-700">加入推荐</div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-28 text-sm text-gray-700 text-right">官网热门产品：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, hotOfficial: !newProduct.hotOfficial })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotOfficial ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotOfficial ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，该产品展示在 官网{' > '}产品列表{' > '}热门产品 模块</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-28 text-sm text-gray-700 text-right">控制台热门产品：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, hotConsole: !newProduct.hotConsole })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.hotConsole ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.hotConsole ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，该产品展示在 控制台{' > '}产品管理{' > '}热门产品 模块</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-28 text-sm text-gray-700 text-right">推广标签：</span>
+                                                    <div className="flex items-center gap-6">
+                                                        {[
+                                                            { value: 'hot', label: 'Hot' },
+                                                            { value: 'new', label: 'New' },
+                                                            { value: 'none', label: '不设置' },
+                                                        ].map(option => (
+                                                            <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                                <input type="radio" name="settingsPromoTag" value={option.value} checked={newProduct.promoTag === option.value} onChange={(e) => setNewProduct({ ...newProduct, promoTag: e.target.value })} className="w-4 h-4 text-blue-600" />
+                                                                <span className={`text-sm ${newProduct.promoTag === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="border-t border-dashed border-gray-200" />
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">产品标签 <span className="text-red-500">*</span></label>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {newProduct.tags.map((tag, index) => (
+                                                        <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">
+                                                            {tag}
+                                                            <button onClick={() => setNewProduct({ ...newProduct, tags: newProduct.tags.filter((_, i) => i !== index) })} className="hover:text-blue-800">
+                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            </button>
+                                                        </span>
+                                                    ))}
+                                                    {newProduct.tags.length < 3 && (
+                                                        <div className="flex items-center gap-1">
+                                                            <input type="text" maxLength={5} value={newProduct.tagInput} onChange={(e) => setNewProduct({ ...newProduct, tagInput: e.target.value })} onKeyPress={(e) => { if (e.key === 'Enter' && newProduct.tagInput.trim()) { setNewProduct({ ...newProduct, tags: [...newProduct.tags, newProduct.tagInput.trim()], tagInput: '' }); } }} placeholder="输入标签" className="w-20 px-2 py-1 border border-dashed border-gray-300 rounded text-xs focus:outline-none focus:border-blue-500" />
+                                                            <button onClick={() => { if (newProduct.tagInput.trim()) { setNewProduct({ ...newProduct, tags: [...newProduct.tags, newProduct.tagInput.trim()], tagInput: '' }); } }} className="text-xs text-blue-600 hover:text-blue-700">+添加标签</button>
+                                                        </div>
+                                                    )}
+                                                    <span className="text-xs text-gray-400">支持中英文、数字。5个字符以内，最多添加3个标签</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* ── 高级配置 模块 ── */}
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                            <span className="text-sm font-semibold text-gray-800">高级配置</span>
+                                        </div>
+                                        <div className="p-4">
+                                            <div className="mb-5">
+                                                <div className="flex items-center gap-1 mb-1.5">
+                                                    <label className="text-sm font-medium text-gray-700">产品审核开通</label>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    {[
+                                                        { value: 'default', label: '默认开通' },
+                                                        { value: 'manual', label: '人工审核' },
+                                                        { value: 'auto', label: '自动审核' },
+                                                        { value: 'none', label: '不需要开通' },
+                                                    ].map(option => (
+                                                        <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                            <input type="radio" name="settingsAuditType" value={option.value} checked={newProduct.auditType === option.value} onChange={(e) => setNewProduct({ ...newProduct, auditType: e.target.value })} className="w-4 h-4 text-blue-600" />
+                                                            <span className={`text-sm ${newProduct.auditType === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">工单排班表管理：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, workOrderSchedule: !newProduct.workOrderSchedule })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.workOrderSchedule ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.workOrderSchedule ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">计费开通：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, billingEnabled: !newProduct.billingEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.billingEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.billingEnabled ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，该产品在计费相关页面的产品列表里展示</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在控制台展示：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, showInConsole: !newProduct.showInConsole })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInConsole ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInConsole ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">关闭后，该产品不在控制台及导航产品列表里展示</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在官网展示：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, showInWebsite: !newProduct.showInWebsite })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInWebsite ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInWebsite ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">关闭后，该产品不在官网列表里展示</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源组授权：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, resourceGroupAuth: !newProduct.resourceGroupAuth })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceGroupAuth ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceGroupAuth ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，该产品在资源组授权的产品列表里展示</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源上报：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, resourceReport: !newProduct.resourceReport })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceReport ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceReport ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，表示该产品已上报资源，控制台首页会展示当前产品已创建资源及具体数量</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">仅在工单展示：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, onlyInWorkOrder: !newProduct.onlyInWorkOrder })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.onlyInWorkOrder ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.onlyInWorkOrder ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，该产品仅在工单产品列表里展示</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">预留金额：</span>
+                                                    <input type="number" min={0} value={newProduct.reserveAmount} onChange={(e) => setNewProduct({ ...newProduct, reserveAmount: Number(e.target.value) })} className="w-64 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                    <span className="text-sm text-gray-500">元</span>
+                                                    <span className="text-xs text-gray-500">设置金额，业务产品在用户使用产品时校验对应企业下的余额</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">回调设置：</span>
+                                                    <button onClick={() => setCallbackDialogOpen(true)} className="text-sm text-blue-600 hover:text-blue-700">点击设置</button>
+                                                    {newProduct.callbackUrl && (
+                                                        <span className="text-xs text-gray-500 truncate max-w-md">已配置：{newProduct.callbackUrl}</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">管理后台：</span>
+                                                        <div className="flex items-center gap-6">
+                                                            {[
+                                                                { value: 'none', label: '无' },
+                                                                { value: 'has', label: '有' },
+                                                            ].map(option => (
+                                                                <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                                    <input type="radio" name="settingsAdminBackend" value={option.value} checked={newProduct.adminBackend === option.value} onChange={(e) => setNewProduct({ ...newProduct, adminBackend: e.target.value })} className="w-4 h-4 text-blue-600" />
+                                                                    <span className={`text-sm ${newProduct.adminBackend === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    {newProduct.adminBackend === 'has' && (
+                                                        <div className="ml-[140px] mt-2">
+                                                            <input type="text" value={newProduct.adminBackendUrl} onChange={(e) => setNewProduct({ ...newProduct, adminBackendUrl: e.target.value })} placeholder="请输入管理后台地址" className="w-72 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">地域可用区：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, regionEnabled: !newProduct.regionEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.regionEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.regionEnabled ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，当前产品需区分可用区信息，智汇云提供查询接口</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                        </div>
+                                    )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {/* 产品计费项页面 */}
                     {currentMenu === 'product-addon' && (
                         <div className="flex-1 bg-gray-50 p-6 overflow-auto">
@@ -8917,6 +10406,34 @@ export default function AdminPage() {
                     {/* 客户账单页面 */}
                     {currentMenu === 'zhiqi-bill-customer' && (
                         <div className="flex-1 bg-gray-50 overflow-auto flex flex-col">
+                            {/* Tab 切换：企业内 / 企业外（开启多企业时展示两个 Tab；未开启时仅展示企业内） */}
+                            <div className="px-6 bg-white border-b border-gray-200">
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={() => setCustomerBillTab('inner')}
+                                        className={`px-1 py-3 text-sm font-medium transition-colors relative flex items-center ${customerBillTab === 'inner' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                    >
+                                        企业内
+                                        {customerBillTab === 'inner' && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                        )}
+                                    </button>
+                                    {allowMultiEnterprise && (
+                                        <button
+                                            onClick={() => setCustomerBillTab('outer')}
+                                            className={`px-1 py-3 text-sm font-medium transition-colors relative ${customerBillTab === 'outer' ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                        >
+                                            企业外
+                                            {customerBillTab === 'outer' && (
+                                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 企业外 Tab：展示非内部企业的租户账单（原客户账单内容） */}
+                            {allowMultiEnterprise && customerBillTab === 'outer' && (
                             <div className="p-6 overflow-auto flex-1">
                             {/* 顶部筛选栏 */}
                             <div className="flex items-center justify-between mb-6">
@@ -9168,115 +10685,10 @@ export default function AdminPage() {
                                 </div>
                             </div>
                             </div>
-                        </div>
-                    )}
-                    
-                    {/* 智汇云产品账单页面 */}
-                    {currentMenu === 'zhiqi-bill-product' && (
-                        <div className="flex-1 bg-gray-50 overflow-auto flex flex-col">
-                            <div className="p-6 overflow-auto flex-1">
-                            {/* 顶部筛选栏 */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-4">
-                                    {/* 账单类型选择 */}
-                                    <select className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                                        <option value="monthly">月账单</option>
-                                        <option value="daily">日账单</option>
-                                        <option value="hourly">小时账单</option>
-                                    </select>
-                                    {/* 账期选择 */}
-                                    <input
-                                        type="month"
-                                        defaultValue="2026-03"
-                                        className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                    />
-                                    {/* 所属产品：选项与「经营分析 - 产品分析」的产品保持一致 */}
-                                    <select className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 max-w-[280px]">
-                                        <option value="">所属产品</option>
-                                        {billProductOptions.map((o) => (
-                                            <option key={o.value} value={o.value}>{o.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button className="px-4 py-2 text-blue-600 border border-blue-600 text-sm rounded-lg hover:bg-blue-50 transition-colors">
-                                        导出详情
-                                    </button>
-                                    <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-                                        导出数据
-                                    </button>
-                                </div>
-                            </div>
+                            )}
 
-                            {/* 产品账单表格 */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">产品名称</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">账期年月</th>
-                                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">官方标准价金额（¥）</th>
-                                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">客户应付总金额（¥）/环比上月</th>
-                                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">客户欠费总金额（¥）</th>
-                                            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {/* 产品账单按产品维度展示，不区分内外Portal，仅展示一个产品名称 */}
-                                        {productBillData.map((row) => {
-                                            const mom = getBillMomChange(row.payableAmount, row.payableLastPeriod);
-                                            return (
-                                                <tr key={row.id} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                                                        <span>{row.productName}</span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">{row.period}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">{row.standardAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</td>
-                                                    <td className="px-4 py-3 text-sm text-right">
-                                                        <span className="font-mono">{row.payableAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</span>
-                                                        <span className={`ml-2 ${mom.up ? 'text-red-600' : 'text-green-600'}`}>{mom.up ? '↑' : '↓'} {mom.pct.toFixed(2)}%</span>
-                                                        <span className="ml-1 text-gray-400 text-xs">({row.payableLastPeriod.toLocaleString('zh-CN', { minimumFractionDigits: 2 })})</span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">
-                                                        {row.settling ? '结算中' : row.arrearsAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
-                                                        <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
-                                                        <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* 分页 */}
-                            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white mt-4 rounded-b-lg">
-                                <div className="text-sm text-gray-500">
-                                    共 <span className="font-medium">9</span> 条
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <select className="h-8 px-2 border border-gray-300 rounded text-sm">
-                                        <option value="10">10条/页</option>
-                                        <option value="20">20条/页</option>
-                                        <option value="50">50条/页</option>
-                                    </select>
-                                    <div className="flex items-center gap-1">
-                                        <button className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded text-sm hover:bg-gray-50">‹</button>
-                                        <button className="w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded text-sm">1</button>
-                                        <button className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded text-sm hover:bg-gray-50">›</button>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 内网账单页面 */}
-                    {currentMenu === 'zhiqi-bill-intranet' && (
-                        <div className="flex-1 bg-white overflow-auto flex flex-col">
+                            {/* 企业内 Tab：展示内部企业的租户账单（原内网账单内容） */}
+                            {customerBillTab === 'inner' && (
                             <div className="p-6 overflow-auto flex-1">
                             {/* 二级Tab：部门账单/产品账单 */}
                             <div className="flex items-center gap-6 mb-4 border-b border-gray-200">
@@ -9695,9 +11107,113 @@ export default function AdminPage() {
                                 </>
                             )}
                             </div>
+                            )}
                         </div>
                     )}
                     
+                    {/* 智汇云产品账单页面 */}
+                    {currentMenu === 'zhiqi-bill-product' && (
+                        <div className="flex-1 bg-gray-50 overflow-auto flex flex-col">
+                            <div className="p-6 overflow-auto flex-1">
+                            {/* 顶部筛选栏 */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    {/* 账单类型选择 */}
+                                    <select className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                                        <option value="monthly">月账单</option>
+                                        <option value="daily">日账单</option>
+                                        <option value="hourly">小时账单</option>
+                                    </select>
+                                    {/* 账期选择 */}
+                                    <input
+                                        type="month"
+                                        defaultValue="2026-03"
+                                        className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                    />
+                                    {/* 所属产品：选项与「经营分析 - 产品分析」的产品保持一致 */}
+                                    <select className="h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 max-w-[280px]">
+                                        <option value="">所属产品</option>
+                                        {billProductOptions.map((o) => (
+                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button className="px-4 py-2 text-blue-600 border border-blue-600 text-sm rounded-lg hover:bg-blue-50 transition-colors">
+                                        导出详情
+                                    </button>
+                                    <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                                        导出数据
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 产品账单表格 */}
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">产品名称</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">账期年月</th>
+                                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">官方标准价金额（¥）</th>
+                                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">客户应付总金额（¥）/环比上月</th>
+                                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">客户欠费总金额（¥）</th>
+                                            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {/* 产品账单按产品维度展示，不区分内外Portal，仅展示一个产品名称 */}
+                                        {productBillData.map((row) => {
+                                            const mom = getBillMomChange(row.payableAmount, row.payableLastPeriod);
+                                            return (
+                                                <tr key={row.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                                        <span>{row.productName}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">{row.period}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 text-right font-mono">{row.standardAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</td>
+                                                    <td className="px-4 py-3 text-sm text-right">
+                                                        <span className="font-mono">{row.payableAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</span>
+                                                        <span className={`ml-2 ${mom.up ? 'text-red-600' : 'text-green-600'}`}>{mom.up ? '↑' : '↓'} {mom.pct.toFixed(2)}%</span>
+                                                        <span className="ml-1 text-gray-400 text-xs">({row.payableLastPeriod.toLocaleString('zh-CN', { minimumFractionDigits: 2 })})</span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-right font-mono text-orange-600">
+                                                        {row.settling ? '结算中' : row.arrearsAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">客户账单</button>
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm mr-3">计费明细</button>
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm">变化趋势</button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* 分页 */}
+                            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white mt-4 rounded-b-lg">
+                                <div className="text-sm text-gray-500">
+                                    共 <span className="font-medium">9</span> 条
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <select className="h-8 px-2 border border-gray-300 rounded text-sm">
+                                        <option value="10">10条/页</option>
+                                        <option value="20">20条/页</option>
+                                        <option value="50">50条/页</option>
+                                    </select>
+                                    <div className="flex items-center gap-1">
+                                        <button className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded text-sm hover:bg-gray-50">‹</button>
+                                        <button className="w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded text-sm">1</button>
+                                        <button className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded text-sm hover:bg-gray-50">›</button>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* 经营分析 - 整体分析页面 */}
                     {currentMenu === 'analysis-overall' && (
                         <div className="flex-1 bg-gray-50 p-6 overflow-auto">
@@ -9835,16 +11351,21 @@ export default function AdminPage() {
                                             <span className="text-[12px] text-gray-400">账期 {overallPeriodLabel}，环比对比上一{overallBillType === "month" ? "月" : overallBillType === "day" ? "日" : "小时"}</span>
                                         </div>
                                         <div className="grid grid-cols-3 gap-4 p-5">
-                                            <OverallHorizontalBarCard
+                                            <OverallHierarchicalRevenueCard
                                                 label="总收入(元)"
-                                                tip="选中时间，所有产品的账单金额总和。"
-                                                value={overallReportSummary?.totalRevenue ?? 0}
+                                                tip="选中时间，所有产品的账单金额总和。企业内收入=标记为内部企业的账号的账单金额总和，拆分为内结收入（经营属性为「内结」的结算单元账单金额和）和外结收入（经营属性为「经营」的结算单元账单金额和）。多企业开启时，额外展示企业外收入（非内部企业账号账单金额）。"
+                                                totalValue={overallReportSummary?.totalRevenue ?? 0}
                                                 mom={overallReportSummary?.mom.totalRevenue ?? { pct: 0, up: false, valid: false }}
                                                 valueClass="text-blue-600"
-                                                items={[
-                                                    { label: "集团内总收入(元)", value: overallReportSummary?.innerRevenue ?? 0, color: "#3b82f6", tip: "选中时间，所有产品的内部收入总和。", mom: overallReportSummary?.mom.innerRevenue ?? { pct: 0, up: false, valid: false } },
-                                                    { label: "集团外总收入(元)", value: overallReportSummary?.outerRevenue ?? 0, color: "#93c5fd", tip: "选中时间，所有产品的外部收入总和。", mom: overallReportSummary?.mom.outerRevenue ?? { pct: 0, up: false, valid: false } },
-                                                ]}
+                                                allowMultiEnterprise={allowMultiEnterprise}
+                                                innerRevenue={overallReportSummary?.innerRevenue ?? 0}
+                                                innerSettleRevenue={overallReportSummary?.innerSettleRevenue ?? 0}
+                                                innerBizRevenue={overallReportSummary?.innerBizRevenue ?? 0}
+                                                outerRevenue={overallReportSummary?.outerRevenue ?? 0}
+                                                innerMom={overallReportSummary?.mom.innerRevenue ?? { pct: 0, up: false, valid: false }}
+                                                innerSettleMom={overallReportSummary?.mom.innerSettleRevenue ?? { pct: 0, up: false, valid: false }}
+                                                innerBizMom={overallReportSummary?.mom.innerBizRevenue ?? { pct: 0, up: false, valid: false }}
+                                                outerMom={overallReportSummary?.mom.outerRevenue ?? { pct: 0, up: false, valid: false }}
                                             />
                                             <OverallHorizontalBarCard
                                                 label="总成本(元)"
@@ -10224,40 +11745,6 @@ export default function AdminPage() {
                     {/* 经营分析 - 产品分析页面 */}
                     {currentMenu === 'analysis-product' && (
                         <div className="relative flex-1 bg-gray-50 p-6 overflow-auto">
-                            {/* 右上角虚浮球：预期目标说明 */}
-                            <div className="pointer-events-none absolute right-6 top-6 z-40 flex flex-col items-end">
-                                <button
-                                    onClick={() => setAnalysisGoalTipOpen(!analysisGoalTipOpen)}
-                                    title="预期目标说明"
-                                    className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full shadow-lg ring-4 transition-all ${
-                                        analysisGoalTipOpen
-                                            ? "bg-orange-500 text-white ring-orange-100"
-                                            : "bg-white text-orange-500 ring-white/70 hover:bg-orange-50"
-                                    }`}
-                                >
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </button>
-
-                                {analysisGoalTipOpen && (
-                                    <div className="pointer-events-auto mt-2 w-[320px] rounded-lg border border-orange-200 bg-white p-4 shadow-xl">
-                                        <div className="mb-2 flex items-start justify-between gap-2">
-                                            <span className="text-[13px] font-semibold text-gray-900">预期目标</span>
-                                            <svg
-                                                onClick={() => setAnalysisGoalTipOpen(false)}
-                                                className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 cursor-pointer text-gray-400 hover:text-gray-600"
-                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </div>
-                                        <p className="text-[13px] leading-[1.9] text-gray-600">
-                                            内外产品是一个，小产品也是一样的。产品分析里不体现内外，就一个产品。
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
 
                             {/* 顶部说明提示 */}
                             <div className="mb-4 rounded-lg border border-red-100 bg-red-50/60 px-4 py-3">
@@ -10307,32 +11794,35 @@ export default function AdminPage() {
                                     </select>
                                 )}
 
-                                {/* 所属产线 */}
-                                <select
-                                    value={analysisProductLine}
-                                    onChange={(e) => { setAnalysisProductLine(e.target.value); setAnalysisPage(1); }}
-                                    className={`h-9 w-[190px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${analysisProductLine ? "text-gray-900" : "text-gray-400"}`}
-                                >
-                                    <option value="">所属产线</option>
-                                    {analysisProductLines.map((l) => (
-                                        <option key={l} value={l}>{l}</option>
-                                    ))}
-                                </select>
-
-                                {/* 产品名称（多选标签）：本期改动，标红提示 */}
-                                <div className="group/prod relative w-[200px]">
-                                    {/* 点击外部关闭下拉 */}
-                                    {analysisProductPickerOpen && (
-                                        <div className="fixed inset-0 z-10" onClick={() => setAnalysisProductPickerOpen(false)} />
+                                {/* 产品名称模糊搜索 */}
+                                <div className="relative w-[240px]">
+                                    <svg className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        value={analysisProductSearch}
+                                        onChange={(e) => { setAnalysisProductSearch(e.target.value); setAnalysisPage(1); }}
+                                        placeholder="产品名称搜索"
+                                        className="h-9 w-full rounded-lg border border-gray-300 bg-white pl-8 pr-3 text-sm focus:outline-none focus:border-blue-500"
+                                    />
+                                    {analysisProductSearch && (
+                                        <button
+                                            onClick={() => { setAnalysisProductSearch(""); setAnalysisPage(1); }}
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        >
+                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
                                     )}
-                                    {/* 悬停说明：下拉与筛选口径 */}
-                                    <div className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden w-[300px] rounded bg-gray-700 px-3 py-2 text-[12px] leading-[1.7] text-white shadow-lg group-hover/prod:block">
-                                        下拉框里只展示外部/标品的产品名称和共用 Portal 的产品名称；筛选时，关联选中标品的内部 Portal 的产品以及对应的外部 Portal 的产品。
-                                        <span className="absolute left-6 top-full border-4 border-transparent border-t-gray-700" />
-                                    </div>
+                                </div>
+
+                                {/* 以下为已废弃的多选标签展示（保留节点供 goToProductAnalysis 无感跳转，隐藏 UI） */}
+                                <div className="hidden">
                                     <div
                                         onClick={() => setAnalysisProductPickerOpen(!analysisProductPickerOpen)}
-                                        className="min-h-[36px] w-full cursor-pointer rounded-lg border border-red-400 bg-white px-2 py-1.5 pr-7 text-sm ring-1 ring-red-100 focus:outline-none"
+                                        className="min-h-[36px] w-full cursor-pointer rounded-lg border border-red-400 bg-white px-2 py-1.5 pr-7 text-sm"
                                     >
                                         {analysisProductTags.length === 0 ? (
                                             <span className="leading-[24px] text-gray-400">产品名称</span>
@@ -10357,49 +11847,6 @@ export default function AdminPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <svg className="pointer-events-none absolute right-2.5 top-3 h-3.5 w-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-
-                                    {/* 产品下拉选择面板：仅展示外部/标品与共用Portal的产品名称 */}
-                                    {analysisProductPickerOpen && (
-                                        <div className="absolute left-0 top-[calc(100%+4px)] z-20 max-h-[300px] w-[300px] overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                                            {/* 口径说明 */}
-                                            <div className="mb-1 border-b border-gray-100 bg-red-50/70 px-3 py-2 text-[12px] leading-[1.7] text-red-500">
-                                                仅展示<span className="font-medium">外部/标品</span>的产品名称与<span className="font-medium">共用 Portal</span> 的产品名称；选中标品后，将<span className="font-medium">自动关联</span>其内部 Portal 产品与对应的外部 Portal 产品。
-                                            </div>
-                                            {productAnalysisData.map((row) => {
-                                                const short = row.productName.length > 22 ? `${row.productName.slice(0, 22)}...` : row.productName;
-                                                const checked = analysisProductTags.includes(short);
-                                                return (
-                                                    <label key={row.id} className="flex cursor-pointer items-start gap-2 px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={() =>
-                                                                setAnalysisProductTags(
-                                                                    checked
-                                                                        ? analysisProductTags.filter((t) => t !== short)
-                                                                        : [...analysisProductTags, short]
-                                                                )
-                                                            }
-                                                            className="mt-1 h-3.5 w-3.5 flex-shrink-0 rounded border-gray-300 text-blue-600 focus:ring-0"
-                                                        />
-                                                        <span className="min-w-0 flex-1">
-                                                            <span className="block truncate">{row.productName}</span>
-                                                            <span className={`mt-0.5 inline-block rounded px-1.5 py-px text-[10px] leading-none ${
-                                                                row.hasOuterPortal
-                                                                    ? "bg-orange-50 text-orange-600"
-                                                                    : "bg-blue-50 text-blue-600"
-                                                            }`}>
-                                                                {row.hasOuterPortal ? "外部/标品 · 关联内部Portal产品" : "共用Portal"}
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* 结算单元 */}
@@ -10422,6 +11869,15 @@ export default function AdminPage() {
                                     搜索
                                 </button>
 
+                                {/* 说明 */}
+                                <button
+                                    type="button"
+                                    onClick={() => setAnalysisExplainOpen(true)}
+                                    className="h-9 rounded-lg border border-orange-400 bg-orange-500 px-5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-orange-600 hover:border-orange-500 hover:shadow-md active:scale-95"
+                                >
+                                    说明
+                                </button>
+
                                 {/* 导出数据 */}
                                 <button className="ml-auto h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
                                     导出数据
@@ -10431,39 +11887,37 @@ export default function AdminPage() {
                             {/* 数据表格 */}
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[2140px]">
+                                        <table className="w-full min-w-[2170px]">
                                         <thead>
-                                            {/* 表头：橙色底 */}
+                                            {/* 表头第一行：「企业内」「企业外收入」合并列标题 */}
+                                            <tr className="border-b border-orange-200 bg-orange-100">
+                                                {/* 账期、结算单元、产品名称、总收入：各跨 2 行 */}
+                                                <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
+                                                <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" rowSpan={2} divider />
+                                                <AnalysisTh label="产品名称" align="left" width="150px" tip="每个产品在本账期内合并展示为一条产品数据，不区分内外Portal。" rowSpan={2} divider />
+                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含企业内收入与企业外收入。" width="110px" rowSpan={2} divider />
+                                                {/* 企业内收入：横跨 4 列 */}
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业内部结算的部门收入。" divider />
+                                                {/* 企业外收入：聚合列，横跨 2 列（企业内外部结算收入 + 企业外收入） */}
+                                                <AnalysisTh label="企业外收入(元)" align="center" colSpan={2} tip="等于「企业内外部结算收入」（内部企业中结算属性为「外部结算」部门的收入）与「企业外收入」（非内部企业账号的收入）之和。" divider />
+                                                {/* 其余列：各跨 2 行 */}
+                                                <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" rowSpan={2} divider />
+                                                <AnalysisTh label="内结算总收入(元)" width="110px" rowSpan={2} divider />
+                                                <AnalysisTh label="产品成本(元)" tip="该产品在本账期内分摊的资源成本合计。" width="110px" rowSpan={2} divider />
+                                                <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" rowSpan={2} divider />
+                                                <AnalysisTh label="外部利润(元)" tip="企业外收入 - 外部收入对应的内结算价收入。" width="105px" rowSpan={2} divider />
+                                                <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" rowSpan={2} divider />
+                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 企业外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" rowSpan={2} divider />
+                                                <AnalysisTh label="收支差额(元)" width="110px" rowSpan={2} divider />
+                                            </tr>
+                                            {/* 表头第二行：企业内 4 列明细 + 企业外收入 2 列明细 */}
                                             <tr className="border-b border-orange-300 bg-orange-100">
-                                                <AnalysisTh label="账期" align="left" width="80px" />
-                                                <AnalysisTh label="所属产线" align="left" width="90px" />
-                                                <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" />
-                                                <AnalysisTh
-                                                    label="产品名称"
-                                                    align="left"
-                                                    width="150px"
-                                                    tip="每个产品在本账期内合并展示为一条产品数据，不区分内外Portal。"
-                                                />
-                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含公司内收入与公司外收入。" width="110px" />
-                                                <AnalysisTh label="公司内收入(元)" tip="来自公司内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="110px" highlight />
-                                                <AnalysisTh label="公司内非中台收入(元)" width="110px" highlight />
-                                                <AnalysisTh label="中台内非智汇云收入(元)" width="110px" highlight />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" highlight />
-                                                <AnalysisTh label="本结算单元收入(元)" width="110px" highlight />
-                                                <AnalysisTh
-                                                    label="公司外收入(元)"
-                                                    align="center"
-                                                    tip="来自公司外部客户的收入合计，等于「集团内的外部客户」与「外部Portal」两部分收入之和。"
-                                                    highlight
-                                                />
-                                                <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" />
-                                                <AnalysisTh label="内结算总收入(元)" width="110px" />
-                                                <AnalysisTh label="产品成本(元)" tip="该产品在本账期内分摊的资源成本合计。" width="110px" />
-                                                <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" />
-                                                <AnalysisTh label="外部利润(元)" tip="公司外收入 - 外部收入对应的内结算价收入。" width="105px" />
-                                                <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" />
-                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 公司外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" />
-                                                <AnalysisTh label="收支差额(元)" width="110px" />
+                                                <AnalysisTh label="企业内收入(元)" tip="来自企业内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="110px" divider />
+                                                <AnalysisTh label="企业内非智汇云收入(元)" width="110px" highlight divider />
+                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" highlight divider />
+                                                <AnalysisTh label="本结算单元收入(元)" width="110px" divider />
+                                                <AnalysisTh label="企业内外部结算收入(元)" tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" width="125px" divider />
+                                                <AnalysisTh label="企业外收入(元)" tip="非内部企业账号（外部Portal 客户）产生的收入。" width="110px" divider />
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
@@ -10471,18 +11925,17 @@ export default function AdminPage() {
                                                 return (
                                                 <tr key={row.id} className="hover:bg-gray-50">
                                                     <td className="px-3 py-3 text-sm text-gray-900">{row.period}</td>
-                                                    <td className="px-3 py-3 text-sm text-gray-900">{row.productLine}</td>
                                                     <td className="px-3 py-3 text-sm text-gray-900">{row.settlementUnit}</td>
-                                                    <td className="px-3 py-3 text-sm bg-orange-50/70">
+                                                    <td className="px-3 py-3 text-sm">
                                                         <span className="text-blue-600 hover:text-blue-700 cursor-pointer">{cleanProductName(row.productName)}</span>
                                                     </td>
-                                                    <AnalysisAmountCell value={row.totalRevenue} link highlight onClick={() => { setRevenueDetailRow(row); setRevenueDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.innerRevenue} link highlight onClick={() => { setInnerRevenueDetailRow(row); setInnerRevenueDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.innerNonMidRevenue} link onClick={() => { setUnitBillDetail({ row, title: "公司内非中台收入", amount: row.innerNonMidRevenue }); setUnitBillDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.midNonZyunRevenue} link onClick={() => { setUnitBillDetail({ row, title: "中台内非智汇云收入", amount: row.midNonZyunRevenue }); setUnitBillDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.totalRevenue} link onClick={() => { setRevenueDetailRow(row); setRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.innerRevenue} link onClick={() => { setInnerRevenueDetailRow(row); setInnerRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.innerNonZyunRevenue} link highlight onClick={() => { setUnitBillDetail({ row, title: "企业内非智汇云收入", amount: row.innerNonZyunRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link highlight onClick={() => { setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue }); setUnitBillDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.unitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "本结算单元收入", amount: row.unitRevenue }); setUnitBillDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.outerRevenue} link highlight onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.outerGroupRevenue} link onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.outerPortalRevenue} link onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
                                                     <AnalysisAmountCell value={row.innerTotalRevenue} />
                                                     <AnalysisAmountCell value={row.productCost} link />
@@ -10498,17 +11951,17 @@ export default function AdminPage() {
                                                 </tr>
                                                 );
                                             })}
-                                            {/* 合计行：公司外收入为「集团内外部客户」与「外部Portal」求和 */}
+                                            {/* 合计行：企业外收入为「集团内外部客户」与「外部Portal」求和 */}
                                             {pagedAnalysisRows.length > 0 && (
                                                 <tr className="bg-gray-50 font-medium">
-                                                    <td className="px-3 py-3 text-sm text-gray-900" colSpan={4}>合计</td>
-                                                    <AnalysisAmountCell value={analysisTotals.totalRevenue} highlight />
-                                                    <AnalysisAmountCell value={analysisTotals.innerRevenue} highlight />
-                                                    <AnalysisAmountCell value={analysisTotals.innerNonMidRevenue} />
-                                                    <AnalysisAmountCell value={analysisTotals.midNonZyunRevenue} />
-                                                    <AnalysisAmountCell value={analysisTotals.zyunNonUnitRevenue} />
+                                                    <td className="px-3 py-3 text-sm text-gray-900" colSpan={3}>合计</td>
+                                                    <AnalysisAmountCell value={analysisTotals.totalRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.innerRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.innerNonZyunRevenue} highlight />
+                                                    <AnalysisAmountCell value={analysisTotals.zyunNonUnitRevenue} highlight />
                                                     <AnalysisAmountCell value={analysisTotals.unitRevenue} />
-                                                    <AnalysisAmountCell value={analysisTotals.outerRevenue} highlight />
+                                                    <AnalysisAmountCell value={analysisTotals.outerGroupRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.outerPortalRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.outerInnerPriceRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.innerTotalRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.productCost} />
@@ -10521,7 +11974,7 @@ export default function AdminPage() {
                                             )}
                                             {pagedAnalysisRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={19} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={18} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -10654,14 +12107,14 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                                                        {/* 公司内收入明细抽屉（集团内部结算单元账单 + 内部结算单元账号在外部portal使用费用 合并展示） */}
+                                                        {/* 企业内收入明细抽屉（集团内部结算单元账单 + 内部结算单元账号在外部portal使用费用 合并展示） */}
                             {innerRevenueDetailRow && (
                                 <div className="fixed inset-0 z-[100]">
                                     <div className="absolute inset-0 bg-black/50" onClick={() => setInnerRevenueDetailRow(null)} />
                                     <div className="absolute right-0 top-0 bottom-0 w-[900px] bg-white shadow-xl flex flex-col">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                             <h3 className="text-base font-semibold text-gray-900">
-                                                公司内收入明细 <span className="font-normal text-gray-600">{cleanProductName(innerRevenueDetailRow.productName)}</span>
+                                                企业内收入明细 <span className="font-normal text-gray-600">{cleanProductName(innerRevenueDetailRow.productName)}</span>
                                             </h3>
                                             <button onClick={() => setInnerRevenueDetailRow(null)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -10697,9 +12150,9 @@ export default function AdminPage() {
                                                 <>
                                                     {/* 提示文案 */}
                                                     <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
-                                                        <div className="font-semibold text-gray-900">公司内收入包含两部分：</div>
+                                                        <div className="font-semibold text-gray-900">企业内收入包含两部分：</div>
                                                         <div>集团内部结算单元账单：内部企业中经营属性为「内结」的结算单元收入；</div>
-                                                        <div>「内结」结算单元在外部Portal使用的费用：其账号在外部Portal上使用产生的费用，关联回对应结算单元，计入公司内收入。</div>
+                                                        <div>「内结」结算单元在外部Portal使用的费用：其账号在外部Portal上使用产生的费用，关联回对应结算单元，计入企业内收入。</div>
                                                     </div>
                                                     <table className="w-full">
                                                         <thead>
@@ -10733,7 +12186,7 @@ export default function AdminPage() {
                                                             ))}
                                                             {getInnerRevenueMergedRows(innerRevenueDetailRow).length === 0 && (
                                                                 <tr>
-                                                                    <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂无公司内收入明细数据</td>
+                                                                    <td colSpan={5} className="py-6 text-center text-sm text-gray-400">暂无企业内收入明细数据</td>
                                                                 </tr>
                                                             )}
                                                         </tbody>
@@ -10745,14 +12198,14 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                            {/* 公司外收入明细抽屉（集团下外部结算单元账单 + 外部Portal名称(域名) 合并展示） */}
+                            {/* 企业外收入明细抽屉（集团下外部结算单元账单 + 外部Portal名称(域名) 合并展示） */}
                             {outerRevenueDetailRow && (
                                 <div className="fixed inset-0 z-[100]">
                                     <div className="absolute inset-0 bg-black/50" onClick={() => setOuterRevenueDetailRow(null)} />
                                     <div className="absolute right-0 top-0 bottom-0 w-[900px] bg-white shadow-xl flex flex-col">
                                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                                             <h3 className="text-base font-semibold text-gray-900">
-                                                公司外收入明细 <span className="font-normal text-gray-600">{cleanProductName(outerRevenueDetailRow.productName)}</span>
+                                                企业外收入明细 <span className="font-normal text-gray-600">{cleanProductName(outerRevenueDetailRow.productName)}</span>
                                             </h3>
                                             <button onClick={() => setOuterRevenueDetailRow(null)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -10788,7 +12241,7 @@ export default function AdminPage() {
                                                 <>
                                                     {/* 提示文案 */}
                                                     <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-[1.9] text-gray-700">
-                                                        <div className="font-semibold text-gray-900">公司外收入包含两部分：</div>
+                                                        <div className="font-semibold text-gray-900">企业外收入包含两部分：</div>
                                                         <div>集团下外部结算单元账单：内部企业中经营属性为「经营」的结算单元收入；</div>
                                                         <div>外部Portal名称(域名)收入：外部Portal(360.cn)的收入。</div>
                                                     </div>
@@ -10829,7 +12282,7 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                            {/* 结算单元账单金额明细抽屉（公司内非中台收入 / 中台内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入） */}
+                            {/* 结算单元账单金额明细抽屉（企业内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入） */}
                             {unitBillDetail && (
                                 <div className="fixed inset-0 z-[100]">
                                     <div className="absolute inset-0 bg-black/50" onClick={() => setUnitBillDetail(null)} />
@@ -12030,20 +13483,20 @@ export default function AdminPage() {
                                                 ))}
                                                 <option value="__unlinked__">未关联组织部门</option>
                                             </select>
-                                            {/* 部门属性筛选 */}
+                                            {/* 结算属性筛选 */}
                                             <select
                                                 value={discountAttrFilter}
                                                 onChange={(e) => setDiscountAttrFilter(e.target.value)}
                                                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                             >
-                                                <option value="all">全部经营属性</option>
-                                                {unitDeptAttrOptions.map(o => (
+                                                <option value="all">全部结算属性</option>
+                                                {unitDeptAttrOptions.filter(o => o.value !== 'biz' || !!enterpriseConfigs.find(e => e.internal)?.enableOuterSettlement).map(o => (
                                                     <option key={o.value} value={o.value}>{o.label}</option>
                                                 ))}
-                                                <option value="__unset__">未配置经营属性</option>
+                                                <option value="__unset__">未配置结算属性</option>
                                             </select>
                                         </div>
-                                        {/* 批量操作：部门属性、折扣可批量设置；单独设置折扣不支持批量 */}
+                                        {/* 批量操作：结算属性、折扣可批量设置；单独设置折扣不支持批量 */}
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => handleOpenDiscountDialog(selectedDiscountUnits, 'attr')}
@@ -12052,7 +13505,7 @@ export default function AdminPage() {
                                                     ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                                                     : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                                             >
-                                                批量设置经营属性{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
+                                                批量设置结算属性{selectedDiscountUnits.length > 0 ? `（${selectedDiscountUnits.length}）` : ''}
                                             </button>
                                             <button
                                                 onClick={() => handleOpenDiscountDialog(selectedBizUnits, 'discount')}
@@ -12068,7 +13521,7 @@ export default function AdminPage() {
 
                                     {/* 列表 */}
                                     <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[1120px]">
+                                        <table className="w-full min-w-[960px]">
                                             <thead>
                                                 <tr className="bg-gray-50 border-y border-gray-200">
                                                     <th className="text-left py-3 px-4 w-12">
@@ -12089,21 +13542,7 @@ export default function AdminPage() {
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 min-w-[240px]">归属组织部门</th>
                                                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">
                                                         <span className="inline-flex items-center gap-1">
-                                                            内外属性
-                                                            <span className="group/tip relative inline-flex flex-shrink-0">
-                                                                <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                </svg>
-                                                                <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
-                                                                    {unitInsideAttrTip}
-                                                                    <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
-                                                                </span>
-                                                            </span>
-                                                        </span>
-                                                    </th>
-                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-36">
-                                                        <span className="inline-flex items-center gap-1">
-                                                            经营属性
+                                                            结算属性
                                                             <span className="group/tip relative inline-flex flex-shrink-0">
                                                                 <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -12137,7 +13576,7 @@ export default function AdminPage() {
                                             <tbody>
                                                 {filteredDiscountRows.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={9} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
+                                                        <td colSpan={8} className="py-16 text-center text-sm text-gray-400">暂无数据</td>
                                                     </tr>
                                                 ) : (
                                                     filteredDiscountRows.map((row, idx) => (
@@ -12165,13 +13604,7 @@ export default function AdminPage() {
                                                                     <span className="text-xs text-gray-400">未关联组织部门</span>
                                                                 )}
                                                             </td>
-                                                            {/* 内外属性：依据归属组织部门层级判定 */}
-                                                            <td className="py-3 px-4 align-top">
-                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${unitInsideAttrColors[getUnitInsideAttr(row.deptId, row.deptPath)]}`}>
-                                                                    {getUnitInsideAttrLabel(getUnitInsideAttr(row.deptId, row.deptPath))}
-                                                                </span>
-                                                            </td>
-                                                            {/* 部门属性：本列单独配置 */}
+                                                            {/* 结算属性：本列单独配置 */}
                                                             <td className="py-3 px-4 align-top">
                                                                 <div className="flex items-center gap-2">
                                                                     {row.config.deptAttr ? (
@@ -12183,7 +13616,7 @@ export default function AdminPage() {
                                                                     )}
                                                                     <button
                                                                         onClick={() => handleOpenDiscountDialog([row.unit], 'attr')}
-                                                                        title="设置经营属性"
+                                                                        title="设置结算属性"
                                                                         className="text-gray-300 hover:text-blue-600 transition-colors"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12192,13 +13625,13 @@ export default function AdminPage() {
                                                                     </button>
                                                                 </div>
                                                             </td>
-                                                            {/* 折扣：本列单独配置；「内结」固定内部折扣不可编辑 */}
+                                                            {/* 折扣：本列单独配置；「内部结算」固定内部折扣不可编辑 */}
                                                             <td className="py-3 px-4 text-sm text-gray-700 align-top">
                                                                 <div className="flex items-center gap-2">
                                                                     {row.config.discount == null
                                                                         ? <span className="text-xs text-gray-400">未设置</span>
                                                                         : formatDiscount(row.config.discount)}
-                                                                    {!isInnerDept(row.unit) && (
+                                                                    {row.config.deptAttr === 'biz' && (
                                                                         <button
                                                                             onClick={() => handleOpenDiscountDialog([row.unit], 'discount')}
                                                                             title="设置计费标签"
@@ -12213,7 +13646,7 @@ export default function AdminPage() {
                                                             </td>
                                                             {/* 单独设置折扣：展示单独设置的产品数，标蓝可点击查看明细；不支持批量设置 */}
                                                             <td className="py-3 px-4 text-sm text-gray-700 align-top">
-                                                                {isInnerDept(row.unit) ? (
+                                                                {row.config.deptAttr !== 'biz' ? (
                                                                     <span className="text-xs text-gray-400">--</span>
                                                                 ) : (
                                                                     <button
@@ -12240,341 +13673,6 @@ export default function AdminPage() {
                                 </div>
                                 )}
                             </div>
-                            )}
-
-                            {/* 折扣配置弹窗（单条 / 批量） */}
-                            {discountDialogUnits && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-black/40" onClick={() => setDiscountDialogUnits(null)} />
-                                    <div className="relative w-[560px] max-w-[92vw] bg-white rounded-lg shadow-xl">
-                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold text-gray-900">
-                                                {discountDialogMode === 'attr'
-                                                    ? (discountDialogUnits.length > 1 ? `批量设置经营属性（${discountDialogUnits.length} 个结算单元）` : '设置经营属性')
-                                                    : discountDialogMode === 'discount'
-                                                        ? (discountDialogUnits.length > 1 ? `批量设置计费标签（${discountDialogUnits.length} 个结算单元）` : '设置计费标签')
-                                                        : (discountDialogUnits.length > 1 ? `批量设置（${discountDialogUnits.length} 个结算单元）` : '计费标签设置')}
-                                            </h3>
-                                            <button onClick={() => setDiscountDialogUnits(null)} className="text-gray-400 hover:text-gray-600">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <div className="px-6 py-5 space-y-4">
-                                             {/* 结算单元（只读，来源 ops 同步） */}
-                                             <div>
-                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">结算单元</label>
-                                                 <div className="flex flex-wrap gap-1.5 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 max-h-[104px] overflow-auto">
-                                                     {discountDialogUnits.map(u => (
-                                                         <span key={u} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-600">{u}</span>
-                                                     ))}
-                                                 </div>
-                                             </div>
-
-                                             {/* 批量模式说明 */}
-                                             {discountDialogMode === 'attr' && (
-                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置经营属性，选择「内结」将自动清空该结算单元已设置的单独计费产品。</p>
-                                             )}
-                                             {discountDialogMode === 'discount' && discountDialogUnits.length > 1 && (
-                                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置计费标签，不影响各结算单元已单独设置的计费产品。</p>
-                                             )}
-
-                                             {/* 部门属性 */}
-                                             {discountDialogMode !== 'discount' && (
-                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">经营属性 <span className="text-red-500">*</span></label>
-                                                <select
-                                                    value={discountForm.deptAttr}
-                                                    onChange={(e) => {
-                                                        const v = e.target.value as UnitDeptAttr | '';
-                                                        setDiscountForm({
-                                                            ...discountForm,
-                                                            deptAttr: v,
-                                                            // 切换为「内结」时清空「经营」专属的折扣
-                                                            discount: v === 'inner' ? '' : discountForm.discount,
-                                                        });
-                                                        setDiscountFormError('');
-                                                    }}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                >
-                                                    <option value="">请选择经营属性</option>
-                                                    {unitDeptAttrOptions.map(o => (
-                                                        <option key={o.value} value={o.value}>{o.label}</option>
-                                                    ))}
-                                                </select>
-                                                <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">{unitDeptAttrTip}</p>
-                                            </div>
-                                            )}
-
-                                            {/* 折扣配置：内结固定内部折扣；经营可选 SVIP/VIP */}
-                                            {discountDialogMode !== 'attr' && (                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                    计费标签 {discountForm.deptAttr === 'biz' && <span className="text-red-500">*</span>}
-                                                </label>
-                                                {discountForm.deptAttr === 'inner' ? (
-                                                    <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
-                                                        内部折扣
-                                                        <span className="text-xs text-gray-400">（内结固定为内部折扣，不可编辑）</span>
-                                                    </div>
-                                                ) : discountForm.deptAttr === 'biz' ? (
-                                                    <select
-                                                        value={discountForm.discount}
-                                                        onChange={(e) => { setDiscountForm({ ...discountForm, discount: e.target.value as UnitDiscountType | '' }); setDiscountFormError(''); }}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                    >
-                                                        <option value="">请选择计费标签</option>
-                                                        {unitDiscountTypeOptions.filter(o => o.value !== 'internal').map(o => (
-                                                            <option key={o.value} value={o.value}>{o.label}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <div className="flex items-center px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-400">
-                                                        请先选择经营属性
-                                                    </div>
-                                                )}
-                                                <p className="mt-1.5 text-xs text-gray-400">经营属性为「经营」的结算单元可通过 SVIP / VIP 客户计费标签设置折扣；「内结」固定为内部折扣，不可再编辑。</p>
-                                            </div>
-                                            )}
-
-                                            {discountFormError && (
-                                                <div className="px-3 py-2 rounded-lg bg-red-50 text-sm text-red-500">{discountFormError}</div>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
-                                            <button
-                                                onClick={() => setDiscountDialogUnits(null)}
-                                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
-                                            >
-                                                取消
-                                            </button>
-                                            <button
-                                                onClick={handleSaveDiscount}
-                                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                                            >
-                                                保存
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 单独设置计费的产品弹窗 */}
-                            {standaloneProductsUnit && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-black/40" onClick={handleCloseStandaloneProducts} />
-                                    <div className="relative bg-white rounded-lg shadow-xl w-[900px] max-w-[94vw] max-h-[86vh] flex flex-col">
-                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                            <h3 className="text-base font-semibold text-gray-900">单独设置计费的产品</h3>
-                                            <button onClick={handleCloseStandaloneProducts} className="text-gray-400 hover:text-gray-600">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <div className="px-6 py-4 flex-1 overflow-auto">
-                                            {/* 高亮提示：交互同「客户管理 > 单独设置产品折扣」 */}
-                                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                                                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                                </svg>
-                                                <div className="text-sm text-amber-700 leading-[1.7]">
-                                                    <p>温馨提示：如果为客户设置了标签，同时也单独为客户设置了某些产品的折扣，那么计费时优先取单独设置的折扣。</p>
-                                                    <p className="mt-1 text-xs text-amber-600">{standaloneDiscountTip}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* 结算单元 + 新增按钮 */}
-                                            <div className="mt-3 flex items-center justify-between">
-                                                <div className="text-sm text-gray-600">
-                                                    结算单元：<span className="text-gray-900">{standaloneProductsUnit}</span>
-                                                </div>
-                                                <button
-                                                    onClick={() => { setStandaloneAddForm(null); setStandaloneAddError(''); setStandaloneAddNotice(standaloneProductsTab); }}
-                                                    className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                                                >
-                                                    {standaloneProductsTab === 'metered' ? '新增产品' : '新增资源包'}
-                                                </button>
-                                            </div>
-
-                                            {/* 计费类型 Tab */}
-                                            <div className="mt-4 flex items-center gap-6 border-b border-gray-200">
-                                                {standaloneBillingTabs.map(tab => (
-                                                    <button
-                                                        key={tab.value}
-                                                        onClick={() => { setStandaloneProductsTab(tab.value); setStandaloneAddForm(null); setStandaloneAddError(''); setStandaloneAddNotice(null); }}
-                                                        className={`relative pb-2.5 text-sm transition-colors ${standaloneProductsTab === tab.value ? 'text-[#006bff] font-medium' : 'text-gray-600 hover:text-gray-900'}`}
-                                                    >
-                                                        {tab.label}
-                                                        {standaloneProductsTab === tab.value && (
-                                                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
-                                                        )}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            {/* 新增表单 */}
-                                            {standaloneAddForm && standaloneAddForm.type === standaloneProductsTab && (
-                                                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                                                    <div className="flex items-end gap-3">
-                                                        <div className="flex-1">
-                                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                                {standaloneProductsTab === 'metered' ? '选择产品' : '选择资源包'} <span className="text-red-500">*</span>
-                                                            </label>
-                                                            <select
-                                                                value={standaloneAddForm.productId}
-                                                                onChange={(e) => { setStandaloneAddForm({ ...standaloneAddForm, productId: e.target.value }); setStandaloneAddError(''); }}
-                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                                            >
-                                                                <option value="">请选择</option>
-                                                                {standaloneProductOptions[standaloneProductsTab].map(o => (
-                                                                    <option key={o.id} value={String(o.id)}>{o.name}</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                        <div className="w-40">
-                                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">折扣（0~10）</label>
-                                                            <input
-                                                                type="number"
-                                                                min={0}
-                                                                max={10}
-                                                                step="0.01"
-                                                                value={standaloneAddForm.discount}
-                                                                onChange={(e) => { setStandaloneAddForm({ ...standaloneAddForm, discount: e.target.value }); setStandaloneAddError(''); }}
-                                                                placeholder="如 9.75"
-                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            onClick={handleAddStandaloneProduct}
-                                                            className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
-                                                        >
-                                                            确定
-                                                        </button>
-                                                        <button
-                                                            onClick={() => { setStandaloneAddForm(null); setStandaloneAddError(''); }}
-                                                            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-white transition-colors whitespace-nowrap"
-                                                        >
-                                                            取消
-                                                        </button>
-                                                    </div>
-                                                    {standaloneAddError && (
-                                                        <div className="mt-2 text-xs text-red-500">{standaloneAddError}</div>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* 产品列表 */}
-                                            <table className="w-full mt-4">
-                                                <thead>
-                                                    <tr className="bg-gray-50 border-b border-gray-200">
-                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-20">序号</th>
-                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600">单独设置价格的产品名称</th>
-                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-40">折扣</th>
-                                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-32">操作</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {standaloneProductsData.filter(p => p.type === standaloneProductsTab).length === 0 ? (
-                                                        <tr>
-                                                            <td colSpan={4} className="py-10 text-center text-sm text-gray-400">暂无单独设置的{standaloneProductsTab === 'metered' ? '按量计费产品' : '资源包'}</td>
-                                                        </tr>
-                                                    ) : (
-                                                        standaloneProductsData.filter(p => p.type === standaloneProductsTab).map((p, idx) => (
-                                                            <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                                <td className="py-3 px-4 text-sm text-gray-700">{idx + 1}</td>
-                                                                <td className="py-3 px-4 text-sm text-gray-900">{p.name}</td>
-                                                                <td className="py-3 px-4 text-sm text-gray-700">
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <input
-                                                                            type="number"
-                                                                            min={0}
-                                                                            max={10}
-                                                                            step="0.01"
-                                                                            value={p.discount ?? ''}
-                                                                            onChange={(e) => handleUpdateStandaloneDiscount(p.id, e.target.value)}
-                                                                            placeholder="--"
-                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                                                                        />
-                                                                        <span className="text-xs text-gray-500">折</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-3 px-4 text-sm">
-                                                                    <button
-                                                                        onClick={() => handleDeleteStandaloneProduct(p.id)}
-                                                                        className="text-red-500 hover:text-red-600"
-                                                                    >
-                                                                        删除
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
-                                            <button
-                                                onClick={handleCloseStandaloneProducts}
-                                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                                            >
-                                                完成
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* 新增产品 / 新增资源包：未画稿说明弹窗 */}
-                                    {standaloneAddNotice && (
-                                        <div className="absolute inset-0 z-[60] flex items-center justify-center">
-                                            <div className="absolute inset-0 bg-black/30" onClick={() => setStandaloneAddNotice(null)} />
-                                            <div className="relative bg-white rounded-lg shadow-xl w-[520px] max-w-[92vw]">
-                                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                                    <h3 className="text-base font-semibold text-gray-900">
-                                                        {standaloneAddNotice === 'metered' ? '新增产品' : '新增资源包'}
-                                                    </h3>
-                                                    <button onClick={() => setStandaloneAddNotice(null)} className="text-gray-400 hover:text-gray-600">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                                <div className="px-6 py-5">
-                                                    <div className="flex items-start gap-2.5">
-                                                        <svg className="w-5 h-5 text-[#006bff] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <div className="text-sm text-gray-700 leading-[1.8]">
-                                                            <p>添加产品或资源包的交互同「客户管理 &gt; 单独设置折扣」，此处未画稿。</p>
-                                                            <p className="mt-1.5 text-gray-500">
-                                                                参考地址：
-                                                                <a
-                                                                    href="https://account.zyun.qihoo.net/#/usercenter/usermanage"
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                    className="text-[#006bff] hover:underline break-all"
-                                                                >
-                                                                    https://account.zyun.qihoo.net/#/usercenter/usermanage
-                                                                </a>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
-                                                    <button
-                                                        onClick={() => setStandaloneAddNotice(null)}
-                                                        className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                                                    >
-                                                        我知道了
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
                             )}
 
                             {/* 新建/编辑企业抽屉（右侧滑出） */}
@@ -12893,6 +13991,497 @@ export default function AdminPage() {
                             )}
                         </div>
                     )}
+
+                    {/* 平台配置 - 企业配置1页面：一行一行的配置项（公共Portal / 内部企业配置 / 高级配置） */}
+                    {currentMenu === 'platform-enterprise-1' && (() => {
+                        // 内部企业（全局唯一）与公共Portal企业（系统内置）
+                        const internalEnt = enterpriseConfigs.find(e => e.internal) || null;
+                        const publicEnt = enterpriseConfigs.find(e => !e.internal) || null;
+                        // 行式配置项通用样式
+                        const rowCls = 'flex items-start gap-4 px-5 py-4 border-b border-gray-100 last:border-b-0';
+                        // 同一模块内的相邻配置项（如「选择经营部门」+「是否开启外部结算」、
+                        // 「是否开启内部Portal」+「内部Portal域名」）之间不展示分隔线
+                        const rowClsJoined = 'flex items-start gap-4 px-5 py-4';
+                        const labelCls = 'w-44 flex-shrink-0 pt-2 text-sm text-gray-600';
+                        const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-blue-500';
+                        const selectBtnCls = 'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm focus:outline-none';
+                        // 域名草稿：未编辑时取实际值
+                        const publicDomainDraft = publicEnt ? (portalDomainDrafts[publicEnt.id] ?? publicEnt.portalDomain) : '';
+                        const innerDomainDraft = internalEnt ? (portalDomainDrafts[internalEnt.id] ?? internalEnt.internalPortalDomain) : '';
+                        const publicDomainDirty = !!publicEnt && publicDomainDraft !== publicEnt.portalDomain;
+                        const innerDomainDirty = !!internalEnt && innerDomainDraft !== internalEnt.internalPortalDomain;
+                        // 保存域名（为空不可保存）
+                        const savePublicDomain = () => {
+                            if (!publicEnt || !publicDomainDraft.trim()) return;
+                            handlePatchEnterpriseConfig(publicEnt.id, { portalDomain: publicDomainDraft.trim() });
+                            setPortalDomainDrafts(prev => { const { [publicEnt.id]: _, ...rest } = prev; return rest; });
+                            setPublicDomainEditing(false);
+                        };
+                        const resetDraft = (id: number) => setPortalDomainDrafts(prev => { const { [id]: _, ...rest } = prev; return rest; });
+                        // 公共Portal域名：已保存域名且未点击「编辑」时，只读展示
+                        const publicDomainReadonly = !!publicEnt && !!publicEnt.portalDomain.trim() && !publicDomainEditing;
+                        // 内部企业配置：整模块统一编辑，编辑态下所有字段取草稿值，只读态取实际值
+                        const internalEditing = !!internalConfigDraft;
+                        const internalView = internalConfigDraft ?? {
+                            tenantId: internalEnt?.tenantId ?? '',
+                            tenantName: internalEnt?.tenantName ?? '',
+                            bizDeptId: internalEnt?.bizDeptId ?? '',
+                            bizDeptName: internalEnt?.bizDeptName ?? '',
+                            enableOuterSettlement: internalEnt?.enableOuterSettlement ?? false,
+                            enableInternalPortal: internalEnt?.enableInternalPortal ?? false,
+                            internalPortalDomain: internalEnt?.internalPortalDomain ?? '',
+                        };
+
+                        return (
+                            <div className="flex-1 bg-gray-50 overflow-auto">
+                                {/* 页面标题 */}
+                                <div className="px-6 pt-4 bg-white">
+                                    <h2 className="text-base font-medium text-gray-900">企业配置</h2>
+                                </div>
+
+                                <div className="p-6 space-y-6">
+                                    {/* ===== 1. 公共Portal：可配置域名 ===== */}
+                                    <section className="bg-white rounded-lg border border-gray-200">
+                                        <div className="px-5 py-3 border-b border-gray-200 flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-gray-900">公共Portal</span>
+                                            <span className="px-1.5 py-0.5 text-[10px] leading-none rounded bg-gray-100 text-gray-500">系统内置</span>
+                                            {publicEnt && (
+                                                <span className="ml-auto text-xs text-gray-400">更新时间：{publicEnt.updateTime}</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            {/* Portal域名 */}
+                                            <div className={rowCls}>
+                                                <div className={labelCls}>
+                                                    <span className="text-red-500 mr-0.5">*</span>Portal域名
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    {publicEnt ? (
+                                                        publicDomainReadonly ? (
+                                                            /* 已保存域名：只读展示，点击「编辑」后才可修改 */
+                                                            <>
+                                                                <div className="flex items-center gap-3 pt-1.5">
+                                                                    <span className="font-mono text-sm text-gray-700">{publicEnt.portalDomain}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setPortalDomainDrafts(prev => ({ ...prev, [publicEnt.id]: publicEnt.portalDomain }));
+                                                                            setPublicDomainEditing(true);
+                                                                        }}
+                                                                        className="inline-flex items-center gap-1 text-sm text-[#006bff] hover:text-blue-600"
+                                                                    >
+                                                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                        </svg>
+                                                                        编辑
+                                                                    </button>
+                                                                </div>
+                                                                <p className="mt-1.5 text-xs text-gray-400">公共Portal面向全部外部客户，域名修改后立即生效。</p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="max-w-md flex-1">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={publicDomainDraft}
+                                                                            onChange={(e) => setPortalDomainDrafts(prev => ({ ...prev, [publicEnt.id]: e.target.value }))}
+                                                                            placeholder="请输入公共Portal域名，如：zyun.360.cn"
+                                                                            className={inputCls}
+                                                                        />
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={!publicDomainDirty || !publicDomainDraft.trim()}
+                                                                        onClick={savePublicDomain}
+                                                                        className={`px-3 py-2 text-sm rounded-lg transition-colors flex-shrink-0 ${publicDomainDirty && publicDomainDraft.trim() ? 'bg-[#006bff] text-white hover:bg-blue-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                                                    >
+                                                                        保存
+                                                                    </button>
+                                                                    {(publicDomainDirty || publicDomainEditing) && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => { resetDraft(publicEnt.id); setPublicDomainEditing(false); }}
+                                                                            className="px-3 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
+                                                                        >
+                                                                            取消
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                                {publicDomainDraft.trim() ? (
+                                                                    <p className="mt-1.5 text-xs text-gray-400">公共Portal面向全部外部客户，域名修改后立即生效。</p>
+                                                                ) : (
+                                                                    <p className="mt-1.5 text-xs text-red-500">公共Portal域名不能为空。</p>
+                                                                )}
+                                                            </>
+                                                        )
+                                                    ) : (
+                                                        <p className="pt-2 text-sm text-gray-400">暂无公共Portal配置</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+
+
+                                    {/* ===== 2. 内部企业配置：租户 / 经营部门 / 内部Portal（整模块统一编辑） ===== */}
+                                    <section className="bg-white rounded-lg border border-gray-200">
+                                        <div className="px-5 py-3 border-b border-gray-200 flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-gray-900">内部企业配置</span>
+                                            <span className="px-1.5 py-0.5 text-[10px] leading-none rounded bg-blue-50 text-blue-600">
+                                                {internalEnt ? internalEnt.name : '内部企业'}
+                                            </span>
+                                            {internalEnt && (
+                                                <div className="ml-auto flex items-center gap-3">
+                                                    <span className="text-xs text-gray-400">更新时间：{internalEnt.updateTime}</span>
+                                                    {/* 编辑 / 保存 / 取消 统一放在模块右上角，保证操作点位置一致 */}
+                                                    {!internalEditing ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleStartEditInternalConfig(internalEnt)}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-sm text-[#006bff] border border-[#006bff] rounded-lg hover:bg-blue-50 transition-colors"
+                                                        >
+                                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                            编辑
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            {internalConfigError && (
+                                                                <span className="text-xs text-red-500">{internalConfigError}</span>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSaveInternalConfig(internalEnt.id)}
+                                                                className="px-3 py-1 text-sm rounded-lg bg-[#006bff] text-white hover:bg-blue-600 transition-colors"
+                                                            >
+                                                                保存
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleCancelEditInternalConfig}
+                                                                className="px-3 py-1 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                                                            >
+                                                                取消
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {internalEnt ? (
+                                            <div>
+                                                {/* 选择租户 */}
+                                                <div className={rowCls}>
+                                                    <div className={labelCls}>
+                                                        <span className="text-red-500 mr-0.5">*</span>选择租户
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        {internalEditing ? (
+                                                            <div className="relative max-w-md">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setConfig1TenantDropdownOpen(v => !v)}
+                                                                    className={`${selectBtnCls} border-gray-300 bg-white hover:border-blue-500`}
+                                                                >
+                                                                    <span className={internalView.tenantId ? 'text-gray-700' : 'text-gray-400'}>
+                                                                        {internalView.tenantId ? `${internalView.tenantName}（${internalView.tenantId}）` : '请选择租户'}
+                                                                    </span>
+                                                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                    </svg>
+                                                                </button>
+                                                                {config1TenantDropdownOpen && (
+                                                                    <>
+                                                                        <div className="fixed inset-0 z-10" onClick={() => setConfig1TenantDropdownOpen(false)} />
+                                                                        <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg">
+                                                                            <div className="p-2 border-b border-gray-100">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={config1TenantKeyword}
+                                                                                    onChange={(e) => setConfig1TenantKeyword(e.target.value)}
+                                                                                    placeholder="输入租户ID或名称搜索"
+                                                                                    className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="max-h-52 overflow-auto">
+                                                                                {config1TenantSuggestions.length === 0 ? (
+                                                                                    <div className="px-3 py-3 text-sm text-gray-400">未匹配到租户</div>
+                                                                                ) : (
+                                                                                    config1TenantSuggestions.map(t => (
+                                                                                        <button
+                                                                                            key={t.id}
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                // 切换租户时清空已选经营部门（仅改草稿，保存后统一生效）
+                                                                                                handleUpdateInternalConfigDraft(t.id === internalView.tenantId
+                                                                                                    ? { tenantId: t.id, tenantName: t.name }
+                                                                                                    : { tenantId: t.id, tenantName: t.name, bizDeptId: '', bizDeptName: '' });
+                                                                                                setConfig1TenantKeyword('');
+                                                                                                setConfig1TenantDropdownOpen(false);
+                                                                                            }}
+                                                                                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-blue-50 ${internalView.tenantId === t.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+                                                                                        >
+                                                                                            <span>{t.name}</span>
+                                                                                            <span className="text-xs text-gray-400">{t.id}</span>
+                                                                                        </button>
+                                                                                    ))
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="pt-1.5 text-sm text-gray-700">
+                                                                {internalView.tenantId ? `${internalView.tenantName}（${internalView.tenantId}）` : <span className="text-gray-400">未配置</span>}
+                                                            </div>
+                                                        )}
+                                                        <p className="mt-1.5 text-xs text-gray-400">内部企业必须选择所属租户，该租户下的账号视为企业内账号。</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* 选择经营部门 + 是否开启外部结算：同一模块整体展示，中间无分隔线 */}
+                                                <div className={internalView.bizDeptId ? rowClsJoined : rowCls}>
+                                                    <div className={labelCls}>选择经营部门</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        {internalEditing ? (
+                                                            <div className="relative max-w-md">
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={!internalView.tenantId}
+                                                                    onClick={() => setConfig1BizDeptPickerOpen(v => !v)}
+                                                                    className={`${selectBtnCls} ${internalView.tenantId ? 'border-gray-300 bg-white hover:border-blue-500' : 'border-gray-200 bg-gray-50 cursor-not-allowed'}`}
+                                                                >
+                                                                    <span className={internalView.bizDeptName ? 'text-gray-700' : 'text-gray-400'}>
+                                                                        {internalView.bizDeptName || (internalView.tenantId ? '请选择经营部门' : '请先选择租户')}
+                                                                    </span>
+                                                                    <span className="flex items-center gap-2">
+                                                                        {internalView.bizDeptName && (
+                                                                            <span
+                                                                                role="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleUpdateInternalConfigDraft({ bizDeptId: '', bizDeptName: '' });
+                                                                                }}
+                                                                                className="text-xs text-gray-400 hover:text-gray-600"
+                                                                            >
+                                                                                清空
+                                                                            </span>
+                                                                        )}
+                                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                        </svg>
+                                                                    </span>
+                                                                </button>
+                                                                {config1BizDeptPickerOpen && internalView.tenantId && (
+                                                                    <>
+                                                                        <div className="fixed inset-0 z-10" onClick={() => setConfig1BizDeptPickerOpen(false)} />
+                                                                        <div className="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                                                            {(() => {
+                                                                                const renderNodes = (nodes: OrgDeptNode[], depth: number): React.ReactNode[] =>
+                                                                                    nodes.flatMap((node) => {
+                                                                                        const hasChildren = !!node.children?.length;
+                                                                                        const expanded = config1ExpandedOrgNodes.includes(node.id);
+                                                                                        const rows: React.ReactNode[] = [
+                                                                                            <div
+                                                                                                key={node.id}
+                                                                                                className={`flex items-center gap-1.5 px-2 py-1.5 text-sm hover:bg-blue-50 ${internalView.bizDeptId === node.id ? 'bg-blue-50' : ''}`}
+                                                                                                style={{ paddingLeft: 8 + depth * 16 }}
+                                                                                            >
+                                                                                                {hasChildren ? (
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={() => setConfig1ExpandedOrgNodes(prev => prev.includes(node.id) ? prev.filter(i => i !== node.id) : [...prev, node.id])}
+                                                                                                        className="flex h-4 w-4 items-center justify-center text-gray-400 hover:text-gray-600"
+                                                                                                    >
+                                                                                                        <svg className={`h-3 w-3 transition-transform ${expanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7-7" />
+                                                                                                        </svg>
+                                                                                                    </button>
+                                                                                                ) : (
+                                                                                                    <span className="h-4 w-4" />
+                                                                                                )}
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => {
+                                                                                                        handleUpdateInternalConfigDraft({ bizDeptId: node.id, bizDeptName: node.name });
+                                                                                                        setConfig1BizDeptPickerOpen(false);
+                                                                                                    }}
+                                                                                                    className={`flex flex-1 items-center gap-2 text-left ${internalView.bizDeptId === node.id ? 'text-blue-600' : 'text-gray-700'}`}
+                                                                                                >
+                                                                                                    <span>{node.name}</span>
+                                                                                                    {!!node.units?.length && (
+                                                                                                        <span className="rounded bg-green-50 px-1 py-0.5 text-[10px] leading-none text-green-600">已关联 {node.units.length} 个结算单元</span>
+                                                                                                    )}
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        ];
+                                                                                        if (hasChildren && expanded) {
+                                                                                            rows.push(...renderNodes(node.children!, depth + 1));
+                                                                                        }
+                                                                                        return rows;
+                                                                                    });
+                                                                                return renderNodes(getTenantOrgTree(internalView.tenantId), 0);
+                                                                            })()}
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="pt-1.5 text-sm text-gray-700">
+                                                                {internalView.bizDeptName || <span className="text-gray-400">未配置</span>}
+                                                            </div>
+                                                        )}
+                                                        <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">
+                                                            经营部门用于经营分析{' > '}部门分析，分析选中经营部门下已关联各结算单元的收支情况。
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* 是否开启外部结算：与「选择经营部门」同属一个模块，选中经营部门后展示 */}
+                                                {internalView.bizDeptId && (
+                                                    <div className={rowCls}>
+                                                        <div className={labelCls}>是否开启外部结算</div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-3 pt-1">
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={!internalEditing}
+                                                                    onClick={() => handleUpdateInternalConfigDraft({ enableOuterSettlement: !internalView.enableOuterSettlement })}
+                                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${internalView.enableOuterSettlement ? 'bg-[#006bff]' : 'bg-gray-300'} ${internalEditing ? '' : 'opacity-60 cursor-not-allowed'}`}
+                                                                >
+                                                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${internalView.enableOuterSettlement ? 'translate-x-[1.125rem]' : 'translate-x-[0.125rem]'}`} />
+                                                                </button>
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${internalView.enableOuterSettlement ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                                    {internalView.enableOuterSettlement ? '已开启' : '未开启'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">
+                                                                开启后，经营部门下结算属性为「外部结算」的结算单元可单独设置折扣（SVIP / VIP 计费标签、单独计费产品），在「企业配置{' > '}内部折扣设置」中配置；关闭后外部结算的结算单元统一按标准价计费，不再提供折扣设置入口。
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* 是否开启内部Portal + 内部Portal域名：同一模块整体展示，中间无分隔线 */}
+                                                <div className={internalView.enableInternalPortal ? rowClsJoined : rowCls}>
+                                                    <div className={labelCls}>是否开启内部Portal</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-3 pt-1">
+                                                            <button
+                                                                type="button"
+                                                                disabled={!internalEditing}
+                                                                onClick={() => handleUpdateInternalConfigDraft({ enableInternalPortal: !internalView.enableInternalPortal })}
+                                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${internalView.enableInternalPortal ? 'bg-[#006bff]' : 'bg-gray-300'} ${internalEditing ? '' : 'opacity-60 cursor-not-allowed'}`}
+                                                            >
+                                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${internalView.enableInternalPortal ? 'translate-x-[1.125rem]' : 'translate-x-[0.125rem]'}`} />
+                                                            </button>
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${internalView.enableInternalPortal ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                                {internalView.enableInternalPortal ? '已开启' : '未开启'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="mt-1.5 text-xs text-gray-400">
+                                                            开启后内部企业拥有独立访问入口，必须配置一个内部Portal域名；本开关与「高级配置」中的「是否允许多企业」相互独立，不受其限制。
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* 内部Portal域名：开启后必填，与上方开关同属一个模块 */}
+                                                {internalView.enableInternalPortal && (
+                                                    <div className={rowCls}>
+                                                        <div className={labelCls}>
+                                                            <span className="text-red-500 mr-0.5">*</span>内部Portal域名
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            {internalEditing ? (
+                                                                <div className="max-w-md">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={internalView.internalPortalDomain}
+                                                                        onChange={(e) => handleUpdateInternalConfigDraft({ internalPortalDomain: e.target.value })}
+                                                                        placeholder="请输入域名，如：internal.zyun.qihoo.net"
+                                                                        className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-700 focus:outline-none focus:border-blue-500 ${internalView.internalPortalDomain.trim() ? 'border-gray-300' : 'border-red-300'}`}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="pt-1.5 font-mono text-sm text-gray-700">
+                                                                    {internalView.internalPortalDomain || <span className="font-sans text-gray-400">未配置</span>}
+                                                                </div>
+                                                            )}
+                                                            {internalEditing && !internalView.internalPortalDomain.trim() ? (
+                                                                <p className="mt-1.5 text-xs text-red-500">开启内部Portal后必须配置一个域名。</p>
+                                                            ) : (
+                                                                <p className="mt-1.5 text-xs text-gray-400">该域名为内部企业员工的访问入口，与公共Portal域名相互独立。</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* 保存 / 取消 已统一移至模块右上角（与「编辑」同一位置） */}
+                                            </div>
+                                        ) : (
+                                            <div className="py-16 text-center text-sm text-gray-400">暂无内部企业配置</div>
+                                        )}
+                                    </section>
+
+                                    {/* ===== 3. 高级配置：是否允许多企业 / 是否允许注册 ===== */}
+                                    <section className="bg-white rounded-lg border border-gray-200">
+                                        <div className="px-5 py-3 border-b border-gray-200">
+                                            <span className="text-sm font-semibold text-gray-900">高级配置</span>
+                                        </div>
+                                        <div>
+                                            <div className={rowCls}>
+                                                <div className={labelCls}>是否允许多企业</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-3 pt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                // 与「是否开启内部Portal」不联动：内部独立Portal的开关由内部企业配置自行控制
+                                                                setAllowMultiEnterprise(v => !v);
+                                                            }}
+                                                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${allowMultiEnterprise ? 'bg-[#006bff]' : 'bg-gray-300'}`}
+                                                        >
+                                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${allowMultiEnterprise ? 'translate-x-[1.125rem]' : 'translate-x-[0.125rem]'}`} />
+                                                        </button>
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${allowMultiEnterprise ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                            {allowMultiEnterprise ? '是' : '否'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-1.5 text-xs text-gray-400">开启后支持区分企业内 / 企业外客户与收入（经营分析中增加「企业外收入」层级）。该开关与内部企业是否开启内部Portal相互独立，互不影响。</p>
+                                                </div>
+                                            </div>
+
+                                            {/* 是否允许注册：开启后客户侧可自助注册，关闭后仅能由后台添加客户 */}
+                                            <div className={rowCls}>
+                                                <div className={labelCls}>是否允许注册</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-3 pt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setAllowCustomerRegister(v => !v)}
+                                                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${allowCustomerRegister ? 'bg-[#006bff]' : 'bg-gray-300'}`}
+                                                        >
+                                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${allowCustomerRegister ? 'translate-x-[1.125rem]' : 'translate-x-[0.125rem]'}`} />
+                                                        </button>
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${allowCustomerRegister ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                            {allowCustomerRegister ? '是' : '否'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">
+                                                        开启后，客户侧 Portal 开放自助注册入口；关闭后客户侧不再展示注册入口，只能在「客户折扣配置」中由运营手动添加客户。
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* 平台配置 - 地域可用区页面 */}
                     {currentMenu === 'platform-region' && (
@@ -14097,7 +15686,7 @@ export default function AdminPage() {
                                         <div className="px-6 py-5 flex-1 overflow-auto">
                                             <div className="flex items-center gap-2 pb-2 text-xs text-gray-500">
                                                 <span className="w-36 flex-shrink-0">标签值标识</span>
-                                                <span className="flex-1"><span className="text-red-400">*</span> 外部/公共Portal名称</span>
+                                                <span className="flex-1"><span className="text-red-400">*</span> 公共Portal名称</span>
                                                 <span className="flex-1">内部Portal名称</span>
                                                 <span className="w-12 text-center">操作</span>
                                             </div>
@@ -14116,7 +15705,7 @@ export default function AdminPage() {
                                                         type="text"
                                                         value={v.outerName}
                                                         onChange={(e) => { handleChangeBillingTagValue(v.id, 'outerName', e.target.value); setBillingTagValueError(''); }}
-                                                        placeholder="外部/公共Portal名称（必填）"
+                                                        placeholder="公共Portal名称（必填）"
                                                         className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-500"
                                                     />
                                                     <input
@@ -17282,13 +18871,11 @@ export default function AdminPage() {
                                     取消
                                 </button>
                                 {(() => {
-                                    // URL 校验：所有portal时，依据 urlDistinct 开关校验；单Portal时 url 必填
-                                    const urlFilled = newProduct.portal === ALL_PORTAL_VALUE
-                                        ? (newProduct.urlDistinct
-                                            ? !!(newProduct.urlInner.trim() || newProduct.urlOuter.trim())
-                                            : !!newProduct.url.trim())
-                                        : !!newProduct.url.trim();
-                                    const saveDisabled = !newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !urlFilled || !newProduct.portal || (isInternalPortalSelected(newProduct.portal) && !newProduct.linkedPublicProduct);
+                                    // URL 校验：url 必填
+                                    const urlFilled = !!newProduct.url.trim();
+                                    // 内部portal时还需校验关联外部产品
+                                    const linkedProductRequired = isInternalPortalSelected(newProduct.portal) && !newProduct.linkedPublicProduct;
+                                    const saveDisabled = !newProduct.name || !newProduct.shortName || newProduct.categories.length === 0 || !newProduct.identifier || !newProduct.description || newProduct.tags.length === 0 || !urlFilled || !newProduct.portal || linkedProductRequired;
                                     return (
                                         <button
                                             onClick={() => {
@@ -17321,7 +18908,7 @@ export default function AdminPage() {
                                     <div className="flex items-center flex-wrap gap-x-6 gap-y-2">
                                         {[
                                             ...productPortalOptions.map(o => ({ value: o.value, label: o.label })),
-                                            { value: ALL_PORTAL_VALUE, label: '所有portal(一个产品)' },
+                                            { value: ALL_PORTAL_VALUE, label: '所有portal' },
                                         ].map(option => (
                                             <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
                                                 <input
@@ -17337,46 +18924,29 @@ export default function AdminPage() {
                                         ))}
                                     </div>
 
-                                    {/* 选中内部portal时，必须关联一个外部/公共portal的产品 */}
+                                    {/* 选中360集团内部Portal时，必须关联一个外部Portal产品 */}
                                     {isInternalPortalSelected(newProduct.portal) && (
-                                        <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-sm text-gray-700 flex-shrink-0">
-                                                    关联「{publicPortalName}」的产品 <span className="text-red-500">*</span>：
-                                                </span>
-                                                <select
-                                                    value={newProduct.linkedPublicProduct}
-                                                    onChange={(e) => handleLinkPublicProduct(e.target.value)}
-                                                    className="w-72 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                >
-                                                    <option value="">请选择「{publicPortalName}」的产品</option>
-                                                    {/* 仅可关联非内部Portal的产品（「外部/公共(360.cn)」或「所有portal」下的产品） */}
-                                                    {zhihuiProductsData
-                                                        .filter(p => !isInternalPortalSelected(p.portal))
-                                                        .map(p => (
-                                                            <option key={p.id} value={p.identifier}>{p.name}（{p.identifier}）</option>
-                                                        ))}
-                                                </select>
-                                                {newProduct.linkedPublicProduct && (
-                                                    <button
-                                                        onClick={() => setNewProduct({ ...newProduct, linkedPublicProduct: '' })}
-                                                        className="text-xs text-gray-400 hover:text-red-500"
-                                                    >
-                                                        清除
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
-                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                「{internalPortalName}」的产品需关联一个「{publicPortalName}」的产品；关联后自动同步其产品名称、分类等配置，仅「产品标识符」需单独填写
-                                            </div>
-                                            {newProduct.linkedPublicProduct && (
-                                                <div className="mt-2 text-xs text-blue-600">
-                                                    已同步关联产品的名称、简介、分类、描述、标签、URL等配置，产品标识符请单独填写
-                                                </div>
-                                            )}
+                                        <div className="mt-4 pt-4 border-t border-blue-200">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                关联外部Portal产品 <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                value={newProduct.linkedPublicProduct}
+                                                onChange={(e) => handleLinkPublicProduct(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 bg-white"
+                                            >
+                                                <option value="">请选择关联的外部产品</option>
+                                                {zhihuiProductsData
+                                                    .filter(p => p.portal === publicPortalName)
+                                                    .map(p => (
+                                                        <option key={p.identifier} value={p.identifier}>
+                                                            {p.name}（{p.identifier}）
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                            <p className="mt-1 text-xs text-gray-400">
+                                                选择关联的外部Portal产品后，将自动同步该产品的基础配置、推广配置和高级配置
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -17526,13 +19096,21 @@ export default function AdminPage() {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                             产品标识符 <span className="text-red-500">*</span>
+                                            {newProduct.linkedPublicProduct && (
+                                                <span className="ml-2 text-xs text-orange-500 font-normal">（已关联外部产品，不可修改）</span>
+                                            )}
                                         </label>
                                         <input
                                             type="text"
                                             value={newProduct.identifier}
                                             onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })}
                                             placeholder="请输入产品标识符"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono"
+                                            disabled={!!newProduct.linkedPublicProduct}
+                                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono ${
+                                                newProduct.linkedPublicProduct
+                                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
+                                                    : 'border-gray-300'
+                                            }`}
                                         />
                                     </div>
 
@@ -17654,94 +19232,21 @@ export default function AdminPage() {
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                             URL地址 <span className="text-red-500">*</span>
                                         </label>
-                                        {newProduct.portal === ALL_PORTAL_VALUE ? (
-                                            <div className="space-y-2.5">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm text-gray-600">是否区分URL地址：</span>
-                                                    <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setNewProduct({ ...newProduct, urlDistinct: false, urlInner: '', urlOuter: '' })}
-                                                            className={`px-3 py-1 text-xs rounded-md transition-colors ${!newProduct.urlDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                                                        >
-                                                            否
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setNewProduct({ ...newProduct, urlDistinct: true, url: '' })}
-                                                            className={`px-3 py-1 text-xs rounded-md transition-colors ${newProduct.urlDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                                                        >
-                                                            是
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                {newProduct.urlDistinct ? (
-                                                    <>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">内部Portal地址：</span>
-                                                            <input
-                                                                type="text"
-                                                                value={newProduct.urlInner}
-                                                                onChange={(e) => setNewProduct({ ...newProduct, urlInner: e.target.value })}
-                                                                placeholder="https://zyun.qihoo.net/product/xxx 或 /product/xxx"
-                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                            />
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">外部Portal地址：</span>
-                                                            <input
-                                                                type="text"
-                                                                value={newProduct.urlOuter}
-                                                                onChange={(e) => setNewProduct({ ...newProduct, urlOuter: e.target.value })}
-                                                                placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx"
-                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                            />
-                                                        </div>
-                                                        <p className="flex items-start gap-1 text-xs text-gray-400 ml-[116px]">
-                                                            <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                            </svg>
-                                                            分别为内部Portal和外部Portal配置独立地址；至少填写一项
-                                                        </p>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">相对地址：</span>
-                                                            <input
-                                                                type="text"
-                                                                value={newProduct.url}
-                                                                onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })}
-                                                                placeholder="/product/xxx"
-                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                            />
-                                                        </div>
-                                                        <p className="flex items-start gap-1 text-xs text-gray-400 ml-[116px]">
-                                                            <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                            </svg>
-                                                            内部Portal和外部Portal使用相同的相对地址，如 /product/xxx
-                                                        </p>
-                                                    </>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-1.5">
-                                                <input
-                                                    type="text"
-                                                    value={newProduct.url}
-                                                    onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })}
-                                                    placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                />
-                                                <p className="flex items-center gap-1 text-xs text-gray-400">
-                                                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    支持输入完整 URL（内部或外部Portal地址）或相对地址（如 /product/xxx）
-                                                </p>
-                                            </div>
-                                        )}
+                                        <div className="space-y-1.5">
+                                            <input
+                                                type="text"
+                                                value={newProduct.url}
+                                                onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })}
+                                                placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                            />
+                                            <p className="flex items-center gap-1 text-xs text-gray-400">
+                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                支持输入完整 URL（内部或外部Portal地址）或相对地址（如 /product/xxx）
+                                            </p>
+                                        </div>
                                     </div>
 
                                     {/* 介绍页地址 */}
@@ -17764,7 +19269,7 @@ export default function AdminPage() {
                             <div className="border border-gray-200 rounded-xl overflow-hidden">
                                 <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                                     <span className="text-sm font-semibold text-gray-800">文档配置</span>
-                                    <span className="ml-2 text-xs text-gray-400">产品文档与API文档地址支持输入内部Portal、外部Portal的完整地址，也可输入相对地址</span>
+                                    <span className="ml-2 text-xs text-gray-400">支持输入内部Portal、外部Portal的文档地址，也可输入相对地址</span>
                                 </div>
                                 <div className="p-4 space-y-5">
                                     {/* 产品文档 */}
@@ -17792,73 +19297,13 @@ export default function AdminPage() {
                                                     />
                                                     <span className="text-sm font-medium text-blue-600">APIcloud文档链接</span>
                                                 </label>
-                                                {newProduct.portal === ALL_PORTAL_VALUE ? (
-                                                    /* 上架所有Portal时：先显示"是否区分地址"开关 */
-                                                    <div className="space-y-2.5">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-sm text-gray-600">是否区分地址：</span>
-                                                            <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setNewProduct({ ...newProduct, docDistinct: false, docUrlInner: '', docUrlOuter: '' })}
-                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${!newProduct.docDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                                                                >
-                                                                    否
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setNewProduct({ ...newProduct, docDistinct: true, docUrl: '' })}
-                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${newProduct.docDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                                                                >
-                                                                    是
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        {newProduct.docDistinct ? (
-                                                            <>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">内部Portal文档：</span>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={newProduct.docUrlInner}
-                                                                        onChange={(e) => setNewProduct({ ...newProduct, docUrlInner: e.target.value })}
-                                                                        placeholder="https://doc.qihoo.net/xxx 或 /doc/xxx"
-                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">外部Portal文档：</span>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={newProduct.docUrlOuter}
-                                                                        onChange={(e) => setNewProduct({ ...newProduct, docUrlOuter: e.target.value })}
-                                                                        placeholder="https://apicloud.360.cn/user/apistore 或 /doc/xxx"
-                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                                    />
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">相对地址：</span>
-                                                                <input
-                                                                    type="text"
-                                                                    value={newProduct.docUrl}
-                                                                    onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })}
-                                                                    placeholder="/doc/xxx"
-                                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <input
-                                                        type="text"
-                                                        value={newProduct.docUrl}
-                                                        onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })}
-                                                        placeholder="https://apicloud.360.cn/user/apistore 或 /doc/xxx"
-                                                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                    />
-                                                )}
+                                                <input
+                                                    type="text"
+                                                    value={newProduct.docUrl}
+                                                    onChange={(e) => setNewProduct({ ...newProduct, docUrl: e.target.value })}
+                                                    placeholder="https://apicloud.360.cn/user/apistore 或 /doc/xxx"
+                                                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
                                                 <p className="flex items-start gap-1 text-xs text-gray-400">
                                                     <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -17886,73 +19331,13 @@ export default function AdminPage() {
                                         </div>
                                         {newProduct.apiDocEnabled && (
                                             <div className="ml-[140px] mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
-                                                {newProduct.portal === ALL_PORTAL_VALUE ? (
-                                                    /* 上架所有Portal时：先显示"是否区分地址"开关 */
-                                                    <div className="space-y-2.5">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-sm text-gray-600">是否区分地址：</span>
-                                                            <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setNewProduct({ ...newProduct, apiDocDistinct: false, apiDocUrlInner: '', apiDocUrlOuter: '' })}
-                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${!newProduct.apiDocDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                                                                >
-                                                                    否
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setNewProduct({ ...newProduct, apiDocDistinct: true, apiDocUrl: '' })}
-                                                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${newProduct.apiDocDistinct ? 'bg-white shadow-sm text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                                                                >
-                                                                    是
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        {newProduct.apiDocDistinct ? (
-                                                            <>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">内部Portal文档：</span>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={newProduct.apiDocUrlInner}
-                                                                        onChange={(e) => setNewProduct({ ...newProduct, apiDocUrlInner: e.target.value })}
-                                                                        placeholder="https://doc.qihoo.net/api/xxx 或 /api-doc/xxx"
-                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">外部Portal文档：</span>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={newProduct.apiDocUrlOuter}
-                                                                        onChange={(e) => setNewProduct({ ...newProduct, apiDocUrlOuter: e.target.value })}
-                                                                        placeholder="https://apicloud.360.cn/api/xxx 或 /api-doc/xxx"
-                                                                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                                    />
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="w-28 text-sm text-gray-500 text-right flex-shrink-0">相对地址：</span>
-                                                                <input
-                                                                    type="text"
-                                                                    value={newProduct.apiDocUrl}
-                                                                    onChange={(e) => setNewProduct({ ...newProduct, apiDocUrl: e.target.value })}
-                                                                    placeholder="/api-doc/xxx"
-                                                                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <input
-                                                        type="text"
-                                                        value={newProduct.apiDocUrl}
-                                                        onChange={(e) => setNewProduct({ ...newProduct, apiDocUrl: e.target.value })}
-                                                        placeholder="https://apicloud.360.cn/api/xxx 或 /api-doc/xxx"
-                                                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                                    />
-                                                )}
+                                                <input
+                                                    type="text"
+                                                    value={newProduct.apiDocUrl}
+                                                    onChange={(e) => setNewProduct({ ...newProduct, apiDocUrl: e.target.value })}
+                                                    placeholder="https://apicloud.360.cn/api/xxx 或 /api-doc/xxx"
+                                                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                                />
                                                 <p className="flex items-start gap-1 text-xs text-gray-400">
                                                     <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -18349,6 +19734,373 @@ export default function AdminPage() {
                     </div>
                 </div>
             )}
+            {/* 折扣配置弹窗（单条 / 批量）—— 全局渲染，不受 currentMenu 限制 */}
+            {discountDialogUnits && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setDiscountDialogUnits(null)} />
+                    <div className="relative w-[560px] max-w-[92vw] bg-white rounded-lg shadow-xl">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-base font-semibold text-gray-900">
+                                {discountDialogMode === 'attr'
+                                    ? (discountDialogUnits.length > 1 ? `批量设置结算属性（${discountDialogUnits.length} 个结算单元）` : '设置结算属性')
+                                    : discountDialogMode === 'discount'
+                                        ? (discountDialogUnits.length > 1 ? `批量设置计费标签（${discountDialogUnits.length} 个结算单元）` : '设置计费标签')
+                                        : (discountDialogUnits.length > 1 ? `批量设置（${discountDialogUnits.length} 个结算单元）` : '计费标签设置')}
+                            </h3>
+                            <button onClick={() => setDiscountDialogUnits(null)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="px-6 py-5 space-y-4">
+                             {/* 结算单元（只读，来源 ops 同步） */}
+                             <div>
+                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">结算单元</label>
+                                 <div className="flex flex-wrap gap-1.5 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 max-h-[104px] overflow-auto">
+                                     {discountDialogUnits.map(u => (
+                                         <span key={u} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-600">{u}</span>
+                                     ))}
+                                 </div>
+                             </div>
+
+                             {/* 批量模式说明 */}
+                             {discountDialogMode === 'attr' && (
+                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置结算属性，选择「内部结算」将自动清空该结算单元已设置的单独计费产品。</p>
+                             )}
+                             {discountDialogMode === 'discount' && discountDialogUnits.length > 1 && (
+                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置计费标签，不影响各结算单元已单独设置的计费产品。</p>
+                             )}
+
+                             {/* 结算属性 */}
+                             {discountDialogMode !== 'discount' && (
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">结算属性 <span className="text-red-500">*</span></label>
+                                <select
+                                    value={discountForm.deptAttr}
+                                    onChange={(e) => {
+                                        const v = e.target.value as UnitDeptAttr | '';
+                                        setDiscountForm({
+                                            ...discountForm,
+                                            deptAttr: v,
+                                            discount: v === 'inner' ? '' : discountForm.discount,
+                                        });
+                                        setDiscountFormError('');
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">请选择结算属性</option>
+                                    {unitDeptAttrOptions.filter(o => o.value !== 'biz' || !!enterpriseConfigs.find(e => e.internal)?.enableOuterSettlement).map(o => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                                <p className="mt-1.5 text-xs text-gray-400 leading-[1.7]">{unitDeptAttrTip}</p>
+                            </div>
+                            )}
+
+                            {/* 折扣配置 */}
+                            {discountDialogMode !== 'attr' && (                                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    计费标签 {discountForm.deptAttr === 'biz' && <span className="text-red-500">*</span>}
+                                </label>
+                                {discountForm.deptAttr === 'inner' ? (
+                                    <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
+                                        内部折扣
+                                        <span className="text-xs text-gray-400">（内部结算固定为内部折扣，不可编辑）</span>
+                                    </div>
+                                ) : discountForm.deptAttr === 'biz' ? (
+                                    <select
+                                        value={discountForm.discount}
+                                        onChange={(e) => { setDiscountForm({ ...discountForm, discount: e.target.value as UnitDiscountType | '' }); setDiscountFormError(''); }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                    >
+                                        <option value="">请选择计费标签</option>
+                                        {unitDiscountTypeOptions.filter(o => o.value !== 'internal').map(o => (
+                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="flex items-center px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-400">
+                                        请先选择结算属性
+                                    </div>
+                                )}
+                                <p className="mt-1.5 text-xs text-gray-400">结算属性为「外部结算」的结算单元可通过 SVIP / VIP 客户计费标签设置折扣；「内部结算」固定为内部折扣，不可再编辑。</p>
+                            </div>
+                            )}
+
+                            {discountFormError && (
+                                <div className="px-3 py-2 rounded-lg bg-red-50 text-sm text-red-500">{discountFormError}</div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                            <button
+                                onClick={() => setDiscountDialogUnits(null)}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleSaveDiscount}
+                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 单独设置计费的产品弹窗 —— 全局渲染，不受 currentMenu 限制 */}
+            {standaloneProductsUnit && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40" onClick={handleCloseStandaloneProducts} />
+                    <div className="relative bg-white rounded-lg shadow-xl w-[900px] max-w-[94vw] max-h-[86vh] flex flex-col">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-base font-semibold text-gray-900">单独设置计费的产品</h3>
+                            <button onClick={handleCloseStandaloneProducts} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="px-6 py-4 flex-1 overflow-auto">
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div className="text-sm text-amber-700 leading-[1.7]">
+                                    <p>温馨提示：如果为客户设置了标签，同时也单独为客户设置了某些产品的折扣，那么计费时优先取单独设置的折扣。</p>
+                                    <p className="mt-1 text-xs text-amber-600">{standaloneDiscountTip}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between">
+                                <div className="text-sm text-gray-600">
+                                    结算单元：<span className="text-gray-900">{standaloneProductsUnit}</span>
+                                </div>
+                                <button
+                                    onClick={() => { setStandaloneAddForm(null); setStandaloneAddError(''); setStandaloneAddNotice(standaloneProductsTab); }}
+                                    className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                >
+                                    {standaloneProductsTab === 'metered' ? '新增产品' : '新增资源包'}
+                                </button>
+                            </div>
+
+                            <div className="mt-4 flex items-center gap-6 border-b border-gray-200">
+                                {standaloneBillingTabs.map(tab => (
+                                    <button
+                                        key={tab.value}
+                                        onClick={() => { setStandaloneProductsTab(tab.value); setStandaloneAddForm(null); setStandaloneAddError(''); setStandaloneAddNotice(null); }}
+                                        className={`relative pb-2.5 text-sm transition-colors ${standaloneProductsTab === tab.value ? 'text-[#006bff] font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+                                    >
+                                        {tab.label}
+                                        {standaloneProductsTab === tab.value && (
+                                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {standaloneAddForm && standaloneAddForm.type === standaloneProductsTab && (
+                                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                    <div className="flex items-end gap-3">
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                {standaloneProductsTab === 'metered' ? '选择产品' : '选择资源包'} <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                value={standaloneAddForm.productId}
+                                                onChange={(e) => { setStandaloneAddForm({ ...standaloneAddForm, productId: e.target.value }); setStandaloneAddError(''); }}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                            >
+                                                <option value="">请选择</option>
+                                                {standaloneProductOptions[standaloneProductsTab].map(o => (
+                                                    <option key={o.id} value={String(o.id)}>{o.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="w-40">
+                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">折扣（0~10）</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                max={10}
+                                                step="0.01"
+                                                value={standaloneAddForm.discount}
+                                                onChange={(e) => { setStandaloneAddForm({ ...standaloneAddForm, discount: e.target.value }); setStandaloneAddError(''); }}
+                                                placeholder="如 9.75"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleAddStandaloneProduct}
+                                            className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                        >
+                                            确定
+                                        </button>
+                                        <button
+                                            onClick={() => { setStandaloneAddForm(null); setStandaloneAddError(''); }}
+                                            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-white transition-colors whitespace-nowrap"
+                                        >
+                                            取消
+                                        </button>
+                                    </div>
+                                    {standaloneAddError && (
+                                        <div className="mt-2 text-xs text-red-500">{standaloneAddError}</div>
+                                    )}
+                                </div>
+                            )}
+
+                            <table className="w-full mt-4">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-20">序号</th>
+                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600">单独设置价格的产品名称</th>
+                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-40">折扣</th>
+                                        <th className="py-2.5 px-4 text-left text-sm font-medium text-gray-600 w-32">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {standaloneProductsData.filter(p => p.type === standaloneProductsTab).length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="py-10 text-center text-sm text-gray-400">暂无单独设置的{standaloneProductsTab === 'metered' ? '按量计费产品' : '资源包'}</td>
+                                        </tr>
+                                    ) : (
+                                        standaloneProductsData.filter(p => p.type === standaloneProductsTab).map((p, idx) => (
+                                            <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                <td className="py-3 px-4 text-sm text-gray-700">{idx + 1}</td>
+                                                <td className="py-3 px-4 text-sm text-gray-900">{p.name}</td>
+                                                <td className="py-3 px-4 text-sm text-gray-700">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            max={10}
+                                                            step="0.01"
+                                                            value={p.discount ?? ''}
+                                                            onChange={(e) => handleUpdateStandaloneDiscount(p.id, e.target.value)}
+                                                            placeholder="--"
+                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
+                                                        />
+                                                        <span className="text-xs text-gray-500">折</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 px-4 text-sm">
+                                                    <button
+                                                        onClick={() => handleDeleteStandaloneProduct(p.id)}
+                                                        className="text-red-500 hover:text-red-600"
+                                                    >
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                            <button
+                                onClick={handleCloseStandaloneProducts}
+                                className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                完成
+                            </button>
+                        </div>
+                    </div>
+
+                    {standaloneAddNotice && (
+                        <div className="absolute inset-0 z-[60] flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/30" onClick={() => setStandaloneAddNotice(null)} />
+                            <div className="relative bg-white rounded-lg shadow-xl w-[520px] max-w-[92vw]">
+                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                    <h3 className="text-base font-semibold text-gray-900">
+                                        {standaloneAddNotice === 'metered' ? '新增产品' : '新增资源包'}
+                                    </h3>
+                                    <button onClick={() => setStandaloneAddNotice(null)} className="text-gray-400 hover:text-gray-600">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div className="px-6 py-5">
+                                    <div className="flex items-start gap-2.5">
+                                        <svg className="w-5 h-5 text-[#006bff] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div className="text-sm text-gray-700 leading-[1.8]">
+                                            <p>添加产品或资源包的交互同「客户折扣配置 &gt; 单独设置折扣」，此处未画稿。</p>
+                                            <p className="mt-1.5 text-gray-500">
+                                                参考地址：
+                                                <a
+                                                    href="https://account.zyun.qihoo.net/#/usercenter/usermanage"
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-[#006bff] hover:underline break-all"
+                                                >
+                                                    https://account.zyun.qihoo.net/#/usercenter/usermanage
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                    <button
+                                        onClick={() => setStandaloneAddNotice(null)}
+                                        className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                    >
+                                        我知道了
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            )}
+
+                    {/* 产品分析 - 说明弹框 */}
+                    {analysisExplainOpen && (
+                        <div className="fixed inset-0 z-[120] flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/40" onClick={() => setAnalysisExplainOpen(false)} />
+                            <div className="relative bg-white rounded-lg shadow-xl w-[560px] max-w-[92vw]">
+                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                    <h3 className="text-base font-semibold text-gray-900">收入分类说明</h3>
+                                    <button onClick={() => setAnalysisExplainOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div className="px-6 py-5 space-y-4 text-sm text-gray-700 leading-[1.8]">
+                                    <div>
+                                        <span className="font-semibold text-gray-900">1、企业内收入：</span>
+                                        <span>现在是企业内内结收入。</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-gray-900">2、企业内非智汇云收入、智汇云内非本结算单元：</span>
+                                        <span>企业内非经营部门收入、经营部门内非本结算单元收入。</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-gray-900">3、企业外收入：</span>
+                                        <span>现在包含，企业内外结收入、企业外收入。</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                    <button
+                                        onClick={() => setAnalysisExplainOpen(false)}
+                                        className="px-4 py-2 bg-[#006bff] text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                                    >
+                                        我知道了
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
         </div>
     );
 }
