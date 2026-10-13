@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+
 const nextConfig = {
-    // output: 'export',        // 本地开发时注释，部署时取消注释
-    // basePath: '/account',    // 本地开发时注释，部署时取消注释
+    output: isGitHubPages ? 'export' : undefined,
+    basePath: isGitHubPages ? '/account' : '',
     trailingSlash: true,
     images: {
         unoptimized: true,
