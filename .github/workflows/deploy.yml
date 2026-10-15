@@ -34,6 +34,7 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
+          NEXT_PUBLIC_BASE_PATH: '/account'
 
       - name: Add .nojekyll
         run: touch ./out/.nojekyll

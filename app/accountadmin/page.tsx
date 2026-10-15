@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo, useEffect, Fragment } from "react";
+import React, { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import {
     fetchPackages,
     createPackageApi,
@@ -8,8 +8,8 @@ import {
 } from "@/lib/packages-api";
 
 // 智汇云产品数据
-// portal：上架Portal，值为 Portal 名称（即企业名称，对应「平台配置-企业配置」中已开启独立Portal的企业：360集团 / 公共Portal）
-//         或 '__all__'（所有portal）
+// portal：部署Portal，值为 Portal 名称（即企业名称，对应「平台配置-企业配置」中已开启独立Portal的企业：360集团 / 公共Portal）
+//         或 '__all__'（内外一套部署）
 // linkedProductId：关联的另一个Portal下的同一产品ID。当前所有产品均为「内部Portal产品 ⇄ 公共Portal产品」一一关联，
 //                  内部产品标识统一以 _in 结尾，公共产品沿用原始标识
 const zhihuiProductsData = [
@@ -6612,22 +6612,32 @@ export default function AdminPage() {
         enterpriseConfigs.filter(e => e.enablePortal && e.name.trim()).map(e => e.name.trim())
     ));
 
-    // ===== 产品定义 - 「上架Portal」选项 =====
-    // 选项来源：企业配置中已开启独立Portal的企业（Portal名称即企业名称，展示为 企业名称(域名后缀)），外加固定项「所有portal」
+    // ===== 产品定义 - 「部署Portal」选项 =====
+    // 选项来源：企业配置中已开启独立Portal的企业（Portal名称即企业名称，展示为 企业名称(域名后缀)），外加固定项「内外一套部署」
+    // 约束：内部企业的 Portal 仅在「企业配置 - 是否开启内部Portal」开启时才作为选项；
+    //       未开启内部独立Portal时，「部署Portal」只有「公共Portal」一个选项，且不提供「内外一套部署」
     const ALL_PORTAL_VALUE = '__all__';
+    const ALL_PORTAL_LABEL = '内外一套部署';
     type ProductPortalOption = {
         value: string;        // 选项值：portal名称 或 ALL_PORTAL_VALUE
-        label: string;        // 展示文案：portal名称(域名后缀)
+        label: string;        // 展示文案：内部Portal / 公共（外部）Portal
         internal: boolean;    // 是否为内部企业的portal
         builtin: boolean;     // 是否为系统内置的公共Portal企业portal
         tenantId: string;     // 该portal所属企业关联的租户ID
         tenantName: string;   // 该portal所属企业关联的租户名称
     };
+    // 「部署Portal」选项文案：内部企业的 Portal 统一展示为「内部Portal」，
+    // 系统内置的公共 Portal 统一展示为「公共/外部Portal」（不再展示企业名称与域名）
+    const getPortalRadioLabel = (e: EnterpriseConfig) => {
+        if (e.internal) return '内部Portal';
+        if (e.builtin) return '公共/外部Portal';
+        return e.name.trim();
+    };
     const productPortalOptions: ProductPortalOption[] = enterpriseConfigs
-        .filter(e => e.enablePortal && e.name.trim())
+        .filter(e => e.enablePortal && e.name.trim() && (!e.internal || e.enableInternalPortal))
         .map(e => ({
             value: e.name.trim(),
-            label: e.portalDomain.trim() ? `${e.name.trim()}(${e.portalDomain.trim()})` : e.name.trim(),
+            label: getPortalRadioLabel(e),
             internal: e.internal,
             builtin: !!e.builtin,
             tenantId: e.tenantId || '',
@@ -6638,29 +6648,42 @@ export default function AdminPage() {
     // 公共Portal（系统内置的企业portal）
     const publicPortalOption = productPortalOptions.find(o => o.builtin);
     // 两个 Portal 的展示名称：用于表单/提示文案中直接展示实际 Portal 名称
-    const internalPortalName = internalPortalOption ? internalPortalOption.value : '内部Portal';
+    // 内部Portal名称取企业配置中的内部企业名称（即使未开启内部独立Portal也用于展示范围等文案）
+    const internalPortalName = enterpriseConfigs.find(e => e.internal)?.name.trim() || '内部Portal';
     const publicPortalName = publicPortalOption ? publicPortalOption.value : '公共Portal';
     const getProductPortalOption = (value: string) => productPortalOptions.find(o => o.value === value);
+    // 是否为内部企业的 Portal：直接以企业配置中的 internal 判断，
+    // 这样即使未开启内部独立Portal（该Portal不再是可选项），历史产品的分组与配色仍然正确
+    const isInternalPortalName = (portal: string) =>
+        portal !== ALL_PORTAL_VALUE
+        && enterpriseConfigs.some(e => e.internal && e.name.trim() === portal);
+    // 是否已开启内部独立Portal（由「平台配置 - 企业配置」中内部企业的 enableInternalPortal 决定）
+    const hasInternalPortal = !!internalPortalOption;
+    // 「部署Portal」可选项：各独立Portal + 固定项「内外一套部署」（仅在开启内部独立Portal时存在）
+    const productPortalRadioOptions: { value: string; label: string }[] = [
+        ...productPortalOptions.map(o => ({ value: o.value, label: o.label })),
+        ...(hasInternalPortal ? [{ value: ALL_PORTAL_VALUE, label: ALL_PORTAL_LABEL }] : []),
+    ];
 
-    // ===== 产品定义 - 卡片上的「上架Portal」展示与关联关系 =====
+    // ===== 产品定义 - 卡片上的「部署Portal」展示与关联关系 =====
     // Portal 短名称：卡片空间有限，仅展示 portal 名称本身，域名放在 title 提示中
     const getProductPortalLabel = (portal: string) => {
-        if (portal === ALL_PORTAL_VALUE) return '所有Portal';
+        if (portal === ALL_PORTAL_VALUE) return ALL_PORTAL_LABEL;
         const opt = getProductPortalOption(portal);
         return opt ? opt.value : portal;
     };
-    // Portal 徽标配色：所有portal-蓝、内部portal-紫、公共Portal及其他portal-青
+    // Portal 徽标配色：内外一套部署-蓝、内部portal-紫、公共Portal及其他portal-青
     const getProductPortalBadgeClass = (portal: string) => {
         if (portal === ALL_PORTAL_VALUE) return 'bg-blue-100 text-blue-700 border border-blue-300';
-        return getProductPortalOption(portal)?.internal
+        return isInternalPortalName(portal)
             ? 'bg-purple-100 text-purple-700 border border-purple-300'
             : 'bg-teal-100 text-teal-700 border border-teal-300';
     };
-    // 产品卡片边框配色：按上架Portal区分（所有portal-蓝 / 内部portal-紫 / 外部portal-青），
+    // 产品卡片边框配色：按部署Portal区分（内外一套部署-蓝 / 内部portal-紫 / 外部portal-青），
     // 左侧同色竖条进一步强化区分度
     const getProductCardBorderClass = (portal: string) => {
         if (portal === ALL_PORTAL_VALUE) return 'border-blue-300 shadow-[inset_3px_0_0_0_#3b82f6]';
-        return getProductPortalOption(portal)?.internal
+        return isInternalPortalName(portal)
             ? 'border-purple-300 shadow-[inset_3px_0_0_0_#a855f7]'
             : 'border-teal-300 shadow-[inset_3px_0_0_0_#14b8a6]';
     };
@@ -6669,12 +6692,12 @@ export default function AdminPage() {
         product.linkedProductId ? zhihuiProductsData.find(p => p.id === product.linkedProductId) : undefined;
 
     // ===== 产品定义 - 列表按 Portal 分类展示 =====
-    // 产品所属的分类分组：internal-内部Portal / external-外部Portal / all-所有Portal
+    // 产品所属的分类分组：internal-内部Portal / external-公共Portal / all-内外一套部署
     const getProductPortalGroupKey = (portal: string): 'internal' | 'external' | 'all' => {
         if (portal === ALL_PORTAL_VALUE) return 'all';
-        return getProductPortalOption(portal)?.internal ? 'internal' : 'external';
+        return isInternalPortalName(portal) ? 'internal' : 'external';
     };
-    // 分组展示配置（顺序即列表中的模块顺序）：内部Portal-紫 / 外部Portal-青 / 所有Portal-蓝
+    // 分组展示配置（顺序即列表中的模块顺序）：内部Portal-紫 / 公共Portal-青 / 内外一套部署-蓝
     const productPortalGroups: {
         key: 'internal' | 'external' | 'all';
         title: string;
@@ -6697,8 +6720,8 @@ export default function AdminPage() {
             countClass: 'bg-teal-100 text-teal-700 border border-teal-300',
         },
         {
-            key: 'all', title: '所有Portal', subTitle: '一个产品，全部Portal通用',
-            desc: '同一个产品在全部Portal下上架，所有企业可见',
+            key: 'all', title: '内外一套部署', subTitle: '一个产品，内外Portal共用一套部署',
+            desc: '同一个产品在全部Portal下共用一套部署，所有企业可见',
             dotClass: 'bg-blue-500', titleClass: 'text-blue-700',
             countClass: 'bg-blue-100 text-blue-700 border border-blue-300',
         },
@@ -6708,9 +6731,10 @@ export default function AdminPage() {
     const productTenantOptions = enterpriseConfigs
         .filter(e => (e.tenantId || '').trim())
         .map(e => ({ id: e.tenantId, name: e.tenantName || e.name }));
-    // 内部portal关联的租户（展示范围默认选中项）
-    const internalPortalTenant = internalPortalOption && internalPortalOption.tenantId
-        ? [{ id: internalPortalOption.tenantId, name: internalPortalOption.tenantName }]
+    // 内部企业关联的租户（展示范围默认选中项）：取企业配置中的内部企业，与是否开启内部独立Portal无关
+    const internalEnterpriseConfig = enterpriseConfigs.find(e => e.internal && (e.tenantId || '').trim());
+    const internalPortalTenant = internalEnterpriseConfig
+        ? [{ id: internalEnterpriseConfig.tenantId, name: internalEnterpriseConfig.tenantName || internalEnterpriseConfig.name }]
         : [];
     const [enterpriseDialogOpen, setEnterpriseDialogOpen] = useState(false);
     const [editingEnterpriseId, setEditingEnterpriseId] = useState<number | null>(null);
@@ -7259,11 +7283,220 @@ export default function AdminPage() {
     const [productSearchKeyword, setProductSearchKeyword] = useState("");
     const [productCategoryFilter, setProductCategoryFilter] = useState("all");
     const [productStatusFilter, setProductStatusFilter] = useState("all");
-    const [productPortalFilter, setProductPortalFilter] = useState("all"); // 上架Portal筛选：all / Portal名称 / __all__(所有portal)
+    const [productPortalFilter, setProductPortalFilter] = useState("all"); // 部署Portal筛选：all / Portal名称 / __all__(内外一套部署)
     const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false);
     const [currentProductSettingsId, setCurrentProductSettingsId] = useState<number | null>(null); // 当前页内产品设置-选中的产品ID
     // 产品设置页左侧子菜单：产品信息 / 工单管理 / 内网工单管理 / 文档管理 / 产品介绍页 / 菜单配置
     const [productSettingsNav, setProductSettingsNav] = useState<'info' | 'workorder' | 'intranet' | 'doc' | 'intro' | 'menu'>('info');
+
+    // ===== 产品设置 - 菜单配置 =====
+    // 菜单按 Portal 维度分别配置：internal=内部Portal菜单 / external=外部Portal菜单
+    // 展示规则：产品部署在内部Portal只展示内部Portal菜单；部署在外部Portal只展示外部Portal菜单；
+    //          「内外一套部署」则内外两套菜单都展示（通过Tab切换）
+    type MenuPortalKey = 'internal' | 'external';
+    type ProductSubMenu = {
+        id: number;
+        order: string;        // 排序，数字越小越靠前
+        name: string;         // 二级菜单名称（产品的菜单名称）
+        dirName: string;      // 目录名称，小写字母（50个字符以内），用于工作台对应页面链接
+        url: string;          // 跳转URL（二级菜单为末级菜单，必填）
+    };
+    type ProductTopMenu = {
+        id: number;
+        order: string;        // 排序
+        name: string;         // 一级tab名称
+        dirName: string;      // 目录名称
+        iconUrl: string;      // tab icon，svg格式、1M以内（仅一级菜单配置）
+        hasChildren: boolean; // 是否有子菜单：是=配置二级菜单；否=直接配置跳转URL
+        url: string;          // 跳转URL，无子菜单时必填
+        children: ProductSubMenu[];
+    };
+    const [productMenuConfig, setProductMenuConfig] = useState<Record<MenuPortalKey, ProductTopMenu[]>>({
+        internal: [
+            {
+                id: 101, order: '100', name: '概览', dirName: 'overview', iconUrl: 'uploaded.svg', hasChildren: true, url: '', children: [
+                    { id: 1011, order: '100', name: '资源总览', dirName: 'resource', url: '/console/overview/resource' },
+                    { id: 1012, order: '110', name: '用量统计', dirName: 'usage', url: '/console/overview/usage' },
+                ],
+            },
+            {
+                id: 102, order: '200', name: '实例管理', dirName: 'instance', iconUrl: 'uploaded.svg', hasChildren: true, url: '', children: [
+                    { id: 1021, order: '100', name: '实例列表', dirName: 'list', url: '/console/instance/list' },
+                    { id: 1022, order: '110', name: '参数设置', dirName: 'params', url: '/console/instance/params' },
+                ],
+            },
+            {
+                id: 103, order: '300', name: '监控告警', dirName: 'monitor', iconUrl: 'uploaded.svg', hasChildren: true, url: '', children: [
+                    { id: 1031, order: '100', name: '监控大盘', dirName: 'dashboard', url: '/console/monitor/dashboard' },
+                ],
+            },
+            {
+                id: 104, order: '400', name: '帮助文档', dirName: 'help', iconUrl: 'uploaded.svg', hasChildren: false, url: '/console/help', children: [],
+            },
+        ],
+        external: [
+            {
+                id: 201, order: '100', name: '概览', dirName: 'overview', iconUrl: 'uploaded.svg', hasChildren: true, url: '', children: [
+                    { id: 2011, order: '100', name: '资源总览', dirName: 'resource', url: '/console/overview/resource' },
+                ],
+            },
+            {
+                id: 202, order: '200', name: '实例管理', dirName: 'instance', iconUrl: 'uploaded.svg', hasChildren: true, url: '', children: [
+                    { id: 2021, order: '100', name: '实例列表', dirName: 'list', url: '/console/instance/list' },
+                    { id: 2022, order: '110', name: '备份恢复', dirName: 'backup', url: '/console/instance/backup' },
+                ],
+            },
+        ],
+    });
+    // 菜单配置 - 当前查看的 Portal（仅「内外一套部署」的产品可切换）
+    const [menuConfigPortal, setMenuConfigPortal] = useState<MenuPortalKey>('internal');
+    // 菜单配置 - 已展开的一级菜单ID（点击一级菜单可展开/收起其二级菜单配置）
+    const [expandedMenuIds, setExpandedMenuIds] = useState<number[]>([]);
+    // 菜单配置 - 新增菜单项的自增ID
+    const menuIdSeedRef = useRef(9000);
+    const nextMenuId = () => { menuIdSeedRef.current += 1; return menuIdSeedRef.current; };
+
+    // 菜单配置 - 编辑态：
+    //   false（默认）= 只读查看态，一级菜单仍可展开/收起查看其二级菜单配置；
+    //   true          = 编辑态，可增删改一级与二级菜单，统一「保存」或「取消」。
+    const [menuConfigEditing, setMenuConfigEditing] = useState(false);
+    // 进入编辑态时的配置快照，用于「取消」时整体还原
+    const menuConfigSnapshotRef = useRef<Record<MenuPortalKey, ProductTopMenu[]> | null>(null);
+
+    // 菜单配置 - 是否跳转单产品链接（各产品对接的过渡期配置）
+    //   false：跳转 https://console.zyun.qihoo.net/产品简称   （外部 https://console.zyun.360.cn/产品简称）
+    //   true ：跳转 https://console.zyun.qihoo.net/product/产品简称（外部 https://console.zyun.360.cn/product/产品简称）
+    const [singleProductLink, setSingleProductLink] = useState(false);
+    const singleProductLinkSnapshotRef = useRef(false);
+    // 菜单配置 - 访问链接「需求说明」弹框：由 Portal 菜单 Tab 后的高亮按钮触发，
+    // 承载原「访问链接」说明模块的文案（链接形态由「是否跳转单产品链接」决定）
+    const [accessLinkDescOpen, setAccessLinkDescOpen] = useState(false);
+
+    // 进入编辑态：记录快照
+    const startMenuConfigEdit = () => {
+        menuConfigSnapshotRef.current = JSON.parse(JSON.stringify(productMenuConfig));
+        singleProductLinkSnapshotRef.current = singleProductLink;
+        setMenuConfigEditing(true);
+    };
+    // 取消编辑：还原快照
+    const cancelMenuConfigEdit = () => {
+        if (menuConfigSnapshotRef.current) setProductMenuConfig(menuConfigSnapshotRef.current);
+        setSingleProductLink(singleProductLinkSnapshotRef.current);
+        menuConfigSnapshotRef.current = null;
+        setTopMenuDialog(null);
+        setTopMenuDialogError('');
+        setMenuConfigEditing(false);
+    };
+    // 保存编辑：一次性保存所有菜单改动
+    const saveMenuConfigEdit = () => {
+        menuConfigSnapshotRef.current = null;
+        setMenuConfigEditing(false);
+    };
+
+    // ===== 一级菜单编辑弹框 =====
+    // mode: create=新增一级菜单 / edit=编辑一级菜单
+    type TopMenuDialogState = {
+        mode: 'create' | 'edit';
+        portal: MenuPortalKey;
+        id: number | null;        // edit 时为被编辑的一级菜单ID
+        order: string;
+        name: string;
+        dirName: string;
+        iconUrl: string;          // tab icon（仅一级菜单配置）
+        hasChildren: boolean;
+        url: string;
+    };
+    const [topMenuDialog, setTopMenuDialog] = useState<TopMenuDialogState | null>(null);
+    const [topMenuDialogError, setTopMenuDialogError] = useState('');
+
+    // 打开「新增一级菜单」弹框
+    const openCreateTopMenuDialog = (portal: MenuPortalKey) => {
+        setTopMenuDialogError('');
+        setTopMenuDialog({ mode: 'create', portal, id: null, order: '', name: '', dirName: '', iconUrl: '', hasChildren: true, url: '' });
+    };
+    // 打开「编辑一级菜单」弹框
+    const openEditTopMenuDialog = (portal: MenuPortalKey, top: ProductTopMenu) => {
+        setTopMenuDialogError('');
+        setTopMenuDialog({
+            mode: 'edit', portal, id: top.id,
+            order: top.order, name: top.name, dirName: top.dirName, iconUrl: top.iconUrl,
+            hasChildren: top.hasChildren, url: top.url,
+        });
+    };
+    // 保存一级菜单弹框
+    const saveTopMenuDialog = () => {
+        if (!topMenuDialog) return;
+        const { mode, portal, id, order, name, dirName, iconUrl, hasChildren, url } = topMenuDialog;
+        if (!name.trim()) { setTopMenuDialogError('请输入一级tab名称'); return; }
+        if (!dirName.trim()) { setTopMenuDialogError('请输入目录名称'); return; }
+        if (!iconUrl) { setTopMenuDialogError('请上传 tab icon'); return; }
+        if (!hasChildren && !url.trim()) { setTopMenuDialogError('无子菜单时需填写跳转URL'); return; }
+        if (mode === 'create') {
+            const newId = nextMenuId();
+            setProductMenuConfig(prev => ({
+                ...prev,
+                [portal]: [...prev[portal], {
+                    id: newId, order: order.trim(), name: name.trim(), dirName: dirName.trim(), iconUrl,
+                    hasChildren, url: hasChildren ? '' : url.trim(), children: [],
+                }],
+            }));
+            if (hasChildren) setExpandedMenuIds(prev => [...prev, newId]);
+        } else {
+            setProductMenuConfig(prev => ({
+                ...prev,
+                [portal]: prev[portal].map(m => m.id !== id ? m : {
+                    ...m,
+                    order: order.trim(), name: name.trim(), dirName: dirName.trim(), iconUrl,
+                    hasChildren, url: hasChildren ? '' : url.trim(),
+                    children: hasChildren ? m.children : [],
+                }),
+            }));
+            // 改为「无子菜单」时收起展开态
+            if (!hasChildren && id !== null) setExpandedMenuIds(prev => prev.filter(x => x !== id));
+        }
+        setTopMenuDialog(null);
+        setTopMenuDialogError('');
+    };
+
+    // 展开/收起一级菜单
+    const toggleMenuExpand = (menuId: number) => {
+        setExpandedMenuIds(prev => prev.includes(menuId) ? prev.filter(id => id !== menuId) : [...prev, menuId]);
+    };
+    // 修改二级菜单字段
+    const updateProductSubMenu = (portal: MenuPortalKey, topId: number, subId: number, patch: Partial<ProductSubMenu>) => {
+        setProductMenuConfig(prev => ({
+            ...prev,
+            [portal]: prev[portal].map(top => top.id !== topId ? top : {
+                ...top,
+                children: top.children.map(sub => sub.id === subId ? { ...sub, ...patch } : sub),
+            }),
+        }));
+    };
+    // 新增一个二级菜单
+    const addProductSubMenu = (portal: MenuPortalKey, topId: number) => {
+        setProductMenuConfig(prev => ({
+            ...prev,
+            [portal]: prev[portal].map(top => top.id !== topId ? top : {
+                ...top,
+                children: [...top.children, { id: nextMenuId(), order: '', name: '', dirName: '', url: '' }],
+            }),
+        }));
+    };
+    // 删除一个二级菜单
+    const removeProductSubMenu = (portal: MenuPortalKey, topId: number, subId: number) => {
+        setProductMenuConfig(prev => ({
+            ...prev,
+            [portal]: prev[portal].map(top => top.id !== topId ? top : {
+                ...top,
+                children: top.children.filter(sub => sub.id !== subId),
+            }),
+        }));
+    };
+    // 删除一级菜单
+    const removeProductTopMenu = (portal: MenuPortalKey, topId: number) => {
+        setProductMenuConfig(prev => ({ ...prev, [portal]: prev[portal].filter(top => top.id !== topId) }));
+        setExpandedMenuIds(prev => prev.filter(id => id !== topId));
+    };
     // 产品设置页-产品信息：false=只读详情态，true=编辑表单态
     const [productSettingsEditing, setProductSettingsEditing] = useState(false);
     
@@ -7288,6 +7521,214 @@ export default function AdminPage() {
     const [resourcePackagePageSize, setResourcePackagePageSize] = useState(10);
     const resourcePackageTotalCount = 63; // 总数据量
     
+    // 产品分类相关状态
+    const [categoryCurrentPage, setCategoryCurrentPage] = useState(1);
+    const [categoryPageSize, setCategoryPageSize] = useState(10);
+
+    // 产品分类数据
+    // workbenchEnabled：工作台状态（true=已开启 / false=未开启）
+    // workbench：工作台配置内容，null 表示尚未配置工作台
+    type WorkbenchConfig = {
+        name: string;       // 工作台名称
+        shortName: string;  // 工作台简称
+        iconUrl: string;    // 工作台 icon（dataURL）
+        dirName: string;    // 目录名称
+    };
+    // 工作台可上架的 Portal：internal=内部 Portal / external=外部 Portal
+    type WorkbenchPortal = 'internal' | 'external';
+    const PORTAL_LABEL: Record<WorkbenchPortal, string> = { internal: '内部 Portal', external: '外部 Portal' };
+    // 工作台在各 Portal 下的控制台域名：内部 Portal(qihoo.net) / 外部 Portal(360.cn)
+    const PORTAL_CONSOLE_HOST: Record<WorkbenchPortal, string> = {
+        internal: 'https://console.zyun.qihoo.net',
+        external: 'https://console.zyun.360.cn',
+    };
+    // 工作台访问链接：{控制台域名}/workbench/{工作台标识}，如 https://console.zyun.qihoo.net/workbench/agent
+    const getWorkbenchPortalUrl = (portal: WorkbenchPortal, dirName?: string) =>
+        `${PORTAL_CONSOLE_HOST[portal]}/workbench/${(dirName || '').trim()}`;
+    type ProductCategoryRow = {
+        id: number;
+        siteOrder: number;
+        consoleOrder: number;
+        siteName: string;
+        consoleName: string;
+        internalLink: string;
+        externalLink: string;
+        status: string;
+        createTime: string;
+        updateTime: string;
+        workbenchEnabled: boolean;
+        workbench: WorkbenchConfig | null;
+        // 工作台已上架的 Portal，未开启时为空数组
+        workbenchPortals: WorkbenchPortal[];
+    };
+    const [productCategoryData, setProductCategoryData] = useState<ProductCategoryRow[]>([
+        { id: 1, siteOrder: 210, consoleOrder: 210, siteName: "智能体", consoleName: "智能体", internalLink: "-", externalLink: "-", status: "online", createTime: "2025-09-10 20:35:20", updateTime: "2026-10-08 12:10:02", workbenchEnabled: true, workbench: { name: "智能体工作台", shortName: "智能体", iconUrl: "", dirName: "agent" }, workbenchPortals: ["internal", "external"] },
+        { id: 2, siteOrder: 215, consoleOrder: 215, siteName: "Serverless", consoleName: "Serverless", internalLink: "-", externalLink: "-", status: "online", createTime: "2024-12-18 18:50:09", updateTime: "2026-10-09 12:14:04", workbenchEnabled: false, workbench: null, workbenchPortals: [] },
+        { id: 3, siteOrder: 220, consoleOrder: 220, siteName: "计算", consoleName: "计算", internalLink: "-", externalLink: "-", status: "online", createTime: "2025-10-22 16:49:52", updateTime: "2026-10-09 12:19:37", workbenchEnabled: true, workbench: { name: "计算工作台", shortName: "计算", iconUrl: "", dirName: "compute" }, workbenchPortals: ["internal"] },
+        { id: 4, siteOrder: 225, consoleOrder: 225, siteName: "数据库", consoleName: "数据库", internalLink: "-", externalLink: "-", status: "online", createTime: "2024-12-18 18:50:09", updateTime: "2026-10-08 12:00:21", workbenchEnabled: false, workbench: { name: "数据库工作台", shortName: "数据库", iconUrl: "", dirName: "database" }, workbenchPortals: [] },
+        { id: 5, siteOrder: 230, consoleOrder: 230, siteName: "存储", consoleName: "存储", internalLink: "-", externalLink: "-", status: "offline", createTime: "2024-12-18 18:50:09", updateTime: "2026-10-08 12:00:01", workbenchEnabled: false, workbench: null, workbenchPortals: [] },
+        { id: 6, siteOrder: 235, consoleOrder: 235, siteName: "大数据", consoleName: "大数据", internalLink: "-", externalLink: "-", status: "online", createTime: "2024-12-18 18:50:09", updateTime: "2026-10-08 12:00:58", workbenchEnabled: true, workbench: { name: "大数据工作台", shortName: "大数据", iconUrl: "", dirName: "bigdata" }, workbenchPortals: ["external"] },
+        { id: 7, siteOrder: 240, consoleOrder: 240, siteName: "AI开发", consoleName: "AI开发", internalLink: "-", externalLink: "-", status: "online", createTime: "2025-09-10 20:27:58", updateTime: "2026-10-08 12:01:17", workbenchEnabled: false, workbench: null, workbenchPortals: [] },
+        { id: 8, siteOrder: 260, consoleOrder: 260, siteName: "媒体云", consoleName: "媒体云", internalLink: "-", externalLink: "-", status: "online", createTime: "2024-12-18 18:50:09", updateTime: "2026-10-08 11:43:51", workbenchEnabled: false, workbench: null, workbenchPortals: [] },
+        { id: 9, siteOrder: 265, consoleOrder: 265, siteName: "数智应用", consoleName: "数智应用", internalLink: "-", externalLink: "-", status: "offline", createTime: "2024-12-18 18:50:09", updateTime: "2026-10-09 12:16:28", workbenchEnabled: false, workbench: null, workbenchPortals: [] },
+        { id: 10, siteOrder: 270, consoleOrder: 270, siteName: "物联网", consoleName: "物联网", internalLink: "-", externalLink: "-", status: "online", createTime: "2024-12-18 18:50:09", updateTime: "2026-10-08 12:08:01", workbenchEnabled: false, workbench: null, workbenchPortals: [] },
+    ]);
+
+    // 产品分类 - 筛选条件
+    const [categoryNameKeyword, setCategoryNameKeyword] = useState("");
+    const [categoryOrderSort, setCategoryOrderSort] = useState<"" | "asc" | "desc">("");
+    // 分类上下线状态筛选：all=全部 / online=已上线 / offline=已下线
+    const [categoryStatusFilter, setCategoryStatusFilter] = useState<"all" | "online" | "offline">("all");
+    // 工作台开启状态筛选：all=全部 / enabled=已开启 / disabled=未开启
+    const [categoryWorkbenchFilter, setCategoryWorkbenchFilter] = useState<"all" | "enabled" | "disabled">("all");
+
+    // 筛选条件变更时统一重置到第一页
+    const resetCategoryPage = () => setCategoryCurrentPage(1);
+
+    // 按筛选条件过滤 + 排序后的产品分类数据
+    const filteredProductCategoryData = (() => {
+        const keyword = categoryNameKeyword.trim().toLowerCase();
+        const rows = productCategoryData.filter(row => {
+            const matchKeyword = !keyword
+                || row.siteName.toLowerCase().includes(keyword)
+                || row.consoleName.toLowerCase().includes(keyword);
+            const matchStatus = categoryStatusFilter === 'all' || row.status === categoryStatusFilter;
+            const matchWorkbench = categoryWorkbenchFilter === 'all'
+                || (categoryWorkbenchFilter === 'enabled' ? row.workbenchEnabled : !row.workbenchEnabled);
+            return matchKeyword && matchStatus && matchWorkbench;
+        });
+        if (categoryOrderSort === 'asc') return [...rows].sort((a, b) => a.siteOrder - b.siteOrder);
+        if (categoryOrderSort === 'desc') return [...rows].sort((a, b) => b.siteOrder - a.siteOrder);
+        return rows;
+    })();
+    const filteredCategoryTotal = filteredProductCategoryData.length;
+    const categoryTotalPages = Math.max(1, Math.ceil(filteredCategoryTotal / categoryPageSize));
+    // 页码越界保护（筛选后数据变少时）
+    const categorySafePage = Math.min(categoryCurrentPage, categoryTotalPages);
+
+    // ===== 开启工作台二次确认弹框（选择上架的 Portal）=====
+    const [portalDialogOpen, setPortalDialogOpen] = useState(false);
+    const [portalDialogCategoryId, setPortalDialogCategoryId] = useState<number | null>(null);
+    const [portalSelection, setPortalSelection] = useState<WorkbenchPortal[]>([]);
+    const [portalError, setPortalError] = useState('');
+
+    // 打开 Portal 选择确认弹框（默认沿用上次上架的 Portal，没有则默认内部 Portal）
+    const openPortalDialog = (categoryId: number) => {
+        const row = productCategoryData.find(r => r.id === categoryId);
+        setPortalDialogCategoryId(categoryId);
+        setPortalSelection(row && row.workbenchPortals.length > 0 ? [...row.workbenchPortals] : ['internal']);
+        setPortalError('');
+        setPortalDialogOpen(true);
+    };
+
+    const closePortalDialog = () => {
+        setPortalDialogOpen(false);
+        setPortalDialogCategoryId(null);
+        setPortalSelection([]);
+        setPortalError('');
+    };
+
+    // 勾选/取消勾选某个 Portal
+    const togglePortalSelection = (portal: WorkbenchPortal) => {
+        setPortalError('');
+        setPortalSelection(prev => prev.includes(portal) ? prev.filter(p => p !== portal) : [...prev, portal]);
+    };
+
+    // 确认开启：至少选择一个 Portal，确认后上架到对应 Portal
+    const confirmPortalDialog = () => {
+        if (portalSelection.length === 0) {
+            setPortalError('请至少选择一个 Portal');
+            return;
+        }
+        setProductCategoryData(prev => prev.map(row =>
+            row.id === portalDialogCategoryId
+                ? { ...row, workbenchEnabled: true, workbenchPortals: [...portalSelection] }
+                : row
+        ));
+        closePortalDialog();
+    };
+
+    // ===== 工作台配置弹框 =====
+    const emptyWorkbenchForm: WorkbenchConfig = { name: '', shortName: '', iconUrl: '', dirName: '' };
+    const [workbenchDialogOpen, setWorkbenchDialogOpen] = useState(false);
+    const [workbenchDialogCategoryId, setWorkbenchDialogCategoryId] = useState<number | null>(null);
+    // 由「工作台状态开关」触发的配置，保存成功后自动开启工作台
+    const [workbenchDialogFromToggle, setWorkbenchDialogFromToggle] = useState(false);
+    const [workbenchForm, setWorkbenchForm] = useState<WorkbenchConfig>(emptyWorkbenchForm);
+    const [workbenchErrors, setWorkbenchErrors] = useState<{ name?: string; shortName?: string; iconUrl?: string; dirName?: string }>({});
+
+    // 打开工作台配置弹框（fromToggle=true 表示由开关触发）
+    const openWorkbenchDialog = (row: ProductCategoryRow, fromToggle = false) => {
+        setWorkbenchDialogCategoryId(row.id);
+        setWorkbenchDialogFromToggle(fromToggle);
+        setWorkbenchForm(row.workbench ? { ...row.workbench } : { ...emptyWorkbenchForm });
+        setWorkbenchErrors({});
+        setWorkbenchDialogOpen(true);
+    };
+
+    const closeWorkbenchDialog = () => {
+        setWorkbenchDialogOpen(false);
+        setWorkbenchDialogCategoryId(null);
+        setWorkbenchDialogFromToggle(false);
+        setWorkbenchForm({ ...emptyWorkbenchForm });
+        setWorkbenchErrors({});
+    };
+
+    // 上传 icon（本地预览）
+    const handleWorkbenchIconUpload = (file: File | null | undefined) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            setWorkbenchForm(prev => ({ ...prev, iconUrl: String(reader.result || '') }));
+            setWorkbenchErrors(prev => ({ ...prev, iconUrl: undefined }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // 保存工作台配置
+    const submitWorkbenchDialog = () => {
+        const errors: { name?: string; shortName?: string; iconUrl?: string; dirName?: string } = {};
+        const name = workbenchForm.name.trim();
+        const shortName = workbenchForm.shortName.trim();
+        const dirName = workbenchForm.dirName.trim();
+        if (!name) errors.name = '请输入工作台名称';
+        else if (!/^[\u4e00-\u9fa5a-zA-Z0-9 ]{1,20}$/.test(name)) errors.name = '支持中英文、空格、数字（20个字符以内）';
+        if (!shortName) errors.shortName = '请输入工作台简称';
+        if (!workbenchForm.iconUrl) errors.iconUrl = '请上传 icon';
+        if (!dirName) errors.dirName = '请输入目录名称';
+        else if (!/^[a-z0-9-]{1,50}$/.test(dirName)) errors.dirName = '仅支持小写字母（50个字符以内）';
+        setWorkbenchErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+
+        setProductCategoryData(prev => prev.map(row =>
+            row.id === workbenchDialogCategoryId
+                ? { ...row, workbench: { name, shortName, iconUrl: workbenchForm.iconUrl, dirName } }
+                : row
+        ));
+        const fromToggle = workbenchDialogFromToggle;
+        const categoryId = workbenchDialogCategoryId;
+        closeWorkbenchDialog();
+        // 由开关触发的配置：配置完成后继续二次确认，选择上架的 Portal
+        if (fromToggle && categoryId !== null) openPortalDialog(categoryId);
+    };
+
+    // 切换工作台状态
+    // 开启：先校验是否已配置工作台（未配置先去配置），再二次确认选择上架的 Portal
+    // 关闭：直接关闭并从所有 Portal 下架
+    const toggleWorkbenchEnabled = (row: ProductCategoryRow) => {
+        if (row.workbenchEnabled) {
+            setProductCategoryData(prev => prev.map(r =>
+                r.id === row.id ? { ...r, workbenchEnabled: false, workbenchPortals: [] } : r
+            ));
+            return;
+        }
+        if (!row.workbench) {
+            openWorkbenchDialog(row, true);
+            return;
+        }
+        openPortalDialog(row.id);
+    };
+    
     // 产品抽屉模式：create-创建产品 / edit-编辑产品
     const [productDrawerMode, setProductDrawerMode] = useState<'create' | 'edit'>('create');
     const [callbackDialogOpen, setCallbackDialogOpen] = useState(false); // 回调设置弹窗
@@ -7310,7 +7751,7 @@ export default function AdminPage() {
         icon: null as File | null, // 产品图标
         url: '',            // URL地址
         introUrl: '',       // 介绍页地址
-        portal: '',          // 上架Portal：portal名称（对应企业配置）或 ALL_PORTAL_VALUE（所有portal，一个产品）
+        portal: '',          // 部署Portal：portal名称（对应企业配置）或 ALL_PORTAL_VALUE（内外一套部署，一个产品）
         linkedPublicProduct: '', // 关联的公共Portal产品标识符，仅选中「内部portal」时必填
         visibility: 'all',  // 展示范围：all / specified / excluded
         visibilityTenants: [] as { id: string; name: string }[], // 展示范围关联的租户列表
@@ -7341,7 +7782,7 @@ export default function AdminPage() {
     const [descTipOpen, setDescTipOpen] = useState(false);
 
     // 打开创建产品抽屉
-    // 上架Portal 默认选中「公共Portal」，展示范围随之联动为「指定企业不可见」+ 内部portal关联租户
+    // 部署Portal 默认选中「公共Portal」，展示范围随之联动为「指定企业不可见」+ 内部portal关联租户
     const openCreateProduct = () => {
         setProductDrawerMode('create');
         const defaultPortal = publicPortalOption ? publicPortalOption.value : ALL_PORTAL_VALUE;
@@ -7355,6 +7796,13 @@ export default function AdminPage() {
 
     // 用已有产品数据回填创建/编辑表单
     const fillProductForm = (product: typeof zhihuiProductsData[0]) => {
+        // 公共/外部Portal 下「所有企业可见」不可选，回填时统一降级为「指定企业不可见」
+        const rawVisibility = product.visibility === '所有企业可见'
+            ? 'all'
+            : (product.visibility === '指定企业不可见' ? 'excluded' : 'specified');
+        const visibility = !visibilityOptionsForPortal(product.portal).includes(rawVisibility)
+            ? (isInternalPortalSelected(product.portal) ? 'specified' : 'excluded')
+            : rawVisibility;
         setNewProduct({
             ...emptyProductForm,
             name: product.name,
@@ -7365,13 +7813,11 @@ export default function AdminPage() {
             tags: ['标签', 'New'],
             url: `/${product.identifier}`,
             hotConsole: true,
-            visibility: product.visibility === '所有企业可见'
-                ? 'all'
-                : (product.visibility === '指定企业不可见' ? 'excluded' : 'specified'),
+            visibility,
             auditType: 'auto',
             portal: product.portal,
             linkedPublicProduct: '',
-            visibilityTenants: product.visibility === '所有企业可见' ? [] : internalPortalTenant,
+            visibilityTenants: visibility === 'all' ? [] : internalPortalTenant,
             docEnabled: true,
             docUrl: product.portal === ALL_PORTAL_VALUE ? '' : 'https://apicloud.360.cn/user/apistore',
             apiDocEnabled: true,
@@ -7386,25 +7832,29 @@ export default function AdminPage() {
         setCreateProductDialogOpen(true);
     };
 
-    // ===== 上架Portal 与 展示范围 的联动 =====
+    // ===== 部署Portal 与 展示范围 的联动 =====
     // 内部portal：展示范围锁定为「指定企业可见」+ 内部portal关联租户，均不可修改
-    // 外部portal：展示范围默认「指定企业不可见」+ 内部portal关联租户，可切换可见/不可见并操作租户
-    // 所有portal：展示范围全部选项可切换、租户可操作
-    const isInternalPortalSelected = (portal: string) => !!getProductPortalOption(portal)?.internal;
+    // 公共/外部portal：展示范围默认「指定企业不可见」+ 内部portal关联租户，「所有企业可见」不可选
+    // 内外一套部署：展示范围全部选项可切换、租户可操作
+    const isInternalPortalSelected = (portal: string) => isInternalPortalName(portal);
     const isSinglePortalSelected = (portal: string) => !!portal && portal !== ALL_PORTAL_VALUE;
+    // 是否选中「公共/外部Portal」（系统内置的公共Portal企业）
+    const isPublicPortalSelected = (portal: string) =>
+        isSinglePortalSelected(portal) && !isInternalPortalName(portal);
     // 展示范围是否可切换：仅「内部portal」时锁定
     const visibilityLocked = isInternalPortalSelected(newProduct.portal);
-    // 展示范围可选项：内部portal仅「指定企业可见」；外部portal所有选项可选；所有portal为全部
+    // 展示范围可选项：内部portal仅「指定企业可见」；公共/外部portal不可选「所有企业可见」；内外一套部署为全部
     const visibilityOptionsForPortal = (portal: string) => {
         if (isInternalPortalSelected(portal)) return ['specified'];
+        if (isPublicPortalSelected(portal)) return ['specified', 'excluded'];
         return ['all', 'specified', 'excluded'];
     };
 
-    // 切换「上架Portal」
+    // 切换「部署Portal」
     const handleChangeProductPortal = (portal: string) => {
         setNewProduct(prev => {
             const wasLinked = !!prev.linkedPublicProduct;
-            // 从内部portal（已关联外部产品）切换到外部portal或所有portal：清空自动填充的全部数据
+            // 从内部portal（已关联外部产品）切换到外部portal或内外一套部署：清空自动填充的全部数据
             if (!isInternalPortalSelected(portal) && wasLinked) {
                 return {
                     ...emptyProductForm,
@@ -7424,7 +7874,7 @@ export default function AdminPage() {
                 next.visibility = 'excluded';
                 next.visibilityTenants = internalPortalTenant;
             } else {
-                // 所有portal：不做限制
+                // 内外一套部署：不做限制
                 next.visibility = 'all';
                 next.visibilityTenants = [];
             }
@@ -7432,7 +7882,7 @@ export default function AdminPage() {
         });
     };
 
-    // 选中内部portal并关联公共Portal产品后：自动同步基础配置、推广配置、高级配置
+    // 选中内部portal并关联公共Portal产品后：自动同步基础配置、推广配置、管理端配置
     const handleLinkPublicProduct = (identifier: string) => {
         const src = zhihuiProductsData.find(p => p.identifier === identifier);
         // 根据产品分类映射所属产线
@@ -7471,7 +7921,7 @@ export default function AdminPage() {
                 hotConsole: true,
                 promoTag: 'new',
                 tags: ['推荐', 'New'],
-                // ===== 高级配置 =====
+                // ===== 管理端配置 =====
                 auditType: 'auto',
                 workOrderSchedule: false,
                 billingEnabled: true,
@@ -8348,7 +8798,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>客户计费配置</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                             </div>
                         )}
@@ -8358,7 +8807,7 @@ export default function AdminPage() {
                     <div>
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['product-define', 'product-addon', 'product-billing', 'product-package', 'product-settings'].includes(currentMenu)
+                                ['product-define', 'product-addon', 'product-billing', 'product-package', 'product-category', 'product-settings'].includes(currentMenu)
                                     ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
@@ -8418,6 +8867,17 @@ export default function AdminPage() {
                                 >
                                     产品套餐
                                 </div>
+                                <div
+                                    onClick={() => setCurrentMenu('product-category')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'product-category'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>产品分类</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -8438,7 +8898,6 @@ export default function AdminPage() {
                             }}
                         >
                             <span className="text-[13px]">账单查询</span>
-                            <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                             <svg className={`w-3.5 h-3.5 transition-transform duration-[160ms] ${zhiqiBillMenuExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -8514,7 +8973,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>部门分析</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-monitor')}
@@ -8610,7 +9068,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>企业配置</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('platform-region')}
@@ -9127,17 +9584,16 @@ export default function AdminPage() {
                                         ))}
                                     </select>
 
-                                    {/* 上架Portal筛选：选项来源于「平台配置-企业配置」中已开启独立Portal的企业 */}
+                                    {/* 部署Portal筛选：选项来源于「平台配置-企业配置」中已开启独立Portal的企业 */}
                                     <select
                                         value={productPortalFilter}
                                         onChange={(e) => setProductPortalFilter(e.target.value)}
                                         className="h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                                     >
                                         <option value="all">全部Portal</option>
-                                        {productPortalOptions.map(o => (
+                                        {productPortalRadioOptions.map(o => (
                                             <option key={o.value} value={o.value}>{o.label}</option>
                                         ))}
-                                        <option value={ALL_PORTAL_VALUE}>所有portal</option>
                                     </select>
                                     
                                     {/* 右侧按钮 */}
@@ -9155,14 +9611,14 @@ export default function AdminPage() {
                                 </div>
                             </div>
                             
-                            {/* 产品列表：按上架Portal分类展示（内部Portal / 外部Portal / 所有Portal），每个模块下展示各自的产品 */}
+                            {/* 产品列表：按部署Portal分类展示（内部Portal / 外部Portal / 所有Portal），每个模块下展示各自的产品 */}
                             {(() => {
                                 const filteredProducts = zhihuiProductsData.filter(product => {
                                     const matchSearch = product.name.toLowerCase().includes(productSearchKeyword.toLowerCase()) ||
                                         product.identifier.toLowerCase().includes(productSearchKeyword.toLowerCase());
                                     const matchCategory = productCategoryFilter === 'all' || product.category.startsWith(productCategoryFilter);
                                     const matchStatus = productStatusFilter === 'all' || product.status === productStatusFilter;
-                                    // 上架Portal筛选：选中具体Portal时，「所有portal」的产品也命中（它在每个Portal下都上架）
+                                    // 部署Portal筛选：选中具体Portal时，「内外一套部署」的产品也命中（它在每个Portal下都上架）
                                     const matchPortal = productPortalFilter === 'all'
                                         || product.portal === productPortalFilter
                                         || (productPortalFilter !== ALL_PORTAL_VALUE && product.portal === ALL_PORTAL_VALUE);
@@ -9202,6 +9658,13 @@ export default function AdminPage() {
                                                             const linked = isInner ? getLinkedProduct(product) : undefined;
                                                             // 统一产品标识：内部Portal产品关联外部产品时，使用外部产品的标识（去除_in后缀）
                                                             const displayIdentifier = linked ? linked.identifier : product.identifier;
+                                                            // 展示范围回填：与「部署Portal」联动，不合法的取值降级（公共/外部Portal不可选「所有企业可见」）
+                                                            const rawVisibility = product.visibility === '所有企业可见'
+                                                                ? 'all'
+                                                                : (product.visibility === '指定企业不可见' ? 'excluded' : 'specified');
+                                                            const cardVisibility = !visibilityOptionsForPortal(product.portal).includes(rawVisibility)
+                                                                ? (isInternalPortalSelected(product.portal) ? 'specified' : 'excluded')
+                                                                : rawVisibility;
                                                             return (
                                                             <div
                                                                 key={product.id}
@@ -9219,13 +9682,11 @@ export default function AdminPage() {
                                                                         tags: ['标签', 'New'],
                                                                         url: `/${product.identifier}`,
                                                                         hotConsole: true,
-                                                                        visibility: product.visibility === '所有企业可见'
-                                                                            ? 'all'
-                                                                            : (product.visibility === '指定企业不可见' ? 'excluded' : 'specified'),
+                                                                        visibility: cardVisibility,
                                                                         auditType: 'auto',
                                                                         portal: product.portal,
                                                                         linkedPublicProduct: linked ? linked.identifier : '',
-                                                                        visibilityTenants: product.visibility === '所有企业可见' ? [] : internalPortalTenant,
+                                                                        visibilityTenants: cardVisibility === 'all' ? [] : internalPortalTenant,
                                                                         docEnabled: true,
                                                                         docUrl: product.portal === ALL_PORTAL_VALUE ? '' : 'https://apicloud.360.cn/user/apistore',
                                                                         apiDocEnabled: true,
@@ -9256,10 +9717,10 @@ export default function AdminPage() {
                                                                 {/* 产品信息 */}
                                                                 <h3 className="text-sm font-semibold text-gray-900 mb-1.5 truncate pr-16">{product.name}</h3>
 
-                                                                {/* 上架Portal 标记 + 关联产品：同一行展示，节省纵向空间 */}
+                                                                {/* 部署Portal 标记 + 关联产品：同一行展示，节省纵向空间 */}
                                                                 <div className="flex items-center gap-1.5 mb-2 min-w-0">
                                                                     <span
-                                                                        title={`上架Portal：${getProductPortalOption(product.portal)?.label || getProductPortalLabel(product.portal)}`}
+                                                                        title={`部署Portal：${getProductPortalOption(product.portal)?.label || getProductPortalLabel(product.portal)}`}
                                                                         className={`px-2 py-1 text-[11px] font-medium leading-none rounded flex-shrink-0 ${getProductPortalBadgeClass(product.portal)}`}
                                                                     >
                                                                         {getProductPortalLabel(product.portal)}
@@ -9347,14 +9808,14 @@ export default function AdminPage() {
                         }
                         const linkedProduct = settingsProduct.linkedProductId ? zhihuiProductsData.find(p => p.id === settingsProduct.linkedProductId) : undefined;
                         const displayIdentifier = linkedProduct ? linkedProduct.identifier : settingsProduct.identifier;
-                        // 左侧子菜单项
-                        const settingsNavItems: { key: typeof productSettingsNav; label: string }[] = [
+                        // 左侧子菜单项（badge=true 的项在本期有改动）
+                        const settingsNavItems: { key: typeof productSettingsNav; label: string; badge?: boolean }[] = [
                             { key: 'info', label: '产品信息' },
                             { key: 'workorder', label: '工单管理' },
                             { key: 'intranet', label: '内网工单管理' },
                             { key: 'doc', label: '文档管理' },
                             { key: 'intro', label: '产品介绍页' },
-                            { key: 'menu', label: '菜单配置' },
+                            { key: 'menu', label: '菜单配置', badge: true },
                         ];
                         // 产品分类 -> 所属产线
                         const categoryMain = settingsProduct.category.split('/')[0];
@@ -9366,7 +9827,7 @@ export default function AdminPage() {
                         const productLine = productLineMap[categoryMain] || '其他';
                         // 产品简称：取名称最后一段（如「云数据库 MySQL」-> MySQL）
                         const shortName = settingsProduct.name.split(' ').slice(-1)[0];
-                        const isInternalProduct = !!getProductPortalOption(settingsProduct.portal)?.internal;
+                        const isInternalProduct = isInternalPortalName(settingsProduct.portal);
                         const isOnline = settingsProduct.status === 'online';
                         // 只读详情行
                         const InfoRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -9405,6 +9866,9 @@ export default function AdminPage() {
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
                                                     </svg>
                                                     <span>{item.label}</span>
+                                                    {item.badge && (
+                                                        <span className="ml-1 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
+                                                    )}
                                                     {active && <span className="absolute right-0 top-1 bottom-1 w-0.5 bg-blue-600 rounded-full" />}
                                                 </button>
                                             );
@@ -9413,7 +9877,355 @@ export default function AdminPage() {
 
                                     {/* 右侧内容区 */}
                                     <div className="flex-1 overflow-auto p-6">
-                                    {productSettingsNav !== 'info' ? (
+                                    {productSettingsNav === 'menu' ? (
+                                        /* ===== 菜单配置 =====
+                                           可配置的 Portal 由产品的「部署Portal」决定：
+                                           内部Portal产品 -> 仅内部Portal菜单；外部Portal产品 -> 仅外部Portal菜单；
+                                           内外一套部署 -> 内、外两套菜单均可配置（Tab 切换） */
+                                        (() => {
+                                            const isAllPortal = settingsProduct.portal === ALL_PORTAL_VALUE;
+                                            const availablePortals: MenuPortalKey[] = isAllPortal
+                                                ? ['internal', 'external']
+                                                : [isInternalProduct ? 'internal' : 'external'];
+                                            const activePortal: MenuPortalKey = availablePortals.includes(menuConfigPortal)
+                                                ? menuConfigPortal
+                                                : availablePortals[0];
+                                            const MENU_PORTAL_LABEL: Record<MenuPortalKey, string> = {
+                                                internal: '内部Portal菜单',
+                                                external: '外部Portal菜单',
+                                            };
+                                            const menus = productMenuConfig[activePortal];
+                                            // 一级菜单按排序值升序展示（空值排最后）
+                                            const sortedMenus = [...menus].sort((a, b) => {
+                                                const av = a.order.trim() === '' ? Number.MAX_SAFE_INTEGER : Number(a.order);
+                                                const bv = b.order.trim() === '' ? Number.MAX_SAFE_INTEGER : Number(b.order);
+                                                return av - bv;
+                                            });
+                                            const fieldLabelCls = 'w-32 flex-shrink-0 text-right text-sm text-gray-700 pt-2';
+                                            const fieldInputCls = 'flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-500';
+                                            // 产品简称：内部Portal产品标识统一以 _in 结尾，访问链接使用去掉 _in 后的简称
+                                            const productShortName = (settingsProduct.identifier || '产品简称').replace(/_in$/, '');
+                                            // 访问链接：是否跳转单产品链接决定是否带 /product 前缀
+                                            const internalAccessUrl = singleProductLink
+                                                ? `https://console.zyun.qihoo.net/product/${productShortName}`
+                                                : `https://console.zyun.qihoo.net/${productShortName}`;
+                                            const externalAccessUrl = singleProductLink
+                                                ? `https://console.zyun.360.cn/product/${productShortName}`
+                                                : `https://console.zyun.360.cn/${productShortName}`;
+                                            return (
+                                                <div>
+                                                    {/* 部署Portal 说明 */}
+                                                    <div className="mb-4 flex items-start gap-2 bg-blue-50/60 border border-blue-100 rounded-lg px-4 py-3">
+                                                        <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <div className="text-xs text-gray-600 leading-[1.7]">
+                                                            当前产品的部署Portal为
+                                                            <span className="mx-1 font-medium text-gray-900">「{getProductPortalLabel(settingsProduct.portal)}」</span>
+                                                            {isAllPortal
+                                                                ? '，内外Portal共用一套部署，需分别配置「内部Portal菜单」与「外部Portal菜单」。'
+                                                                : `，仅需配置「${MENU_PORTAL_LABEL[availablePortals[0]]}」。`}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Portal 菜单 Tab：内外一套部署时才有两个 Tab；右上角为「编辑配置 / 保存 + 取消」 */}
+                                                    <div className="flex items-center justify-between gap-4 border-b border-gray-200 mb-3">
+                                                        <div className="flex items-center gap-6">
+                                                            {availablePortals.map(portal => (
+                                                                /* 每个 Portal 菜单 Tab 后展示该产品在当前 Portal 下唯一的访问链接（灰色字体）：
+                                                                   链接形态由「是否内部Portal」（决定域名）与「是否跳转单产品链接」（决定是否带 /product 前缀）共同决定 */
+                                                                <div key={portal} className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => setMenuConfigPortal(portal)}
+                                                                        className={`relative px-1 py-3 text-sm font-medium transition-colors ${activePortal === portal ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
+                                                                    >
+                                                                        {MENU_PORTAL_LABEL[portal]}
+                                                                        <span className="ml-1.5 text-xs font-normal text-gray-400">
+                                                                            ({productMenuConfig[portal].length})
+                                                                        </span>
+                                                                        {activePortal === portal && (
+                                                                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
+                                                                        )}
+                                                                    </button>
+                                                                    <span className="text-xs font-mono text-gray-400 truncate max-w-[320px]" title={portal === 'internal' ? internalAccessUrl : externalAccessUrl}>
+                                                                        {portal === 'internal' ? internalAccessUrl : externalAccessUrl}
+                                                                    </span>
+                                                                    {/* 需求说明：橙色高亮按钮，点击弹出「访问链接」规则说明（原访问链接模块文案） */}
+                                                                    <button
+                                                                        onClick={() => setAccessLinkDescOpen(true)}
+                                                                        className="flex-shrink-0 inline-flex items-center gap-1 px-2 h-6 rounded-md bg-orange-500 text-white border border-orange-500 text-xs font-medium shadow-sm hover:bg-orange-600 hover:border-orange-600 transition-colors"
+                                                                    >
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                        </svg>
+                                                                        需求说明
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        {/* 编辑配置：开启后可统一增删改一级/二级菜单，并一次性保存 */}
+                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                            {!menuConfigEditing ? (
+                                                                <button
+                                                                    onClick={startMenuConfigEdit}
+                                                                    className="px-4 h-8 text-sm text-[#006bff] border border-[#006bff] rounded-lg hover:bg-blue-50 transition-colors"
+                                                                >
+                                                                    编辑配置
+                                                                </button>
+                                                            ) : (
+                                                                <>
+                                                                    <button
+                                                                        onClick={saveMenuConfigEdit}
+                                                                        className="px-4 h-8 text-sm text-white bg-[#006bff] rounded-lg hover:bg-blue-700 transition-colors"
+                                                                    >
+                                                                        保存
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={cancelMenuConfigEdit}
+                                                                        className="px-4 h-8 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                                    >
+                                                                        取消
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 访问链接 - 需求说明弹框：由 Portal 菜单 Tab 后的「需求说明」按钮触发，
+                                                        链接形态由「是否跳转单产品链接」决定，并标注当前生效项 */}
+                                                    {accessLinkDescOpen && (
+                                                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setAccessLinkDescOpen(false)}>
+                                                            <div className="w-full max-w-[720px] bg-white rounded-xl shadow-xl" onClick={(e) => e.stopPropagation()}>
+                                                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                                                                    <span className="text-base font-semibold text-gray-900">需求说明 · 访问链接</span>
+                                                                    <button onClick={() => setAccessLinkDescOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                                <div className="px-5 py-4 text-xs text-gray-600 leading-[1.9]">
+                                                                    <div className="font-medium text-gray-700 mb-0.5">访问链接：</div>
+                                                                    <div className={singleProductLink ? '' : 'text-gray-900'}>
+                                                                        (1) 如果<span className="mx-0.5 font-medium">不是</span>跳转单产品链接，内部Portal是
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.qihoo.net/产品简称</span>
+                                                                        ，外部Portal是
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.360.cn/产品简称</span>
+                                                                        {!singleProductLink && <span className="ml-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 text-[10px] leading-none">当前</span>}
+                                                                    </div>
+                                                                    <div className={singleProductLink ? 'text-gray-900' : ''}>
+                                                                        (2) 如果<span className="mx-0.5 font-medium">是</span>跳转单产品链接，内部Portal是
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.qihoo.net/product/产品简称</span>
+                                                                        ，外部Portal是
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.360.cn/product/产品简称</span>
+                                                                        {singleProductLink && <span className="ml-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 text-[10px] leading-none">当前</span>}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex justify-end px-5 py-3 border-t border-gray-200">
+                                                                    <button
+                                                                        onClick={() => setAccessLinkDescOpen(false)}
+                                                                        className="px-4 h-8 text-sm text-white bg-[#006bff] rounded-lg hover:bg-blue-700 transition-colors"
+                                                                    >
+                                                                        知道了
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 菜单列表标题栏：共N个一级菜单 + 是否跳转单产品链接；编辑态下右侧可新增一级菜单 */}
+                                                    <div className="flex items-center justify-between gap-4 mb-3">
+                                                        <div className="flex items-center gap-5">
+                                                            <span className="text-sm text-gray-500">共 {sortedMenus.length} 个一级菜单</span>
+                                                            {/* 是否跳转单产品链接：各产品对接的过渡期配置 */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm text-gray-700">是否跳转单产品链接：</span>
+                                                                <button
+                                                                    disabled={!menuConfigEditing}
+                                                                    onClick={() => menuConfigEditing && setSingleProductLink(v => !v)}
+                                                                    className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${singleProductLink ? 'bg-[#006bff]' : 'bg-gray-300'} ${menuConfigEditing ? '' : 'opacity-60 cursor-not-allowed'}`}
+                                                                >
+                                                                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${singleProductLink ? 'translate-x-5' : ''}`} />
+                                                                </button>
+                                                                <span className="group/tip relative inline-flex flex-shrink-0">
+                                                                    <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 hidden w-[280px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                                                                        开启后，客户侧跳转该产品时访问 /product/产品简称；关闭则访问 /产品简称。该配置用于各产品对接的过渡期。
+                                                                        <span className="absolute left-1/2 bottom-full -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {menuConfigEditing && (
+                                                            <button
+                                                                onClick={() => openCreateTopMenuDialog(activePortal)}
+                                                                className="px-4 h-9 text-sm text-white bg-[#006bff] rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+                                                            >
+                                                                + 一级菜单
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* 菜单列表：一级菜单，点击可展开/收起二级菜单配置 */}
+                                                    <div className="space-y-3">
+                                                        {sortedMenus.length === 0 && (
+                                                            <div className="py-16 text-center text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                                                                {menuConfigEditing ? '暂无菜单，点击右上角「+ 一级菜单」添加' : '暂无菜单，点击右上角「编辑配置」后添加'}
+                                                            </div>
+                                                        )}
+                                                        {sortedMenus.map(top => {
+                                                            const expanded = expandedMenuIds.includes(top.id);
+                                                            return (
+                                                                <div key={top.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                                                    {/* 一级菜单行：未开启编辑时仍可正常展开/收起查看二级菜单配置 */}
+                                                                    <div
+                                                                        onClick={() => top.hasChildren ? toggleMenuExpand(top.id) : null}
+                                                                        className={`flex items-center gap-3 px-4 py-3 transition-colors ${top.hasChildren ? 'cursor-pointer' : ''} ${expanded ? 'bg-blue-50/60' : 'bg-gray-50 hover:bg-gray-100/80'}`}
+                                                                    >
+                                                                        {top.hasChildren && (
+                                                                            <svg
+                                                                                className={`w-4 h-4 flex-shrink-0 transition-transform ${expanded ? 'rotate-90 text-blue-600' : 'text-gray-400'}`}
+                                                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                                            >
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                            </svg>
+                                                                        )}
+                                                                        {!top.hasChildren && <span className="w-4 h-4 flex-shrink-0" />}
+                                                                        <span className="px-1.5 py-0.5 text-[10px] leading-none rounded bg-gray-200 text-gray-600 flex-shrink-0">一级</span>
+                                                                        <span className={`text-sm font-medium ${expanded ? 'text-blue-700' : 'text-gray-900'}`}>
+                                                                            {top.name || '未命名菜单'}
+                                                                        </span>
+                                                                        {top.dirName && (
+                                                                            <span className="text-xs font-mono text-gray-400">/{top.dirName}</span>
+                                                                        )}
+                                                                        <span className="text-xs text-gray-400">排序 {top.order || '--'}</span>
+                                                                        <span className={`px-1.5 py-0.5 text-[10px] leading-none rounded ${top.hasChildren ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-green-50 text-green-600 border border-green-200'}`}>
+                                                                            {top.hasChildren ? `二级菜单 ${top.children.length} 个` : '无子菜单'}
+                                                                        </span>
+                                                                        <span className={`px-1.5 py-0.5 text-[10px] leading-none rounded border ${top.iconUrl ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
+                                                                            {top.iconUrl ? 'icon 已上传' : 'icon 未上传'}
+                                                                        </span>
+                                                                        {!top.hasChildren && top.url && (
+                                                                            <span className="text-xs font-mono text-gray-400 truncate max-w-[200px]">{top.url}</span>
+                                                                        )}
+                                                                        {/* 编辑/删除仅在编辑态可用 */}
+                                                                        {menuConfigEditing && (
+                                                                            <>
+                                                                                <button
+                                                                                    onClick={(e) => { e.stopPropagation(); openEditTopMenuDialog(activePortal, top); }}
+                                                                                    className="ml-auto text-xs text-[#006bff] hover:text-blue-700 flex-shrink-0"
+                                                                                >
+                                                                                    编辑
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={(e) => { e.stopPropagation(); removeProductTopMenu(activePortal, top.id); }}
+                                                                                    className="text-xs text-gray-400 hover:text-red-500 flex-shrink-0"
+                                                                                >
+                                                                                    删除
+                                                                                </button>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* 二级菜单配置（展开后展示）- 仅「有子菜单」时展开 */}
+                                                                    {expanded && top.hasChildren && (
+                                                                        <div className="bg-white px-4 py-4 space-y-3">
+
+                                                                            {top.children.length === 0 && (
+                                                                                <div className="py-6 text-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                                                                                    暂无二级菜单
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* 二级菜单列表：名称与目录名称同行展示，降低页面高度 */}
+                                                                            {top.children.map((sub, idx) => (
+                                                                                <div key={sub.id} className="border border-gray-200 rounded-lg px-4 py-3 space-y-3 relative">
+                                                                                    {/* 标题行：序号 + 排序 + 删除 */}
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <span className="px-1.5 py-0.5 text-[10px] leading-none rounded bg-blue-50 text-blue-600 border border-blue-200 flex-shrink-0">
+                                                                                            二级菜单 {idx + 1}
+                                                                                        </span>
+                                                                                        <span className="text-sm text-gray-700 flex-shrink-0">排序：</span>
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={sub.order}
+                                                                                            disabled={!menuConfigEditing}
+                                                                                            onChange={(e) => updateProductSubMenu(activePortal, top.id, sub.id, { order: e.target.value })}
+                                                                                            placeholder="数字越小越靠前"
+                                                                                            className={`w-40 px-3 py-1.5 border rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-500 ${menuConfigEditing ? 'border-gray-300 text-gray-700 bg-white' : 'border-gray-200 text-gray-500 bg-gray-50 cursor-not-allowed'}`}
+                                                                                        />
+                                                                                        {menuConfigEditing && (
+                                                                                            <button
+                                                                                                onClick={() => removeProductSubMenu(activePortal, top.id, sub.id)}
+                                                                                                className="ml-auto text-xs text-gray-400 hover:text-red-500 flex-shrink-0"
+                                                                                            >
+                                                                                                删除
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    {/* 二级菜单名称 + 目录名称（同一行） */}
+                                                                                    <div className="flex items-start gap-3">
+                                                                                        <div className={fieldLabelCls}>
+                                                                                            <span className="text-red-500 mr-0.5">*</span>二级菜单名称：
+                                                                                        </div>
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={sub.name}
+                                                                                            disabled={!menuConfigEditing}
+                                                                                            onChange={(e) => updateProductSubMenu(activePortal, top.id, sub.id, { name: e.target.value })}
+                                                                                            placeholder="输入二级菜单名称，产品的菜单名称"
+                                                                                            className={`${fieldInputCls} ${menuConfigEditing ? '' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                                                                                        />
+                                                                                        <div className="w-24 flex-shrink-0 text-right text-sm text-gray-700 pt-2">
+                                                                                            <span className="text-red-500 mr-0.5">*</span>目录名称：
+                                                                                        </div>
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={sub.dirName}
+                                                                                            disabled={!menuConfigEditing}
+                                                                                            onChange={(e) => updateProductSubMenu(activePortal, top.id, sub.id, { dirName: e.target.value })}
+                                                                                            placeholder="小写字母（50个字符以内）"
+                                                                                            className={`${fieldInputCls} ${menuConfigEditing ? '' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                                                                                        />
+                                                                                    </div>
+                                                                                    {/* URL地址：二级菜单为末级菜单，必填 */}
+                                                                                    <div className="flex items-start gap-3">
+                                                                                        <div className={fieldLabelCls}>
+                                                                                            <span className="text-red-500 mr-0.5">*</span>URL地址：
+                                                                                        </div>
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={sub.url}
+                                                                                            disabled={!menuConfigEditing}
+                                                                                            onChange={(e) => updateProductSubMenu(activePortal, top.id, sub.id, { url: e.target.value })}
+                                                                                            placeholder="跳转URL"
+                                                                                            className={`${fieldInputCls} ${menuConfigEditing ? '' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                                                                                        />
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+
+                                                                            {/* 新增二级菜单：仅编辑态可用 */}
+                                                                            {menuConfigEditing && (
+                                                                                <button
+                                                                                    onClick={() => addProductSubMenu(activePortal, top.id)}
+                                                                                    className="px-4 h-9 text-sm text-white bg-[#006bff] rounded-lg hover:bg-blue-700 transition-colors"
+                                                                                >
+                                                                                    + 二级菜单
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()
+                                    ) : productSettingsNav !== 'info' ? (
                                         <div className="h-full flex flex-col items-center justify-center text-gray-400 py-24">
                                             <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
@@ -9471,7 +10283,7 @@ export default function AdminPage() {
                                                     </InfoRow>
                                                     <InfoRow label="资源组开通">是</InfoRow>
                                                     <InfoRow label="资源上报">是</InfoRow>
-                                                    <InfoRow label="上架Portal">{getProductPortalLabel(settingsProduct.portal)}</InfoRow>
+                                                    <InfoRow label="部署Portal">{getProductPortalLabel(settingsProduct.portal)}</InfoRow>
                                                     <InfoRow label="展示范围">{settingsProduct.visibility}</InfoRow>
                                                     <InfoRow label="上线时间">{settingsProduct.onlineTime}</InfoRow>
                                                 </div>
@@ -9497,17 +10309,17 @@ export default function AdminPage() {
                                                     </button>
                                                 </div>
                                             </div>
-                                    {/* 上架Portal + 展示范围 */}
+                                    {/* 部署Portal + 展示范围 */}
                                     <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-4 space-y-5">
-                                        {/* 上架Portal */}
+                                        {/* 部署Portal */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                上架Portal <span className="text-red-500">*</span>
+                                                部署Portal <span className="text-red-500">*</span>
                                             </label>
                                             <div className="flex items-center flex-wrap gap-x-6 gap-y-2">
                                                 {[
                                                     ...productPortalOptions.map(o => ({ value: o.value, label: o.label })),
-                                                    { value: ALL_PORTAL_VALUE, label: '所有portal' },
+                                                    ...(hasInternalPortal ? [{ value: ALL_PORTAL_VALUE, label: ALL_PORTAL_LABEL }] : []),
                                                 ].map(option => (
                                                     <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
                                                         <input
@@ -9522,6 +10334,12 @@ export default function AdminPage() {
                                                     </label>
                                                 ))}
                                             </div>
+                                            {/* 未开启内部独立Portal时，部署Portal 仅有「公共Portal」一个选项 */}
+                                            {!hasInternalPortal && (
+                                                <p className="mt-1.5 text-xs text-gray-400">
+                                                    当前未开启内部独立Portal，部署Portal 仅有「{publicPortalName}」一个选项；如需内部独立部署，请先在「平台配置 - 企业配置」中开启内部Portal。
+                                                </p>
+                                            )}
                                             {isInternalPortalSelected(newProduct.portal) && (
                                                 <div className="mt-4 pt-4 border-t border-blue-200">
                                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -9542,7 +10360,7 @@ export default function AdminPage() {
                                                             ))}
                                                     </select>
                                                     <p className="mt-1 text-xs text-gray-400">
-                                                        选择关联的外部Portal产品后，将自动同步该产品的基础配置、推广配置和高级配置
+                                                        选择关联的外部Portal产品后，将自动同步该产品的基础配置、推广配置和管理端配置
                                                     </p>
                                                 </div>
                                             )}
@@ -9580,6 +10398,11 @@ export default function AdminPage() {
                                             {visibilityLocked && (
                                                 <span className="ml-3 text-xs text-gray-400">
                                                     选中「{internalPortalName}」时，展示范围固定为「指定企业可见」且租户不可修改
+                                                </span>
+                                            )}
+                                            {isPublicPortalSelected(newProduct.portal) && (
+                                                <span className="ml-3 text-xs text-gray-400">
+                                                    选中「公共/外部Portal」时，「所有企业可见」不可选
                                                 </span>
                                             )}
                                             {newProduct.visibility !== 'all' && (
@@ -9649,13 +10472,55 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
                                             <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">产品描述 <span className="text-red-500">*</span></label>
+                                                <input type="text" maxLength={40} value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} placeholder="请输入" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                <div className="text-xs text-gray-400 mt-1 text-right">{newProduct.description.length}/40</div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">产品图标 <span className="text-red-500">*</span></label>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center bg-white flex-shrink-0">
+                                                        {newProduct.icon ? (
+                                                            <div className="text-xs text-gray-500">已上传</div>
+                                                        ) : (
+                                                            <svg className="w-8 h-8 text-[#626F84]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8a2 2 0 100-4 2 2 0 000 4zM12 20a2 2 0 100-4 2 2 0 000 4zM6 14a2 2 0 100-4 2 2 0 000 4zM18 14a2 2 0 100-4 2 2 0 000 4zM12 8v8M8 12h8" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <label className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer flex-shrink-0">
+                                                        上传图标
+                                                        <input type="file" accept=".svg" className="hidden" onChange={(e) => setNewProduct({ ...newProduct, icon: e.target.files?.[0] ?? null })} />
+                                                    </label>
+                                                    <span className="text-xs text-gray-400">SVG 格式且背景色透明，图标颜色为 #626F84</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">URL地址 <span className="text-red-500">*</span></label>
+                                                <input type="text" value={newProduct.url} onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })} placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                <p className="mt-1 text-xs text-gray-400">支持输入完整 URL（内部或外部Portal地址）或相对地址（如 /product/xxx）</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">介绍页地址</label>
+                                                <input type="text" value={newProduct.introUrl} onChange={(e) => setNewProduct({ ...newProduct, introUrl: e.target.value })} placeholder="请输入" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* ── 通用配置 模块 ── */}
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                            <span className="text-sm font-semibold text-gray-800">通用配置</span>
+                                            <span className="ml-2 text-xs text-gray-400">通用配置为内外Portal共用配置，在任意一个Portal修改后另一个Portal也会同步修改</span>
+                                        </div>
+                                        <div className="p-4 space-y-4">
+                                            {/* 产品标识符：编辑态不可修改 */}
+                                            <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                                     产品标识符 <span className="text-red-500">*</span>
-                                                    {newProduct.linkedPublicProduct && (
-                                                        <span className="ml-2 text-xs text-orange-500 font-normal">（已关联外部产品，不可修改）</span>
-                                                    )}
+                                                    <span className="ml-2 text-xs text-orange-500 font-normal">（创建后不可修改）</span>
                                                 </label>
-                                                <input type="text" value={newProduct.identifier} onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })} placeholder="请输入产品标识符" disabled={!!newProduct.linkedPublicProduct} className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono ${newProduct.linkedPublicProduct ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' : 'border-gray-300'}`} />
+                                                <input type="text" value={newProduct.identifier} disabled placeholder="请输入产品标识符" className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed rounded-lg text-sm focus:outline-none font-mono" />
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
@@ -9697,38 +10562,74 @@ export default function AdminPage() {
                                                     </select>
                                                 </div>
                                             </div>
+
+                                            <div className="border-t border-dashed border-gray-200" />
+
+                                            {/* 产品审核开通 */}
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">产品描述 <span className="text-red-500">*</span></label>
-                                                <input type="text" maxLength={40} value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} placeholder="请输入" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
-                                                <div className="text-xs text-gray-400 mt-1 text-right">{newProduct.description.length}/40</div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">产品图标 <span className="text-red-500">*</span></label>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center bg-white flex-shrink-0">
-                                                        {newProduct.icon ? (
-                                                            <div className="text-xs text-gray-500">已上传</div>
-                                                        ) : (
-                                                            <svg className="w-8 h-8 text-[#626F84]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8a2 2 0 100-4 2 2 0 000 4zM12 20a2 2 0 100-4 2 2 0 000 4zM6 14a2 2 0 100-4 2 2 0 000 4zM18 14a2 2 0 100-4 2 2 0 000 4zM12 8v8M8 12h8" />
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                    <label className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer flex-shrink-0">
-                                                        上传图标
-                                                        <input type="file" accept=".svg" className="hidden" onChange={(e) => setNewProduct({ ...newProduct, icon: e.target.files?.[0] ?? null })} />
-                                                    </label>
-                                                    <span className="text-xs text-gray-400">SVG 格式且背景色透明，图标颜色为 #626F84</span>
+                                                <div className="flex items-center gap-1 mb-1.5">
+                                                    <label className="text-sm font-medium text-gray-700">产品审核开通</label>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    {[
+                                                        { value: 'default', label: '默认开通' },
+                                                        { value: 'manual', label: '人工审核' },
+                                                        { value: 'auto', label: '自动审核' },
+                                                        { value: 'none', label: '不需要开通' },
+                                                    ].map(option => (
+                                                        <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                            <input type="radio" name="settingsAuditType" value={option.value} checked={newProduct.auditType === option.value} onChange={(e) => setNewProduct({ ...newProduct, auditType: e.target.value })} className="w-4 h-4 text-blue-600" />
+                                                            <span className={`text-sm ${newProduct.auditType === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                        </label>
+                                                    ))}
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">URL地址 <span className="text-red-500">*</span></label>
-                                                <input type="text" value={newProduct.url} onChange={(e) => setNewProduct({ ...newProduct, url: e.target.value })} placeholder="https://zyun.360.cn/product/xxx 或 /product/xxx" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
-                                                <p className="mt-1 text-xs text-gray-400">支持输入完整 URL（内部或外部Portal地址）或相对地址（如 /product/xxx）</p>
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">工单排班表管理：</span>
+                                                <button onClick={() => setNewProduct({ ...newProduct, workOrderSchedule: !newProduct.workOrderSchedule })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.workOrderSchedule ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.workOrderSchedule ? 'translate-x-5' : ''}`} />
+                                                </button>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1.5">介绍页地址</label>
-                                                <input type="text" value={newProduct.introUrl} onChange={(e) => setNewProduct({ ...newProduct, introUrl: e.target.value })} placeholder="请输入" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">计费开通：</span>
+                                                <button onClick={() => setNewProduct({ ...newProduct, billingEnabled: !newProduct.billingEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.billingEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.billingEnabled ? 'translate-x-5' : ''}`} />
+                                                </button>
+                                                <span className="text-xs text-gray-500">开启后，该产品在计费相关页面的产品列表里展示</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源组授权：</span>
+                                                <button onClick={() => setNewProduct({ ...newProduct, resourceGroupAuth: !newProduct.resourceGroupAuth })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceGroupAuth ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceGroupAuth ? 'translate-x-5' : ''}`} />
+                                                </button>
+                                                <span className="text-xs text-gray-500">开启后，该产品在资源组授权的产品列表里展示</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源上报：</span>
+                                                <button onClick={() => setNewProduct({ ...newProduct, resourceReport: !newProduct.resourceReport })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceReport ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceReport ? 'translate-x-5' : ''}`} />
+                                                </button>
+                                                <span className="text-xs text-gray-500">开启后，表示该产品已上报资源，控制台首页会展示当前产品已创建资源及具体数量</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">预留金额：</span>
+                                                <input type="number" min={0} value={newProduct.reserveAmount} onChange={(e) => setNewProduct({ ...newProduct, reserveAmount: Number(e.target.value) })} className="w-64 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
+                                                <span className="text-sm text-gray-500">元</span>
+                                                <span className="text-xs text-gray-500">设置金额，业务产品在用户使用产品时校验对应企业下的余额</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">回调设置：</span>
+                                                <button onClick={() => setCallbackDialogOpen(true)} className="text-sm text-blue-600 hover:text-blue-700">点击设置</button>
+                                                {newProduct.callbackUrl && (
+                                                    <span className="text-xs text-gray-500 truncate max-w-md">已配置：{newProduct.callbackUrl}</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">地域可用区：</span>
+                                                <button onClick={() => setNewProduct({ ...newProduct, regionEnabled: !newProduct.regionEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.regionEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.regionEnabled ? 'translate-x-5' : ''}`} />
+                                                </button>
+                                                <span className="text-xs text-gray-500">开启后，当前产品需区分可用区信息，智汇云提供查询接口</span>
                                             </div>
                                         </div>
                                     </div>
@@ -9737,8 +10638,7 @@ export default function AdminPage() {
                                     <div className="border border-gray-200 rounded-xl overflow-hidden">
                                         <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
                                             <span className="text-sm font-semibold text-gray-800">文档配置</span>
-                                            <span className="ml-2 text-xs text-gray-400">支持输入内部Portal、外部Portal的文档地址，也可输入相对地址</span>
-                                        </div>
+</div>
                                         <div className="p-4 space-y-5">
                                             <div>
                                                 <div className="flex items-center gap-3">
@@ -9817,6 +10717,30 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
                                             <div className="border-t border-dashed border-gray-200" />
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在控制台展示：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, showInConsole: !newProduct.showInConsole })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInConsole ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInConsole ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">关闭后，该产品不在控制台及导航产品列表里展示</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在官网展示：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, showInWebsite: !newProduct.showInWebsite })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInWebsite ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInWebsite ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">关闭后，该产品不在官网列表里展示</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">仅在工单展示：</span>
+                                                    <button onClick={() => setNewProduct({ ...newProduct, onlyInWorkOrder: !newProduct.onlyInWorkOrder })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.onlyInWorkOrder ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.onlyInWorkOrder ? 'translate-x-5' : ''}`} />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">开启后，该产品仅在工单产品列表里展示</span>
+                                                </div>
+                                            </div>
+                                            <div className="border-t border-dashed border-gray-200" />
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">产品标签 <span className="text-red-500">*</span></label>
                                                 <div className="flex flex-wrap items-center gap-2">
@@ -9840,92 +10764,13 @@ export default function AdminPage() {
                                         </div>
                                     </div>
 
-                                    {/* ── 高级配置 模块 ── */}
+                                    {/* ── 管理端配置 模块 ── */}
                                     <div className="border border-gray-200 rounded-xl overflow-hidden">
                                         <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
-                                            <span className="text-sm font-semibold text-gray-800">高级配置</span>
+                                            <span className="text-sm font-semibold text-gray-800">管理端配置</span>
                                         </div>
                                         <div className="p-4">
-                                            <div className="mb-5">
-                                                <div className="flex items-center gap-1 mb-1.5">
-                                                    <label className="text-sm font-medium text-gray-700">产品审核开通</label>
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    {[
-                                                        { value: 'default', label: '默认开通' },
-                                                        { value: 'manual', label: '人工审核' },
-                                                        { value: 'auto', label: '自动审核' },
-                                                        { value: 'none', label: '不需要开通' },
-                                                    ].map(option => (
-                                                        <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
-                                                            <input type="radio" name="settingsAuditType" value={option.value} checked={newProduct.auditType === option.value} onChange={(e) => setNewProduct({ ...newProduct, auditType: e.target.value })} className="w-4 h-4 text-blue-600" />
-                                                            <span className={`text-sm ${newProduct.auditType === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
                                             <div className="space-y-4">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">工单排班表管理：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, workOrderSchedule: !newProduct.workOrderSchedule })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.workOrderSchedule ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.workOrderSchedule ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">计费开通：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, billingEnabled: !newProduct.billingEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.billingEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.billingEnabled ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                    <span className="text-xs text-gray-500">开启后，该产品在计费相关页面的产品列表里展示</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在控制台展示：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, showInConsole: !newProduct.showInConsole })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInConsole ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInConsole ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                    <span className="text-xs text-gray-500">关闭后，该产品不在控制台及导航产品列表里展示</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在官网展示：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, showInWebsite: !newProduct.showInWebsite })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInWebsite ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInWebsite ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                    <span className="text-xs text-gray-500">关闭后，该产品不在官网列表里展示</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源组授权：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, resourceGroupAuth: !newProduct.resourceGroupAuth })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceGroupAuth ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceGroupAuth ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                    <span className="text-xs text-gray-500">开启后，该产品在资源组授权的产品列表里展示</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源上报：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, resourceReport: !newProduct.resourceReport })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceReport ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceReport ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                    <span className="text-xs text-gray-500">开启后，表示该产品已上报资源，控制台首页会展示当前产品已创建资源及具体数量</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">仅在工单展示：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, onlyInWorkOrder: !newProduct.onlyInWorkOrder })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.onlyInWorkOrder ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.onlyInWorkOrder ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                    <span className="text-xs text-gray-500">开启后，该产品仅在工单产品列表里展示</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">预留金额：</span>
-                                                    <input type="number" min={0} value={newProduct.reserveAmount} onChange={(e) => setNewProduct({ ...newProduct, reserveAmount: Number(e.target.value) })} className="w-64 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
-                                                    <span className="text-sm text-gray-500">元</span>
-                                                    <span className="text-xs text-gray-500">设置金额，业务产品在用户使用产品时校验对应企业下的余额</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">回调设置：</span>
-                                                    <button onClick={() => setCallbackDialogOpen(true)} className="text-sm text-blue-600 hover:text-blue-700">点击设置</button>
-                                                    {newProduct.callbackUrl && (
-                                                        <span className="text-xs text-gray-500 truncate max-w-md">已配置：{newProduct.callbackUrl}</span>
-                                                    )}
-                                                </div>
                                                 <div>
                                                     <div className="flex items-center gap-3">
                                                         <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">管理后台：</span>
@@ -9946,13 +10791,6 @@ export default function AdminPage() {
                                                             <input type="text" value={newProduct.adminBackendUrl} onChange={(e) => setNewProduct({ ...newProduct, adminBackendUrl: e.target.value })} placeholder="请输入管理后台地址" className="w-72 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500" />
                                                         </div>
                                                     )}
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">地域可用区：</span>
-                                                    <button onClick={() => setNewProduct({ ...newProduct, regionEnabled: !newProduct.regionEnabled })} className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.regionEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.regionEnabled ? 'translate-x-5' : ''}`} />
-                                                    </button>
-                                                    <span className="text-xs text-gray-500">开启后，当前产品需区分可用区信息，智汇云提供查询接口</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -10398,6 +11236,476 @@ export default function AdminPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    )}
+                    
+                    {/* 产品分类页面 */}
+                    {currentMenu === 'product-category' && (
+                        <div className="flex-1 bg-gray-50 p-6 overflow-auto">
+                            {/* 搜索筛选区域 */}
+                            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    {/* 分类名称搜索 */}
+                                    <input
+                                        type="text"
+                                        placeholder="分类名称搜索"
+                                        value={categoryNameKeyword}
+                                        onChange={(e) => { setCategoryNameKeyword(e.target.value); resetCategoryPage(); }}
+                                        className="w-64 h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                    />
+
+                                    {/* 官网展示顺序 */}
+                                    <select
+                                        value={categoryOrderSort}
+                                        onChange={(e) => { setCategoryOrderSort(e.target.value as "" | "asc" | "desc"); resetCategoryPage(); }}
+                                        className={`h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 ${categoryOrderSort ? 'text-gray-900' : 'text-gray-500'}`}
+                                    >
+                                        <option value="">官网展示顺序</option>
+                                        <option value="asc">升序</option>
+                                        <option value="desc">降序</option>
+                                    </select>
+
+                                    {/* 当前状态筛选（分类上下线） */}
+                                    <select
+                                        value={categoryStatusFilter}
+                                        onChange={(e) => { setCategoryStatusFilter(e.target.value as "all" | "online" | "offline"); resetCategoryPage(); }}
+                                        className={`h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 ${categoryStatusFilter === 'all' ? 'text-gray-500' : 'text-gray-900'}`}
+                                    >
+                                        <option value="all">全部状态</option>
+                                        <option value="online">已上线</option>
+                                        <option value="offline">已下线</option>
+                                    </select>
+
+                                    {/* 工作台状态筛选 */}
+                                    <select
+                                        value={categoryWorkbenchFilter}
+                                        onChange={(e) => { setCategoryWorkbenchFilter(e.target.value as "all" | "enabled" | "disabled"); resetCategoryPage(); }}
+                                        className={`h-9 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 ${categoryWorkbenchFilter === 'all' ? 'text-gray-500' : 'text-gray-900'}`}
+                                    >
+                                        <option value="all">全部工作台状态</option>
+                                        <option value="enabled">已开启</option>
+                                        <option value="disabled">未开启</option>
+                                    </select>
+
+                                    {/* 重置筛选 */}
+                                    {(categoryNameKeyword || categoryOrderSort || categoryStatusFilter !== 'all' || categoryWorkbenchFilter !== 'all') && (
+                                        <button
+                                            onClick={() => {
+                                                setCategoryNameKeyword("");
+                                                setCategoryOrderSort("");
+                                                setCategoryStatusFilter("all");
+                                                setCategoryWorkbenchFilter("all");
+                                                resetCategoryPage();
+                                            }}
+                                            className="h-9 px-3 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                        >
+                                            重置
+                                        </button>
+                                    )}
+
+                                    {/* 新建按钮 */}
+                                    <button className="ml-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        新建产品分类
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* 工作台配置弹框 */}
+                            {workbenchDialogOpen && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                                    <div className="w-[720px] max-w-[92vw] max-h-[88vh] bg-white rounded-lg shadow-xl flex flex-col">
+                                        {/* 弹框标题 */}
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                            <h3 className="text-base font-semibold text-gray-900">
+                                                {productCategoryData.find(r => r.id === workbenchDialogCategoryId)?.workbench ? '工作台配置' : '新建工作台'}
+                                            </h3>
+                                            <button onClick={closeWorkbenchDialog} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        {/* 表单区 */}
+                                        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+                                            {/* 工作台名称 */}
+                                            <div className="flex items-start">
+                                                <label className="w-[120px] flex-shrink-0 pt-2 text-right text-sm text-gray-700">
+                                                    <span className="text-red-500 mr-1">*</span>工作台名称：
+                                                </label>
+                                                <div className="flex-1 ml-3">
+                                                    <input
+                                                        type="text"
+                                                        value={workbenchForm.name}
+                                                        onChange={(e) => setWorkbenchForm(prev => ({ ...prev, name: e.target.value }))}
+                                                        placeholder="支持中英文、空格、数字（20个字符以内）"
+                                                        className={`w-full h-9 px-3 text-sm border rounded-lg focus:outline-none focus:border-blue-500 ${
+                                                            workbenchErrors.name ? 'border-red-500' : 'border-gray-300'
+                                                        }`}
+                                                    />
+                                                    {workbenchErrors.name && <p className="mt-1 text-xs text-red-500">{workbenchErrors.name}</p>}
+                                                </div>
+                                            </div>
+
+                                            {/* 工作台简称 */}
+                                            <div className="flex items-start">
+                                                <label className="w-[120px] flex-shrink-0 pt-2 text-right text-sm text-gray-700">
+                                                    <span className="text-red-500 mr-1">*</span>工作台简称：
+                                                </label>
+                                                <div className="flex-1 ml-3">
+                                                    <input
+                                                        type="text"
+                                                        value={workbenchForm.shortName}
+                                                        onChange={(e) => setWorkbenchForm(prev => ({ ...prev, shortName: e.target.value }))}
+                                                        placeholder="请输入工作台简称"
+                                                        className={`w-full h-9 px-3 text-sm border rounded-lg focus:outline-none focus:border-blue-500 ${
+                                                            workbenchErrors.shortName ? 'border-red-500' : 'border-gray-300'
+                                                        }`}
+                                                    />
+                                                    {workbenchErrors.shortName
+                                                        ? <p className="mt-1 text-xs text-red-500">{workbenchErrors.shortName}</p>
+                                                        : <p className="mt-2 text-sm text-gray-500">用于工作台被收藏后在左侧导航蓝条里展示</p>}
+                                                </div>
+                                            </div>
+
+                                            {/* icon */}
+                                            <div className="flex items-start">
+                                                <label className="w-[120px] flex-shrink-0 pt-6 text-right text-sm text-gray-700">
+                                                    <span className="text-red-500 mr-1">*</span>icon：
+                                                </label>
+                                                <div className="flex-1 ml-3">
+                                                    <label className={`w-[72px] h-[72px] flex items-center justify-center rounded-lg bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors overflow-hidden ${
+                                                        workbenchErrors.iconUrl ? 'ring-1 ring-red-500' : ''
+                                                    }`}>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(e) => handleWorkbenchIconUpload(e.target.files?.[0])}
+                                                        />
+                                                        {workbenchForm.iconUrl ? (
+                                                            // eslint-disable-next-line @next/next/no-img-element
+                                                            <img src={workbenchForm.iconUrl} alt="icon" className="w-full h-full object-contain" />
+                                                        ) : (
+                                                            <svg className="w-9 h-9 text-blue-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+                                                            </svg>
+                                                        )}
+                                                    </label>
+                                                    {workbenchErrors.iconUrl && <p className="mt-1 text-xs text-red-500">{workbenchErrors.iconUrl}</p>}
+                                                </div>
+                                            </div>
+
+                                            {/* 目录名称 */}
+                                            <div className="flex items-start">
+                                                <label className="w-[120px] flex-shrink-0 pt-2 text-right text-sm text-gray-700">
+                                                    <span className="text-red-500 mr-1">*</span>目录名称：
+                                                </label>
+                                                <div className="flex-1 ml-3">
+                                                    <input
+                                                        type="text"
+                                                        value={workbenchForm.dirName}
+                                                        onChange={(e) => setWorkbenchForm(prev => ({ ...prev, dirName: e.target.value }))}
+                                                        placeholder="小写字母（50个字符以内）用于工作台对应页面链接"
+                                                        className={`w-full h-9 px-3 text-sm border rounded-lg focus:outline-none focus:border-blue-500 ${
+                                                            workbenchErrors.dirName ? 'border-red-500' : 'border-gray-300'
+                                                        }`}
+                                                    />
+                                                    {workbenchErrors.dirName && <p className="mt-1 text-xs text-red-500">{workbenchErrors.dirName}</p>}
+                                                    <p className="mt-2 text-sm text-gray-500 leading-7">
+                                                        用于工作台链接，如：console.zyun.360.cn/workbench/【工作台目录名称】/【一级tab目录名称】/【二级tab目录名称】/【子级tab目录名称】
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 底部按钮 */}
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                            <button
+                                                onClick={closeWorkbenchDialog}
+                                                className="px-5 h-9 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                            >
+                                                取 消
+                                            </button>
+                                            <button
+                                                onClick={submitWorkbenchDialog}
+                                                className="px-5 h-9 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                            >
+                                                确 定
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 开启工作台二次确认弹框：选择上架的 Portal */}
+                            {portalDialogOpen && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                                    <div className="w-[480px] max-w-[92vw] bg-white rounded-lg shadow-xl flex flex-col">
+                                        {/* 弹框标题 */}
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                            <h3 className="text-base font-semibold text-gray-900">开启工作台</h3>
+                                            <button onClick={closePortalDialog} className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        {/* 内容区 */}
+                                        <div className="px-6 py-5">
+                                            <p className="text-sm text-gray-700">
+                                                确认开启
+                                                <span className="mx-1 font-medium text-gray-900">
+                                                    「{productCategoryData.find(r => r.id === portalDialogCategoryId)?.workbench?.name || productCategoryData.find(r => r.id === portalDialogCategoryId)?.consoleName}」
+                                                </span>
+                                                工作台？请选择需要上架的 Portal：
+                                            </p>
+                                            <div className="mt-4 space-y-3">
+                                                {(['internal', 'external'] as WorkbenchPortal[]).map(portal => (
+                                                    <label key={portal} className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={portalSelection.includes(portal)}
+                                                            onChange={() => togglePortalSelection(portal)}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        />
+                                                        <span className="text-sm text-gray-900">{PORTAL_LABEL[portal]}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {portalError && <p className="mt-2 text-xs text-red-500">{portalError}</p>}
+                                            <p className="mt-4 text-xs text-gray-500">开启后，该工作台将上架到所选 Portal；关闭工作台会从全部 Portal 下架。</p>
+                                        </div>
+
+                                        {/* 底部按钮 */}
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                            <button
+                                                onClick={closePortalDialog}
+                                                className="px-5 h-9 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                            >
+                                                取 消
+                                            </button>
+                                            <button
+                                                onClick={confirmPortalDialog}
+                                                className="px-5 h-9 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                            >
+                                                确 定
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 分类表格（自适应宽度，不横向滚动） */}
+                            <div className="bg-white rounded-lg border border-gray-200">
+                                <table className="w-full table-fixed">
+                                    <colgroup>
+                                        <col style={{ width: '8%' }} />
+                                        <col style={{ width: '8%' }} />
+                                        <col style={{ width: '9%' }} />
+                                        <col style={{ width: '9%' }} />
+                                        <col style={{ width: '7%' }} />
+                                        <col style={{ width: '7%' }} />
+                                        <col style={{ width: '9%' }} />
+                                        <col style={{ width: '9%' }} />
+                                        <col style={{ width: '7%' }} />
+                                        <col style={{ width: '10%' }} />
+                                        <col style={{ width: '17%' }} />
+                                    </colgroup>
+                                    <thead>
+                                        <tr className="bg-gray-50 border-b border-gray-200">
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">官网展示顺序</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">控制台展示顺序</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">官网产品分类名称</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">控制台产品分类名称</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">内网跳转链接</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">外网跳转链接</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">创建时间</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">更新时间</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">当前状态</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">工作台状态</th>
+                                            <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredProductCategoryData
+                                            .slice((categorySafePage - 1) * categoryPageSize, categorySafePage * categoryPageSize)
+                                            .map((item) => (
+                                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 align-top">
+                                                <td className="py-3 px-3 text-sm text-gray-900">
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        {item.siteOrder}
+                                                        <button className="text-blue-600 hover:text-blue-700" title="编辑展示顺序">
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-3 text-sm text-gray-900">
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        {item.consoleOrder}
+                                                        <button className="text-blue-600 hover:text-blue-700" title="编辑展示顺序">
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-3 text-sm text-gray-900 break-words">{item.siteName}</td>
+                                                <td className="py-3 px-3 text-sm text-gray-900 break-words">{item.consoleName}</td>
+                                                <td className="py-3 px-3 text-sm text-gray-500 break-all">{item.internalLink}</td>
+                                                <td className="py-3 px-3 text-sm text-gray-500 break-all">{item.externalLink}</td>
+                                                <td className="py-3 px-3 text-sm text-gray-500 break-words">{item.createTime}</td>
+                                                <td className="py-3 px-3 text-sm text-gray-500 break-words">{item.updateTime}</td>
+                                                <td className="py-3 px-3">
+                                                    <span className="text-sm text-gray-900">
+                                                        {item.status === 'online' ? '已上线' : '已下线'}
+                                                    </span>
+                                                </td>
+                                                {/* 工作台状态：开关 + 文案，开启前校验是否已配置 */}
+                                                <td className="py-3 px-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            role="switch"
+                                                            aria-checked={item.workbenchEnabled}
+                                                            onClick={() => toggleWorkbenchEnabled(item)}
+                                                            title={item.workbenchEnabled ? '关闭工作台' : '开启工作台'}
+                                                            className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
+                                                                item.workbenchEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                                                                    item.workbenchEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                                                                }`}
+                                                            />
+                                                        </button>
+                                                        <span className={`text-sm ${item.workbenchEnabled ? 'text-gray-900' : 'text-gray-500'}`}>
+                                                            {item.workbenchEnabled ? '已开启' : '未开启'}
+                                                        </span>
+                                                    </div>
+                                                    {/* 已上架的 Portal */}
+                                                    {/* 已上架的 Portal：hover 展示该 Portal 下的工作台链接，点击新窗口打开 */}
+                                                    {item.workbenchEnabled && item.workbenchPortals.length > 0 && (
+                                                        <div className="mt-1.5 flex flex-wrap gap-1">
+                                                            {item.workbenchPortals.map(portal => {
+                                                                const workbenchUrl = getWorkbenchPortalUrl(portal, item.workbench?.dirName);
+                                                                return (
+                                                                    <span key={portal} className="relative inline-flex group/portal">
+                                                                        <a
+                                                                            href={workbenchUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            title={workbenchUrl}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                                                                        >
+                                                                            {PORTAL_LABEL[portal]}
+                                                                        </a>
+                                                                        {/* hover 气泡：展示完整工作台链接 */}
+                                                                        <span className="pointer-events-none absolute left-0 bottom-full z-20 mb-1 hidden whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-[11px] font-mono leading-none text-white shadow-lg group-hover/portal:block">
+                                                                            {workbenchUrl}
+                                                                        </span>
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="py-3 px-3">
+                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                        <button
+                                                            onClick={() => openWorkbenchDialog(item)}
+                                                            className="text-blue-600 hover:text-blue-700 text-sm"
+                                                        >
+                                                            工作台配置
+                                                        </button>
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm">编辑</button>
+                                                        <button className="text-blue-600 hover:text-blue-700 text-sm">
+                                                            {item.status === 'online' ? '下线' : '上线'}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {filteredCategoryTotal === 0 && (
+                                            <tr>
+                                                <td colSpan={11} className="py-12 text-center text-sm text-gray-400">
+                                                    暂无符合筛选条件的产品分类
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                                
+                                {/* 分页 */}
+                                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                                    <div className="text-sm text-gray-500">
+                                        共 {filteredCategoryTotal} 条
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={categoryPageSize}
+                                            onChange={(e) => {
+                                                setCategoryPageSize(Number(e.target.value));
+                                                setCategoryCurrentPage(1);
+                                            }}
+                                            className="h-8 px-2 text-sm border border-gray-300 rounded"
+                                        >
+                                            <option value={10}>10条/页</option>
+                                            <option value={20}>20条/页</option>
+                                            <option value={50}>50条/页</option>
+                                        </select>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => setCategoryCurrentPage(Math.max(1, categorySafePage - 1))}
+                                                disabled={categorySafePage === 1}
+                                                className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                &lt;
+                                            </button>
+                                            {Array.from({ length: Math.min(7, categoryTotalPages) }, (_, i) => i + 1).map(page => (
+                                                <button
+                                                    key={page}
+                                                    onClick={() => setCategoryCurrentPage(page)}
+                                                    className={`w-8 h-8 flex items-center justify-center rounded text-sm ${
+                                                        categorySafePage === page
+                                                            ? 'bg-blue-600 text-white'
+                                                            : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    {page}
+                                                </button>
+                                            ))}
+                                            <button
+                                                onClick={() => setCategoryCurrentPage(Math.min(categoryTotalPages, categorySafePage + 1))}
+                                                disabled={categorySafePage === categoryTotalPages}
+                                                className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                &gt;
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                                            <span>前往</span>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={categoryTotalPages}
+                                                value={categorySafePage}
+                                                onChange={(e) => setCategoryCurrentPage(Math.min(categoryTotalPages, Math.max(1, Number(e.target.value))))}
+                                                className="w-12 h-8 text-center border border-gray-300 rounded"
+                                            />
+                                            <span>页</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                     
@@ -18916,17 +20224,17 @@ export default function AdminPage() {
                         
                         {/* 表单内容 */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                            {/* 上架Portal + 展示范围：置于表单顶部，二者存在联动 */}
+                            {/* 部署Portal + 展示范围：置于表单顶部，二者存在联动 */}
                             <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-4 space-y-5">
-                                {/* 上架Portal */}
+                                {/* 部署Portal */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        上架Portal <span className="text-red-500">*</span>
+                                        部署Portal <span className="text-red-500">*</span>
                                     </label>
                                     <div className="flex items-center flex-wrap gap-x-6 gap-y-2">
                                         {[
                                             ...productPortalOptions.map(o => ({ value: o.value, label: o.label })),
-                                            { value: ALL_PORTAL_VALUE, label: '所有portal' },
+                                            ...(hasInternalPortal ? [{ value: ALL_PORTAL_VALUE, label: ALL_PORTAL_LABEL }] : []),
                                         ].map(option => (
                                             <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
                                                 <input
@@ -18941,6 +20249,12 @@ export default function AdminPage() {
                                             </label>
                                         ))}
                                     </div>
+                                    {/* 未开启内部独立Portal时，部署Portal 仅有「公共Portal」一个选项 */}
+                                    {!hasInternalPortal && (
+                                        <p className="mt-1.5 text-xs text-gray-400">
+                                            当前未开启内部独立Portal，部署Portal 仅有「{publicPortalName}」一个选项；如需内部独立部署，请先在「平台配置 - 企业配置」中开启内部Portal。
+                                        </p>
+                                    )}
 
                                     {/* 选中360集团内部Portal时，必须关联一个外部Portal产品 */}
                                     {isInternalPortalSelected(newProduct.portal) && (
@@ -18963,13 +20277,13 @@ export default function AdminPage() {
                                                     ))}
                                             </select>
                                             <p className="mt-1 text-xs text-gray-400">
-                                                选择关联的外部Portal产品后，将自动同步该产品的基础配置、推广配置和高级配置
+                                                选择关联的外部Portal产品后，将自动同步该产品的基础配置、推广配置和管理端配置
                                             </p>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* 展示范围：随上架Portal联动 */}
+                                {/* 展示范围：随部署Portal联动 */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                         展示范围
@@ -19000,11 +20314,16 @@ export default function AdminPage() {
                                             );
                                         })}
                                     </div>
-                                    {visibilityLocked && (
-                                        <span className="ml-3 text-xs text-gray-400">
-                                            选中「{internalPortalName}」时，展示范围固定为「指定企业可见」且租户不可修改
-                                        </span>
-                                    )}
+                                            {visibilityLocked && (
+                                                <span className="ml-3 text-xs text-gray-400">
+                                                    选中「{internalPortalName}」时，展示范围固定为「指定企业可见」且租户不可修改
+                                                </span>
+                                            )}
+                                            {isPublicPortalSelected(newProduct.portal) && (
+                                                <span className="ml-3 text-xs text-gray-400">
+                                                    选中「公共/外部Portal」时，「所有企业可见」不可选
+                                                </span>
+                                            )}
 
                                     {/* 租户列表：内部portal时只读；其余可增删 */}
                                     {newProduct.visibility !== 'all' && (
@@ -19110,92 +20429,6 @@ export default function AdminPage() {
                                         </div>
                                     </div>
 
-                                    {/* 产品标识符 */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                            产品标识符 <span className="text-red-500">*</span>
-                                            {newProduct.linkedPublicProduct && (
-                                                <span className="ml-2 text-xs text-orange-500 font-normal">（已关联外部产品，不可修改）</span>
-                                            )}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={newProduct.identifier}
-                                            onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })}
-                                            placeholder="请输入产品标识符"
-                                            disabled={!!newProduct.linkedPublicProduct}
-                                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono ${
-                                                newProduct.linkedPublicProduct
-                                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
-                                                    : 'border-gray-300'
-                                            }`}
-                                        />
-                                    </div>
-
-                                    {/* 产品分类 & 所属产线 */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                产品分类 <span className="text-red-500">*</span>
-                                            </label>
-                                            {/* 已选分类标签 */}
-                                            <div className="min-h-[38px] w-full px-2 py-1.5 border border-gray-300 rounded-lg flex flex-wrap items-center gap-1.5">
-                                                {newProduct.categories.map((cat, index) => (
-                                                    <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
-                                                        {cat}
-                                                        <button
-                                                            onClick={() => setNewProduct({ ...newProduct, categories: newProduct.categories.filter((_, i) => i !== index) })}
-                                                            className="text-gray-400 hover:text-gray-600"
-                                                        >
-                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
-                                                    </span>
-                                                ))}
-                                                <select
-                                                    value=""
-                                                    onChange={(e) => {
-                                                        if (e.target.value && !newProduct.categories.includes(e.target.value)) {
-                                                            setNewProduct({ ...newProduct, categories: [...newProduct.categories, e.target.value] });
-                                                        }
-                                                    }}
-                                                    className="flex-1 min-w-[90px] bg-transparent text-sm text-gray-500 focus:outline-none"
-                                                >
-                                                    <option value="">请选择</option>
-                                                    <option value="计算 / 奇云计算">计算 / 奇云计算</option>
-                                                    <option value="计算 / 弹性计算">计算 / 弹性计算</option>
-                                                    <option value="存储 / 对象存储">存储 / 对象存储</option>
-                                                    <option value="存储 / 文件存储">存储 / 文件存储</option>
-                                                    <option value="数据库 / 关系型数据库">数据库 / 关系型数据库</option>
-                                                    <option value="容器 / 容器服务">容器 / 容器服务</option>
-                                                    <option value="中间件 / 消息队列">中间件 / 消息队列</option>
-                                                    <option value="大数据 / 数据计算">大数据 / 数据计算</option>
-                                                    <option value="网络 / 负载均衡">网络 / 负载均衡</option>
-                                                    <option value="安全 / 主机安全">安全 / 主机安全</option>
-                                                    <option value="AI / 智能应用">AI / 智能应用</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                所属产线
-                                            </label>
-                                            <select
-                                                value={newProduct.productLine}
-                                                onChange={(e) => setNewProduct({ ...newProduct, productLine: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                            >
-                                                <option value="其他">其他</option>
-                                                <option value="云存储">云存储</option>
-                                                <option value="云计算">云计算</option>
-                                                <option value="云数据库">云数据库</option>
-                                                <option value="大数据平台">大数据平台</option>
-                                                <option value="AI平台">AI平台</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
                                     {/* 产品描述 */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -19283,12 +20516,229 @@ export default function AdminPage() {
                                 </div>
                             </div>
 
+                            {/* ── 通用配置 模块 ── */}
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                            <span className="text-sm font-semibold text-gray-800">通用配置</span>
+                                            <span className="ml-2 text-xs text-gray-400">通用配置为内外Portal共用配置，在任意一个Portal修改后另一个Portal也会同步修改</span>
+                                        </div>
+                                <div className="p-4 space-y-4">
+                                    {/* 产品标识符：编辑态不可修改 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                            产品标识符 <span className="text-red-500">*</span>
+                                            {productDrawerMode === 'edit' ? (
+                                                <span className="ml-2 text-xs text-orange-500 font-normal">（创建后不可修改）</span>
+                                            ) : newProduct.linkedPublicProduct ? (
+                                                <span className="ml-2 text-xs text-orange-500 font-normal">（已关联外部产品，不可修改）</span>
+                                            ) : null}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newProduct.identifier}
+                                            onChange={(e) => setNewProduct({ ...newProduct, identifier: e.target.value })}
+                                            placeholder="请输入产品标识符"
+                                            disabled={productDrawerMode === 'edit' || !!newProduct.linkedPublicProduct}
+                                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 font-mono ${
+                                                productDrawerMode === 'edit' || newProduct.linkedPublicProduct
+                                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
+                                                    : 'border-gray-300'
+                                            }`}
+                                        />
+                                    </div>
+
+                                    {/* 产品分类 & 所属产线 */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                产品分类 <span className="text-red-500">*</span>
+                                            </label>
+                                            {/* 已选分类标签 */}
+                                            <div className="min-h-[38px] w-full px-2 py-1.5 border border-gray-300 rounded-lg flex flex-wrap items-center gap-1.5">
+                                                {newProduct.categories.map((cat, index) => (
+                                                    <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                                                        {cat}
+                                                        <button
+                                                            onClick={() => setNewProduct({ ...newProduct, categories: newProduct.categories.filter((_, i) => i !== index) })}
+                                                            className="text-gray-400 hover:text-gray-600"
+                                                        >
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                                <select
+                                                    value=""
+                                                    onChange={(e) => {
+                                                        if (e.target.value && !newProduct.categories.includes(e.target.value)) {
+                                                            setNewProduct({ ...newProduct, categories: [...newProduct.categories, e.target.value] });
+                                                        }
+                                                    }}
+                                                    className="flex-1 min-w-[90px] bg-transparent text-sm text-gray-500 focus:outline-none"
+                                                >
+                                                    <option value="">请选择</option>
+                                                    <option value="计算 / 奇云计算">计算 / 奇云计算</option>
+                                                    <option value="计算 / 弹性计算">计算 / 弹性计算</option>
+                                                    <option value="存储 / 对象存储">存储 / 对象存储</option>
+                                                    <option value="存储 / 文件存储">存储 / 文件存储</option>
+                                                    <option value="数据库 / 关系型数据库">数据库 / 关系型数据库</option>
+                                                    <option value="容器 / 容器服务">容器 / 容器服务</option>
+                                                    <option value="中间件 / 消息队列">中间件 / 消息队列</option>
+                                                    <option value="大数据 / 数据计算">大数据 / 数据计算</option>
+                                                    <option value="网络 / 负载均衡">网络 / 负载均衡</option>
+                                                    <option value="安全 / 主机安全">安全 / 主机安全</option>
+                                                    <option value="AI / 智能应用">AI / 智能应用</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                所属产线
+                                            </label>
+                                            <select
+                                                value={newProduct.productLine}
+                                                onChange={(e) => setNewProduct({ ...newProduct, productLine: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                            >
+                                                <option value="其他">其他</option>
+                                                <option value="云存储">云存储</option>
+                                                <option value="云计算">云计算</option>
+                                                <option value="云数据库">云数据库</option>
+                                                <option value="大数据平台">大数据平台</option>
+                                                <option value="AI平台">AI平台</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-dashed border-gray-200" />
+
+                                    {/* 产品审核开通 */}
+                                    <div>
+                                        <div className="flex items-center gap-1 mb-1.5">
+                                            <label className="text-sm font-medium text-gray-700">产品审核开通</label>
+                                            <button className="text-gray-400 hover:text-gray-600">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            {[
+                                                { value: 'default', label: '默认开通' },
+                                                { value: 'manual', label: '人工审核' },
+                                                { value: 'auto', label: '自动审核' },
+                                                { value: 'none', label: '不需要开通' },
+                                            ].map(option => (
+                                                <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="auditType"
+                                                        value={option.value}
+                                                        checked={newProduct.auditType === option.value}
+                                                        onChange={(e) => setNewProduct({ ...newProduct, auditType: e.target.value })}
+                                                        className="w-4 h-4 text-blue-600"
+                                                    />
+                                                    <span className={`text-sm ${newProduct.auditType === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 工单排班表管理 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">工单排班表管理：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, workOrderSchedule: !newProduct.workOrderSchedule })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.workOrderSchedule ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.workOrderSchedule ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* 计费开通 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">计费开通：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, billingEnabled: !newProduct.billingEnabled })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.billingEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.billingEnabled ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，该产品在计费相关页面的产品列表里展示</span>
+                                    </div>
+
+                                    {/* 资源组授权 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源组授权：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, resourceGroupAuth: !newProduct.resourceGroupAuth })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceGroupAuth ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceGroupAuth ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，该产品在资源组授权的产品列表里展示</span>
+                                    </div>
+
+                                    {/* 资源上报 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源上报：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, resourceReport: !newProduct.resourceReport })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceReport ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceReport ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，表示该产品已上报资源，控制台首页会展示当前产品已创建资源及具体数量</span>
+                                    </div>
+
+                                    {/* 预留金额 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">预留金额：</span>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={newProduct.reserveAmount}
+                                            onChange={(e) => setNewProduct({ ...newProduct, reserveAmount: Number(e.target.value) })}
+                                            className="w-64 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                        />
+                                        <span className="text-sm text-gray-500">元</span>
+                                        <span className="text-xs text-gray-500">设置金额，业务产品在用户使用产品时校验对应企业下的余额</span>
+                                    </div>
+
+                                    {/* 回调设置 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">回调设置：</span>
+                                        <button
+                                            onClick={() => setCallbackDialogOpen(true)}
+                                            className="text-sm text-blue-600 hover:text-blue-700"
+                                        >
+                                            点击设置
+                                        </button>
+                                        {newProduct.callbackUrl && (
+                                            <span className="text-xs text-gray-500 truncate max-w-md">已配置：{newProduct.callbackUrl}</span>
+                                        )}
+                                    </div>
+
+                                    {/* 地域可用区 */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">地域可用区：</span>
+                                        <button
+                                            onClick={() => setNewProduct({ ...newProduct, regionEnabled: !newProduct.regionEnabled })}
+                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.regionEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                        >
+                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.regionEnabled ? 'translate-x-5' : ''}`} />
+                                        </button>
+                                        <span className="text-xs text-gray-500">开启后，当前产品需区分可用区信息，智汇云提供查询接口</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* ── 文档配置 模块 ── */}
                             <div className="border border-gray-200 rounded-xl overflow-hidden">
                                 <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
-                                    <span className="text-sm font-semibold text-gray-800">文档配置</span>
-                                    <span className="ml-2 text-xs text-gray-400">支持输入内部Portal、外部Portal的文档地址，也可输入相对地址</span>
-                                </div>
+                                            <span className="text-sm font-semibold text-gray-800">文档配置</span>
+</div>
                                 <div className="p-4 space-y-5">
                                     {/* 产品文档 */}
                                     <div>
@@ -19429,6 +20879,47 @@ export default function AdminPage() {
 
                                     <div className="border-t border-dashed border-gray-200" />
 
+                                    {/* 展示范围设置 */}
+                                    <div className="space-y-4">
+                                        {/* 是否在控制台展示 */}
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在控制台展示：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, showInConsole: !newProduct.showInConsole })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInConsole ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInConsole ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                            <span className="text-xs text-gray-500">关闭后，该产品不在控制台及导航产品列表里展示</span>
+                                        </div>
+
+                                        {/* 是否在官网展示 */}
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在官网展示：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, showInWebsite: !newProduct.showInWebsite })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInWebsite ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInWebsite ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                            <span className="text-xs text-gray-500">关闭后，该产品不在官网列表里展示</span>
+                                        </div>
+
+                                        {/* 仅在工单展示 */}
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">仅在工单展示：</span>
+                                            <button
+                                                onClick={() => setNewProduct({ ...newProduct, onlyInWorkOrder: !newProduct.onlyInWorkOrder })}
+                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.onlyInWorkOrder ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.onlyInWorkOrder ? 'translate-x-5' : ''}`} />
+                                            </button>
+                                            <span className="text-xs text-gray-500">开启后，该产品仅在工单产品列表里展示</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-dashed border-gray-200" />
+
                                     {/* 产品标签 */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -19494,157 +20985,14 @@ export default function AdminPage() {
                                 </div>
                             </div>
 
-                            {/* ── 高级配置 模块 ── */}
+                            {/* ── 管理端配置 模块 ── */}
                             <div className="border border-gray-200 rounded-xl overflow-hidden">
                                 <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
-                                    <span className="text-sm font-semibold text-gray-800">高级配置</span>
+                                    <span className="text-sm font-semibold text-gray-800">管理端配置</span>
                                 </div>
                                 <div className="p-4">
-                                {/* 产品审核开通 */}
-                                <div className="mb-5">
-                                    <div className="flex items-center gap-1 mb-1.5">
-                                        <label className="text-sm font-medium text-gray-700">产品审核开通</label>
-                                        <button className="text-gray-400 hover:text-gray-600">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        {[
-                                            { value: 'default', label: '默认开通' },
-                                            { value: 'manual', label: '人工审核' },
-                                            { value: 'auto', label: '自动审核' },
-                                            { value: 'none', label: '不需要开通' },
-                                        ].map(option => (
-                                            <label key={option.value} className="flex items-center gap-1.5 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="auditType"
-                                                    value={option.value}
-                                                    checked={newProduct.auditType === option.value}
-                                                    onChange={(e) => setNewProduct({ ...newProduct, auditType: e.target.value })}
-                                                    className="w-4 h-4 text-blue-600"
-                                                />
-                                                <span className={`text-sm ${newProduct.auditType === option.value ? 'text-blue-600' : 'text-gray-700'}`}>{option.label}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                
                                 {/* 开关类设置 */}
                                 <div className="space-y-4">
-                                    {/* 工单排班表管理 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">工单排班表管理：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, workOrderSchedule: !newProduct.workOrderSchedule })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.workOrderSchedule ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.workOrderSchedule ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                    </div>
-                                    
-                                    {/* 计费开通 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">计费开通：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, billingEnabled: !newProduct.billingEnabled })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.billingEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.billingEnabled ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                        <span className="text-xs text-gray-500">开启后，该产品在计费相关页面的产品列表里展示</span>
-                                    </div>
-                                    
-                                    {/* 是否在控制台展示 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在控制台展示：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, showInConsole: !newProduct.showInConsole })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInConsole ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInConsole ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                        <span className="text-xs text-gray-500">关闭后，该产品不在控制台及导航产品列表里展示</span>
-                                    </div>
-
-                                    {/* 是否在官网展示 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">是否在官网展示：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, showInWebsite: !newProduct.showInWebsite })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.showInWebsite ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.showInWebsite ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                        <span className="text-xs text-gray-500">关闭后，该产品不在官网列表里展示</span>
-                                    </div>
-
-                                    {/* 资源组授权 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源组授权：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, resourceGroupAuth: !newProduct.resourceGroupAuth })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceGroupAuth ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceGroupAuth ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                        <span className="text-xs text-gray-500">开启后，该产品在资源组授权的产品列表里展示</span>
-                                    </div>
-
-                                    {/* 资源上报 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">资源上报：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, resourceReport: !newProduct.resourceReport })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.resourceReport ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.resourceReport ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                        <span className="text-xs text-gray-500">开启后，表示该产品已上报资源，控制台首页会展示当前产品已创建资源及具体数量</span>
-                                    </div>
-
-                                    {/* 仅在工单展示 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">仅在工单展示：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, onlyInWorkOrder: !newProduct.onlyInWorkOrder })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.onlyInWorkOrder ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.onlyInWorkOrder ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                        <span className="text-xs text-gray-500">开启后，该产品仅在工单产品列表里展示</span>
-                                    </div>
-                                    
-                                    {/* 预留金额 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">预留金额：</span>
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            value={newProduct.reserveAmount}
-                                            onChange={(e) => setNewProduct({ ...newProduct, reserveAmount: Number(e.target.value) })}
-                                            className="w-64 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                                        />
-                                        <span className="text-sm text-gray-500">元</span>
-                                        <span className="text-xs text-gray-500">设置金额，业务产品在用户使用产品时校验对应企业下的余额</span>
-                                    </div>
-
-                                    {/* 回调设置 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">回调设置：</span>
-                                        <button
-                                            onClick={() => setCallbackDialogOpen(true)}
-                                            className="text-sm text-blue-600 hover:text-blue-700"
-                                        >
-                                            点击设置
-                                        </button>
-                                        {newProduct.callbackUrl && (
-                                            <span className="text-xs text-gray-500 truncate max-w-md">已配置：{newProduct.callbackUrl}</span>
-                                        )}
-                                    </div>
-
                                     {/* 管理后台 */}
                                     <div>
                                         <div className="flex items-center gap-3">
@@ -19681,17 +21029,6 @@ export default function AdminPage() {
                                         )}
                                     </div>
 
-                                    {/* 地域可用区 */}
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-32 text-sm text-gray-700 text-right flex-shrink-0">地域可用区：</span>
-                                        <button
-                                            onClick={() => setNewProduct({ ...newProduct, regionEnabled: !newProduct.regionEnabled })}
-                                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${newProduct.regionEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                        >
-                                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newProduct.regionEnabled ? 'translate-x-5' : ''}`} />
-                                        </button>
-                                        <span className="text-xs text-gray-500">开启后，当前产品需区分可用区信息，智汇云提供查询接口</span>
-                                    </div>
                                 </div>
                             </div>
                             </div>
@@ -20119,6 +21456,154 @@ export default function AdminPage() {
                             </div>
                         </div>
                     )}
+
+            {/* ===== 一级菜单编辑弹框 ===== */}
+            {topMenuDialog && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setTopMenuDialog(null)} />
+                    <div className="relative bg-white rounded-xl shadow-2xl w-[560px] max-w-[92vw] max-h-[90vh] overflow-auto">
+                        {/* 头部 */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-base font-semibold text-gray-900">
+                                {topMenuDialog.mode === 'create' ? '新增一级菜单' : '编辑一级菜单'}
+                            </h3>
+                            <button onClick={() => setTopMenuDialog(null)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* 表单 */}
+                        <div className="px-6 py-5 space-y-4">
+                            {topMenuDialogError && (
+                                <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                                    {topMenuDialogError}
+                                </div>
+                            )}
+
+                            {/* 排序 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">排序</label>
+                                <input
+                                    type="text"
+                                    value={topMenuDialog.order}
+                                    onChange={(e) => setTopMenuDialog(prev => prev ? { ...prev, order: e.target.value } : null)}
+                                    placeholder="数字越小越靠前"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            {/* 一级tab名称 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    <span className="text-red-500 mr-0.5">*</span>一级tab名称
+                                </label>
+                                <input
+                                    type="text"
+                                    value={topMenuDialog.name}
+                                    onChange={(e) => setTopMenuDialog(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                    placeholder="输入一级tab名称，产品的菜单名称"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            {/* 目录名称 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    <span className="text-red-500 mr-0.5">*</span>目录名称
+                                </label>
+                                <input
+                                    type="text"
+                                    value={topMenuDialog.dirName}
+                                    onChange={(e) => setTopMenuDialog(prev => prev ? { ...prev, dirName: e.target.value } : null)}
+                                    placeholder="小写字母（50个字符以内）用于工作台对应页面链接"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            {/* tab icon：svg格式，1M以内（仅一级菜单配置） */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    <span className="text-red-500 mr-0.5">*</span>tab icon
+                                </label>
+                                <button
+                                    onClick={() => setTopMenuDialog(prev => prev ? { ...prev, iconUrl: prev.iconUrl ? '' : 'uploaded.svg' } : null)}
+                                    title={topMenuDialog.iconUrl ? '点击移除已上传的icon' : '点击上传svg图标'}
+                                    className={`w-[72px] h-[72px] rounded-lg border flex items-center justify-center transition-colors ${topMenuDialog.iconUrl ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/60'}`}
+                                >
+                                    {topMenuDialog.iconUrl ? (
+                                        <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 19V5m0 0l-6 6m6-6l6 6" />
+                                        </svg>
+                                    )}
+                                </button>
+                                <p className="mt-1.5 text-xs text-gray-400">svg格式，1M以内</p>
+                            </div>
+
+                            {/* 是否有子菜单 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    <span className="text-red-500 mr-0.5">*</span>是否有子菜单
+                                </label>
+                                <div className="flex items-center gap-6 pt-1">
+                                    {[{ v: true, l: '是，配置二级菜单' }, { v: false, l: '否，直接配置URL' }].map(opt => (
+                                        <label key={opt.l} className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="topMenuHasChildren"
+                                                checked={topMenuDialog.hasChildren === opt.v}
+                                                onChange={() => setTopMenuDialog(prev => prev ? { ...prev, hasChildren: opt.v, url: opt.v ? '' : prev.url } : null)}
+                                                className="w-4 h-4 text-blue-600"
+                                            />
+                                            <span className={`text-sm ${topMenuDialog.hasChildren === opt.v ? 'text-blue-600' : 'text-gray-700'}`}>{opt.l}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                {topMenuDialog.hasChildren && (
+                                    <p className="mt-1.5 text-xs text-gray-400">选择「是」后，展开一级菜单即可配置二级菜单及其跳转URL。</p>
+                                )}
+                            </div>
+
+                            {/* URL地址：无子菜单时显示 */}
+                            {!topMenuDialog.hasChildren && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        <span className="text-red-500 mr-0.5">*</span>跳转URL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={topMenuDialog.url}
+                                        onChange={(e) => setTopMenuDialog(prev => prev ? { ...prev, url: e.target.value } : null)}
+                                        placeholder="无子菜单时必填，例如 /console/overview"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 底部按钮 */}
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                            <button
+                                onClick={() => setTopMenuDialog(null)}
+                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={saveTopMenuDialog}
+                                className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                            >
+                                确定
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
