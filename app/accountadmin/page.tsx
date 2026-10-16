@@ -419,6 +419,7 @@ const AnalysisTh = ({
     colSpan,
     rowSpan,
     divider = false,
+    dividerClass,
 }: {
     label: string;
     tip?: string;
@@ -428,6 +429,7 @@ const AnalysisTh = ({
     colSpan?: number;
     rowSpan?: number;
     divider?: boolean;     // 是否在列左侧加分割线
+    dividerClass?: string; // 自定义分割线样式（用于区分不同业务模块，如控制台账单 / 后台账单）
 }) => {
     const highlightClass = highlight === "inner"
         ? "bg-orange-500 text-white"
@@ -446,7 +448,7 @@ const AnalysisTh = ({
             align === "left" ? "text-left" : align === "center" ? "text-center" : "text-right"
         } text-xs font-medium align-bottom ${
             highlightClass
-        } ${divider ? "border-l border-gray-300" : ""}`}
+        } ${divider ? (dividerClass ?? "border-l border-gray-300") : ""}`}
     >
         <span className={`inline-flex items-start gap-1 ${align === "left" ? "" : align === "center" ? "justify-center" : "justify-end"}`}>
             <span className="leading-[1.5]">{label}</span>
@@ -625,6 +627,57 @@ const MonitorSettleCell = ({
     </>
 );
 
+// 监控看板 - 账单聚合单元格（单列内上下两行：明细、详情，各自一条聚合进度）
+const BillAggStageCell = ({
+    node,
+    divider = false,
+    dividerClass,
+    onClick,
+}: {
+    node?: MonitorNodeState;
+    divider?: boolean;
+    dividerClass?: string;   // 自定义分割线样式（用于区分控制台账单 / 后台账单两个模块）
+    onClick?: () => void;
+}) => {
+    const subs = node?.aggSubs ?? [];
+    return (
+        <td className={`px-3 py-4 text-left align-middle ${divider ? (dividerClass ?? "border-l border-gray-200") : ""}`}>
+            <button onClick={onClick} className="flex w-full flex-col items-stretch gap-2" title="点击查看计费节点进度明细">
+                {subs.map((sub) => {
+                    const c = monitorStatusColor(sub.status);
+                    return (
+                        <div key={sub.name} className="w-full">
+                            <span className={`inline-flex items-center gap-1 text-[11px] leading-none ${c.text}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                                {sub.name}
+                            </span>
+                            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${sub.progress}%` }} />
+                            </div>
+                            {sub.status === "done" && (
+                                <div className="mt-1 flex items-center justify-between text-[10px] leading-none text-gray-400">
+                                    <span className="text-green-600">已完成</span>
+                                    {sub.doneTime && <span>{sub.doneTime}</span>}
+                                </div>
+                            )}
+                            {sub.status === "fail" && (
+                                <div className="mt-1 text-left text-[10px] leading-none text-red-500">
+                                    {sub.failReason ? `异常（${sub.failReason}）` : "异常"}
+                                </div>
+                            )}
+                            {sub.status === "running" && (
+                                <div className="mt-1 text-left text-[10px] leading-none text-blue-500">
+                                    进行中 {sub.progress}%
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </button>
+        </td>
+    );
+};
+
 // 监控看板 - 账单核验指标芯片（验证通过=绿 / 告警=黄 / 异常=红）
 const VerifySubChip = ({ sub }: { sub: MonitorVerifySubNode }) => {
     const c = monitorVerifyStatusColor(sub.status);
@@ -715,6 +768,7 @@ const MonitorFilterTh = ({
     width,
     rowSpan,
     divider = true,
+    dividerClass,
 }: {
     label: string;
     tip?: string;
@@ -723,6 +777,7 @@ const MonitorFilterTh = ({
     width?: string;
     rowSpan?: number;
     divider?: boolean;
+    dividerClass?: string;   // 自定义分割线样式（用于区分控制台账单 / 后台账单两个模块）
 }) => {
     const [open, setOpen] = useState(false);
     const wrapRef = React.useRef<HTMLDivElement>(null);
@@ -741,7 +796,7 @@ const MonitorFilterTh = ({
     }, [open]);
 
     return (
-        <th rowSpan={rowSpan} style={width ? { minWidth: width } : undefined} className={`px-3 py-3 text-left text-xs font-medium text-gray-600 align-bottom ${divider ? "border-l border-gray-200" : ""}`}>
+        <th rowSpan={rowSpan} style={width ? { minWidth: width } : undefined} className={`px-3 py-3 text-left text-xs font-medium text-gray-600 align-bottom ${divider ? (dividerClass ?? "border-l border-gray-200") : ""}`}>
             <div className="inline-flex items-center gap-1">
                 <span className="inline-flex items-center gap-0.5">
                     <span className="leading-[1.5]">{label}</span>
@@ -943,6 +998,8 @@ const monitorNodeDefs = [
     { key: "dataAggregate", name: "聚合", tip: "计量数据完成聚合处理的进度。" },
     { key: "productBill", name: "出账", tip: "产品账单生成完成情况。" },
     { key: "settle", name: "结算", tip: "结算包含抵扣、扣费两个环节；无资源包抵扣的产品，抵扣环节展示「不涉及」。" },
+    { key: "consoleBillAgg", name: "控制台(客户侧)账单聚合", tip: "控制台(客户侧)账单聚合包含小时账单、天账单、月账单，每个账单分别展示明细、详情两条聚合进度。" },
+    { key: "backendBillAgg", name: "后台账单(含经营分析收入)", tip: "后台账单(含经营分析收入)包含小时账单、天账单、月账单，每个账单分别展示明细、详情两条聚合进度。" },
     { key: "cost", name: "成本", tip: "成本包含成本聚合、成本生产两个维度。" },
     { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
 ];
@@ -953,12 +1010,22 @@ const monitorSettleStages = [
     { key: "charge", name: "扣费", tip: "账单扣费处理完成情况。" },
 ] as const;
 
-// 账单聚合列下的两个环节：天账单、月账单（结算列与账单核验列之间）
-// 天账单：仅展示「天账单」一列；月账单：同时展示「天账单」「月账单」两列
-const monitorBillAggStages = [
-    { key: "dayBillAgg", name: "天账单", tip: "按天维度聚合账单数据完成情况。" },
-    { key: "monthBillAgg", name: "月账单", tip: "按月维度聚合账单数据完成情况。" },
+// 控制台(客户侧)账单聚合：小时账单、天账单、月账单（结算列与后台账单列之间）
+const monitorConsoleBillAggStages = [
+    { key: "hourBillAgg", name: "小时账单", tip: "控制台(客户侧)按小时维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
+    { key: "dayBillAgg", name: "天账单", tip: "控制台(客户侧)按天维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
+    { key: "monthBillAgg", name: "月账单", tip: "控制台(客户侧)按月维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
 ] as const;
+
+// 后台账单(含经营分析收入)：小时账单、天账单、月账单（控制台账单聚合列之后）
+const monitorBackendBillAggStages = [
+    { key: "bgHourBillAgg", name: "小时账单", tip: "后台(含经营分析收入)按小时维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
+    { key: "bgDayBillAgg", name: "天账单", tip: "后台(含经营分析收入)按天维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
+    { key: "bgMonthBillAgg", name: "月账单", tip: "后台(含经营分析收入)按月维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
+] as const;
+
+// 账单聚合全部环节（控制台侧 + 后台账单），用于筛选与统计
+const monitorBillAggStages = [...monitorConsoleBillAggStages, ...monitorBackendBillAggStages];
 
 // 成本列下的两个环节：成本聚合、成本生产（样式与结算列一致，展示进度监控）
 const monitorCostStages = [
@@ -986,6 +1053,15 @@ interface MonitorVerifySubNode {
     status: MonitorVerifyStatus;
 }
 
+// 账单聚合 - 列内子进度（明细 / 详情），每条独立展示聚合进度与状态
+interface MonitorAggSubNode {
+    name: string;                             // 子进度名称：明细 / 详情
+    status: MonitorNodeStatus;
+    progress: number;                         // 0~100
+    doneTime?: string;                        // 完成时间
+    failReason?: string;                      // 异常原因
+}
+
 interface MonitorNodeState {
     status: MonitorNodeStatus;
     progress: number;                         // 0~100
@@ -993,6 +1069,7 @@ interface MonitorNodeState {
     na?: boolean;                             // 是否「不涉及」（如无资源包抵扣产品的抵扣环节）
     failReason?: string;                      // 异常原因（如抵扣环节的「抵扣断点」：某个时间的抵扣量为0）
     verifySubs?: MonitorVerifySubNode[];      // 账单核验子节点（预留）
+    aggSubs?: MonitorAggSubNode[];            // 账单聚合子进度（明细 / 详情）
 }
 
 // 监控看板 - 列表产品行：主产品与子产品均作为独立行展示（子产品不再是主产品的展开行）
@@ -1344,22 +1421,64 @@ const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boole
             ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 13, "10:40:00") }
             : { status: "pending", progress: 0 };
 
-    // 账单聚合：天账单（前 4 完成，4~7 进行中，其余未开始）
-    const dayBillAggDone = idx < 4;
-    const dayBillAggRunning = idx >= 4 && idx < 7;
-    const dayBillAgg: MonitorNodeState = dayBillAggDone
-        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 13, "15:00:00") }
-        : dayBillAggRunning
-            ? { status: "running", progress: [78, 55, 30][idx - 4] }
-            : { status: "pending", progress: 0 };
-    // 月账单：前 3 完成，3~6 进行中，其余未开始
-    const monthBillAggDone = idx < 3;
-    const monthBillAggRunning = idx >= 3 && idx < 6;
-    const monthBillAgg: MonitorNodeState = monthBillAggDone
-        ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 14, "10:30:00") }
-        : monthBillAggRunning
-            ? { status: "running", progress: [65, 42, 18][idx - 3] }
-            : { status: "pending", progress: 0 };
+    // 账单聚合：控制台(客户侧) 与 后台账单(含经营分析收入)，各自展示 小时/天/月账单
+    // 每个账单列内包含「明细」「详情」两条子聚合进度，父节点状态由两条子进度汇总（明细、详情均完成才算完成）
+    const aggNode = (
+        detailCfg: { done: number; running: number; progresses: number[]; day: number; time: string },
+        infoCfg: { done: number; running: number; progresses: number[]; day: number; time: string }
+    ): MonitorNodeState => {
+        const sub = (name: string, cfg: typeof detailCfg): MonitorAggSubNode => {
+            if (idx < cfg.done) {
+                return { name, status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, cfg.day, cfg.time) };
+            }
+            const runningIdx = idx - cfg.done;
+            if (runningIdx < cfg.running) {
+                return { name, status: "running", progress: cfg.progresses[runningIdx] ?? 40 };
+            }
+            return { name, status: "pending", progress: 0 };
+        };
+        const aggSubs = [sub("明细", detailCfg), sub("详情", infoCfg)];
+        const status: MonitorNodeStatus = aggSubs.some((s) => s.status === "fail")
+            ? "fail"
+            : aggSubs.every((s) => s.status === "done")
+                ? "done"
+                : aggSubs.some((s) => s.status === "running")
+                    ? "running"
+                    : "pending";
+        return {
+            status,
+            progress: Math.min(...aggSubs.map((s) => s.progress)),
+            doneTime: status === "done" ? aggSubs[0].doneTime : undefined,
+            aggSubs,
+        };
+    };
+
+    // 控制台(客户侧)：小时账单 / 天账单 / 月账单
+    const hourBillAgg = aggNode(
+        { done: 5, running: 3, progresses: [82, 58, 30], day: 13, time: "11:20:00" },
+        { done: 4, running: 3, progresses: [70, 46, 21], day: 13, time: "11:50:00" }
+    );
+    const dayBillAgg = aggNode(
+        { done: 4, running: 3, progresses: [78, 55, 30], day: 13, time: "15:00:00" },
+        { done: 3, running: 3, progresses: [66, 42, 18], day: 13, time: "15:40:00" }
+    );
+    const monthBillAgg = aggNode(
+        { done: 3, running: 3, progresses: [65, 42, 18], day: 14, time: "10:30:00" },
+        { done: 2, running: 3, progresses: [52, 33, 12], day: 14, time: "11:10:00" }
+    );
+    // 后台账单(含经营分析收入)：小时账单 / 天账单 / 月账单
+    const bgHourBillAgg = aggNode(
+        { done: 4, running: 3, progresses: [74, 50, 26], day: 13, time: "12:40:00" },
+        { done: 3, running: 3, progresses: [62, 38, 16], day: 13, time: "13:20:00" }
+    );
+    const bgDayBillAgg = aggNode(
+        { done: 3, running: 3, progresses: [68, 45, 20], day: 14, time: "16:30:00" },
+        { done: 2, running: 3, progresses: [55, 34, 11], day: 14, time: "17:10:00" }
+    );
+    const bgMonthBillAgg = aggNode(
+        { done: 2, running: 3, progresses: [58, 36, 14], day: 15, time: "11:40:00" },
+        { done: 2, running: 2, progresses: [44, 25], day: 15, time: "12:20:00" }
+    );
 
     // 成本聚合：前 3 完成，3~5 进行中，5~7 未开始，其余未开始
     const costAggDone = idx < 3;
@@ -1387,7 +1506,24 @@ const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boole
     }));
     const verify: MonitorNodeState = { status: "pending", progress: 0, verifySubs };
 
-    return { meter, dataAggregate, productBill, offset, charge, dayBillAgg, monthBillAgg, costAgg, costProd, verify };
+    return {
+        meter,
+        dataAggregate,
+        productBill,
+        offset,
+        charge,
+        // 控制台(客户侧)账单聚合
+        hourBillAgg,
+        dayBillAgg,
+        monthBillAgg,
+        // 后台账单(含经营分析收入)
+        bgHourBillAgg,
+        bgDayBillAgg,
+        bgMonthBillAgg,
+        costAgg,
+        costProd,
+        verify,
+    };
 };
 
 // 监控看板 - 主产品下的子产品名称（mock：仅部分产品为主产品，其余为独立产品）
@@ -5485,8 +5621,12 @@ export default function AdminPage() {
     const [monitorProductBillFilter, setMonitorProductBillFilter] = useState("");         // 出账列头状态筛选
     const [monitorOffsetFilter, setMonitorOffsetFilter] = useState("");                   // 结算-抵扣列头状态筛选
     const [monitorChargeFilter, setMonitorChargeFilter] = useState("");                   // 结算-扣费列头状态筛选
-    const [monitorDayBillAggFilter, setMonitorDayBillAggFilter] = useState("");           // 账单聚合-天账单列头状态筛选
-    const [monitorMonthBillAggFilter, setMonitorMonthBillAggFilter] = useState("");       // 账单聚合-月账单列头状态筛选
+    const [monitorHourBillAggFilter, setMonitorHourBillAggFilter] = useState("");         // 控制台账单聚合-小时账单列头状态筛选
+    const [monitorDayBillAggFilter, setMonitorDayBillAggFilter] = useState("");           // 控制台账单聚合-天账单列头状态筛选
+    const [monitorMonthBillAggFilter, setMonitorMonthBillAggFilter] = useState("");       // 控制台账单聚合-月账单列头状态筛选
+    const [monitorBgHourBillAggFilter, setMonitorBgHourBillAggFilter] = useState("");     // 后台账单-小时账单列头状态筛选
+    const [monitorBgDayBillAggFilter, setMonitorBgDayBillAggFilter] = useState("");       // 后台账单-天账单列头状态筛选
+    const [monitorBgMonthBillAggFilter, setMonitorBgMonthBillAggFilter] = useState("");   // 后台账单-月账单列头状态筛选
     const [monitorCostAggFilter, setMonitorCostAggFilter] = useState("");                 // 成本-成本聚合列头状态筛选
     const [monitorCostProdFilter, setMonitorCostProdFilter] = useState("");               // 成本-成本生产列头状态筛选
     const [monitorVerifyMetricFilter, setMonitorVerifyMetricFilter] = useState<string[]>([]); // 账单核验-监控指标筛选（多选）
@@ -5567,11 +5707,23 @@ export default function AdminPage() {
             if (monitorChargeFilter) {
                 if (!monitorStageHit(row, "charge", monitorChargeFilter as MonitorNodeStatus)) return false;
             }
+            if (monitorHourBillAggFilter) {
+                if (!monitorStageHit(row, "hourBillAgg", monitorHourBillAggFilter as MonitorNodeStatus)) return false;
+            }
             if (monitorDayBillAggFilter) {
                 if (!monitorStageHit(row, "dayBillAgg", monitorDayBillAggFilter as MonitorNodeStatus)) return false;
             }
             if (monitorMonthBillAggFilter) {
                 if (!monitorStageHit(row, "monthBillAgg", monitorMonthBillAggFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorBgHourBillAggFilter) {
+                if (!monitorStageHit(row, "bgHourBillAgg", monitorBgHourBillAggFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorBgDayBillAggFilter) {
+                if (!monitorStageHit(row, "bgDayBillAgg", monitorBgDayBillAggFilter as MonitorNodeStatus)) return false;
+            }
+            if (monitorBgMonthBillAggFilter) {
+                if (!monitorStageHit(row, "bgMonthBillAgg", monitorBgMonthBillAggFilter as MonitorNodeStatus)) return false;
             }
             if (monitorCostAggFilter) {
                 if (!monitorStageHit(row, "costAgg", monitorCostAggFilter as MonitorNodeStatus)) return false;
@@ -5584,14 +5736,18 @@ export default function AdminPage() {
             }
             if (monitorNodeFilter) {
                 const target = monitorNodeFilter as MonitorNodeStatus;
-                // 「结算」节点没有独立状态，用抵扣 / 扣费两个环节的状态参与筛选
-                const stageKeys = [...monitorNodeDefs.map((n) => n.key), ...monitorSettleStages.map((s) => s.key)];
+                // 「结算」「账单聚合」节点没有独立状态，用其下各环节的状态参与筛选
+                const stageKeys = [
+                    ...monitorNodeDefs.map((n) => n.key),
+                    ...monitorSettleStages.map((s) => s.key),
+                    ...monitorBillAggStages.map((s) => s.key),
+                ];
                 const hit = stageKeys.some((key) => row.nodes[key]?.status === target);
                 if (!hit) return false;
             }
             return true;
         });
-    }, [monitorRows, monitorKeyword, monitorNodeFilter, monitorMeterFilter, monitorDataAggregateFilter, monitorProductBillFilter, monitorOffsetFilter, monitorChargeFilter, monitorDayBillAggFilter, monitorMonthBillAggFilter, monitorCostAggFilter, monitorCostProdFilter, monitorVerifyMetricFilter, monitorVerifyStatusFilter, monitorBillType, monitorProductFilter]);
+    }, [monitorRows, monitorKeyword, monitorNodeFilter, monitorMeterFilter, monitorDataAggregateFilter, monitorProductBillFilter, monitorOffsetFilter, monitorChargeFilter, monitorHourBillAggFilter, monitorDayBillAggFilter, monitorMonthBillAggFilter, monitorBgHourBillAggFilter, monitorBgDayBillAggFilter, monitorBgMonthBillAggFilter, monitorCostAggFilter, monitorCostProdFilter, monitorVerifyMetricFilter, monitorVerifyStatusFilter, monitorBillType, monitorProductFilter]);
 
     // 监控看板 - 监控统计矩阵：行 = 产品（计费节点），列 = 指标（状态），数字基于当前筛选后的列表统计
     const monitorNodeStats = useMemo(() => {
@@ -5619,26 +5775,42 @@ export default function AdminPage() {
             return c;
         };
 
-        // 三组：账单（计量上报~月账单）、成本（成本聚合+成本生产）、账单核验
-        const stageGroup = (key: string): "bill" | "cost" | "verify" =>
+        // 五组：计费（计量上报~扣费）、控制台账单、后台账单、成本（成本聚合+成本生产）、账单核验
+        const stageGroup = (key: string): "bill" | "consoleBill" | "backendBill" | "cost" | "verify" =>
             key === "costAgg" || key === "costProd" ? "cost"
                 : key === "verify" ? "verify"
-                    : "bill";
+                    : key === "hourBillAgg" || key === "dayBillAgg" || key === "monthBillAgg" ? "consoleBill"
+                        : key === "bgHourBillAgg" || key === "bgDayBillAgg" || key === "bgMonthBillAgg" ? "backendBill"
+                            : "bill";
+
+        // 账期类型联动：小时→仅小时账单；天→小时+天账单；月→小时+天+月账单
+        const billAggVisible = (key: string) => {
+            if (key === "dayBillAgg" || key === "bgDayBillAgg") return monitorBillType !== "hour";
+            if (key === "monthBillAgg" || key === "bgMonthBillAgg") return monitorBillType === "month";
+            return true;
+        };
+
         const stages = [
             { key: "meter", name: "计量上报", tip: "各产品计量数据按账期上报完成情况。" },
             { key: "dataAggregate", name: "聚合", tip: "计量数据完成聚合处理的进度。" },
             { key: "productBill", name: "出账", tip: "产品账单生成完成情况。" },
             { key: "offset", name: "抵扣", tip: "账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节。" },
             { key: "charge", name: "扣费", tip: "账单扣费处理完成情况。" },
-            ...(monitorBillType !== "hour" ? [{ key: "dayBillAgg", name: "天账单", tip: "按天维度聚合账单数据完成情况。" }] : []),
-            ...(monitorBillType === "month" ? [{ key: "monthBillAgg", name: "月账单", tip: "按月维度聚合账单数据完成情况。" }] : []),
+            { key: "hourBillAgg", name: "控制台-小时账单", tip: "控制台(客户侧)按小时维度聚合账单数据完成情况（明细、详情）。" },
+            { key: "dayBillAgg", name: "控制台-天账单", tip: "控制台(客户侧)按天维度聚合账单数据完成情况（明细、详情）。" },
+            { key: "monthBillAgg", name: "控制台-月账单", tip: "控制台(客户侧)按月维度聚合账单数据完成情况（明细、详情）。" },
+            { key: "bgHourBillAgg", name: "后台-小时账单", tip: "后台账单(含经营分析收入)按小时维度聚合账单数据完成情况（明细、详情）。" },
+            { key: "bgDayBillAgg", name: "后台-天账单", tip: "后台账单(含经营分析收入)按天维度聚合账单数据完成情况（明细、详情）。" },
+            { key: "bgMonthBillAgg", name: "后台-月账单", tip: "后台账单(含经营分析收入)按月维度聚合账单数据完成情况（明细、详情）。" },
             { key: "costAgg", name: "成本聚合", tip: "产品成本聚合维度进度。" },
             { key: "costProd", name: "成本生产", tip: "产品成本生产维度进度。" },
             { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
-        ].map((s) => ({ ...s, group: stageGroup(s.key), cells: cellOf(s.key) }));
+        ]
+            .filter((s) => billAggVisible(s.key))
+            .map((s) => ({ ...s, group: stageGroup(s.key), cells: cellOf(s.key) }));
 
         return { total: allProducts.length, stages };
-    }, [filteredMonitorRows]);
+    }, [filteredMonitorRows, monitorBillType]);
 
     // 监控看板 - 点击监控统计数字：筛选对应计费节点的对应状态（再次点击同一状态则清除）
     const handleMonitorStatClick = (stageKey: string, statusKey: string) => {
@@ -5648,8 +5820,12 @@ export default function AdminPage() {
         else if (stageKey === "productBill") clear(monitorProductBillFilter, setMonitorProductBillFilter);
         else if (stageKey === "offset") clear(monitorOffsetFilter, setMonitorOffsetFilter);
         else if (stageKey === "charge") clear(monitorChargeFilter, setMonitorChargeFilter);
+        else if (stageKey === "hourBillAgg") clear(monitorHourBillAggFilter, setMonitorHourBillAggFilter);
         else if (stageKey === "dayBillAgg") clear(monitorDayBillAggFilter, setMonitorDayBillAggFilter);
         else if (stageKey === "monthBillAgg") clear(monitorMonthBillAggFilter, setMonitorMonthBillAggFilter);
+        else if (stageKey === "bgHourBillAgg") clear(monitorBgHourBillAggFilter, setMonitorBgHourBillAggFilter);
+        else if (stageKey === "bgDayBillAgg") clear(monitorBgDayBillAggFilter, setMonitorBgDayBillAggFilter);
+        else if (stageKey === "bgMonthBillAgg") clear(monitorBgMonthBillAggFilter, setMonitorBgMonthBillAggFilter);
         else if (stageKey === "costAgg") clear(monitorCostAggFilter, setMonitorCostAggFilter);
         else if (stageKey === "costProd") clear(monitorCostProdFilter, setMonitorCostProdFilter);
         else if (stageKey === "verify") clear(monitorVerifyStatusFilter, setMonitorVerifyStatusFilter);
@@ -5663,14 +5839,18 @@ export default function AdminPage() {
             productBill: monitorProductBillFilter,
             offset: monitorOffsetFilter,
             charge: monitorChargeFilter,
+            hourBillAgg: monitorHourBillAggFilter,
             dayBillAgg: monitorDayBillAggFilter,
             monthBillAgg: monitorMonthBillAggFilter,
+            bgHourBillAgg: monitorBgHourBillAggFilter,
+            bgDayBillAgg: monitorBgDayBillAggFilter,
+            bgMonthBillAgg: monitorBgMonthBillAggFilter,
             costAgg: monitorCostAggFilter,
             costProd: monitorCostProdFilter,
             verify: monitorVerifyStatusFilter,
         };
         return map;
-    }, [monitorMeterFilter, monitorDataAggregateFilter, monitorProductBillFilter, monitorOffsetFilter, monitorChargeFilter, monitorDayBillAggFilter, monitorMonthBillAggFilter, monitorCostAggFilter, monitorCostProdFilter, monitorVerifyStatusFilter]);
+    }, [monitorMeterFilter, monitorDataAggregateFilter, monitorProductBillFilter, monitorOffsetFilter, monitorChargeFilter, monitorHourBillAggFilter, monitorDayBillAggFilter, monitorMonthBillAggFilter, monitorBgHourBillAggFilter, monitorBgDayBillAggFilter, monitorBgMonthBillAggFilter, monitorCostAggFilter, monitorCostProdFilter, monitorVerifyStatusFilter]);
 
     // ===== 平台配置 - 地域可用区 =====
     // 单个 Portal 下的可用区配置：地域下「每个已开启独立Portal的Portal」都固定存在一条配置，
@@ -14105,7 +14285,7 @@ export default function AdminPage() {
                             {/* 数据口径说明 */}
                             <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
                                 <p className="text-[13px] leading-[1.9] text-blue-600">
-                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单聚合 → 成本 → 账单核验</span>（账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
+                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 控制台(客户侧)账单聚合 → 后台账单(含经营分析收入) → 成本 → 账单核验</span>（两类账单聚合均包含小时账单、天账单、月账单，每个账单分别展示「明细」「详情」两条聚合进度；账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
                                 </p>
                             </div>
 
@@ -14116,7 +14296,18 @@ export default function AdminPage() {
                                     {(["hour", "day", "month"] as MonitorBillType[]).map((t) => (
                                         <button
                                             key={t}
-                                            onClick={() => setMonitorBillType(t)}
+                                            onClick={() => {
+                                                setMonitorBillType(t);
+                                                // 切换账期类型后隐藏的账单列，其列头筛选需同步清除，避免「看不见的筛选」影响列表
+                                                if (t === "hour") {
+                                                    setMonitorDayBillAggFilter("");
+                                                    setMonitorBgDayBillAggFilter("");
+                                                }
+                                                if (t !== "month") {
+                                                    setMonitorMonthBillAggFilter("");
+                                                    setMonitorBgMonthBillAggFilter("");
+                                                }
+                                            }}
                                             className={`h-8 rounded-md px-4 text-sm transition-colors ${
                                                 monitorBillType === t
                                                     ? "bg-blue-600 text-white"
@@ -14194,11 +14385,18 @@ export default function AdminPage() {
                                             const isLast = idx === monitorNodeStats.stages.length - 1;
                                             const nextGroup = !isLast ? monitorNodeStats.stages[idx + 1]?.group : null;
                                             const isGroupEnd = !isLast && stage.group !== nextGroup;
-                                            // 分组颜色：账单=蓝、成本=琥珀、账单核验=翠绿
+                                            // 分组颜色：计费=蓝、控制台账单=天蓝、后台账单=橙、成本=琥珀、账单核验=翠绿
                                             const groupColor =
                                                 stage.group === "cost" ? { circle: "bg-amber-500", ring: "ring-amber-50" }
                                                     : stage.group === "verify" ? { circle: "bg-emerald-500", ring: "ring-emerald-50" }
-                                                        : { circle: "bg-blue-600", ring: "ring-blue-50" };
+                                                        : stage.group === "consoleBill" ? { circle: "bg-sky-500", ring: "ring-sky-50" }
+                                                            : stage.group === "backendBill" ? { circle: "bg-orange-500", ring: "ring-orange-50" }
+                                                                : { circle: "bg-blue-600", ring: "ring-blue-50" };
+                                            // 控制台账单 与 后台账单 两个模块之间用橙色加粗分割线区分
+                                            const groupDivider =
+                                                stage.group === "consoleBill" && nextGroup === "backendBill"
+                                                    ? "h-12 w-0.5 bg-orange-400"
+                                                    : "h-10 w-px bg-gray-400";
                                             return (
                                                 <Fragment key={stage.key}>
                                                     <div className="flex flex-col items-center flex-shrink-0" style={{ width: '175px' }}>
@@ -14277,7 +14475,7 @@ export default function AdminPage() {
                                                     {/* 节点间连接线：组间用竖分割线，组内用横连接线 */}
                                                     {isGroupEnd ? (
                                                         <div className="flex flex-shrink-0 items-center pt-4" style={{ width: '24px' }}>
-                                                            <div className="h-10 w-px rounded-full bg-gray-400" />
+                                                            <div className={`rounded-full ${groupDivider}`} />
                                                         </div>
                                                     ) : !isLast ? (
                                                         <div className="flex flex-shrink-0 items-start pt-4" style={{ width: '32px' }}>
@@ -14294,7 +14492,7 @@ export default function AdminPage() {
                             {/* 数据表格 */}
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[1100px]">
+                                    <table className={`w-full ${monitorBillType === "hour" ? "min-w-[1680px]" : monitorBillType === "day" ? "min-w-[2040px]" : "min-w-[2400px]"}`}>
                                         <thead>
                                             <tr className="border-b border-gray-200 bg-gray-50">
                                                 <AnalysisTh label="产品名称" align="left" width="280px" rowSpan={2} />
@@ -14302,16 +14500,25 @@ export default function AdminPage() {
                                                 <MonitorFilterTh label="计量上报" tip="各产品计量数据按账期上报完成情况，点击下拉可按状态筛选。" value={monitorMeterFilter} onChange={setMonitorMeterFilter} width="180px" rowSpan={2} />
                                                 <AnalysisTh label="聚合出账" align="left" width="320px" colSpan={2} divider tip="聚合出账包含聚合、出账两个环节。" />
                                                 <AnalysisTh label="结算" align="left" width="320px" colSpan={2} divider />
-                                                {monitorBillType !== "hour" && (
-                                                    <AnalysisTh
-                                                        label="账单聚合"
-                                                        align="left"
-                                                        width={monitorBillType === "day" ? "160px" : "320px"}
-                                                        colSpan={monitorBillType === "day" ? 1 : 2}
-                                                        divider
-                                                        tip="账单聚合包含天账单和月账单两个环节；天账单仅展示天账单，月账单同时展示天账单和月账单。"
-                                                    />
-                                                )}
+                                                {/* 控制台账单：小时始终有，天/月按账期类型显示 */}
+                                                <AnalysisTh
+                                                    label="控制台(客户侧)账单聚合"
+                                                    align="left"
+                                                    width={monitorBillType === "hour" ? "180px" : monitorBillType === "day" ? "360px" : "540px"}
+                                                    colSpan={monitorBillType === "hour" ? 1 : monitorBillType === "day" ? 2 : 3}
+                                                    divider
+                                                    tip="控制台(客户侧)账单聚合包含小时账单、天账单、月账单三个环节，每个环节分别展示「明细」「详情」两条聚合进度。"
+                                                />
+                                                {/* 后台账单：橙色分割线区分两个模块 */}
+                                                <AnalysisTh
+                                                    label="后台账单(含经营分析收入)"
+                                                    align="left"
+                                                    width={monitorBillType === "hour" ? "180px" : monitorBillType === "day" ? "360px" : "540px"}
+                                                    colSpan={monitorBillType === "hour" ? 1 : monitorBillType === "day" ? 2 : 3}
+                                                    divider
+                                                    dividerClass="border-l-2 border-orange-400"
+                                                    tip="后台账单(含经营分析收入)包含小时账单、天账单、月账单三个环节，每个环节分别展示「明细」「详情」两条聚合进度。"
+                                                />
                                                 <AnalysisTh label="成本" align="left" width="320px" colSpan={2} divider tip="产品成本展示，包含成本聚合与成本生产两个维度。" />
                                                 <MonitorVerifyFilterTh
                                                     metric={monitorVerifyMetricFilter}
@@ -14327,13 +14534,21 @@ export default function AdminPage() {
                                                 <MonitorFilterTh label="出账" tip="产品账单生成完成情况，点击下拉可按状态筛选。" value={monitorProductBillFilter} onChange={setMonitorProductBillFilter} width="160px" divider={false} />
                                                 <MonitorFilterTh label="抵扣" tip="账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节，点击下拉可按状态筛选。" value={monitorOffsetFilter} onChange={setMonitorOffsetFilter} width="160px" />
                                                 <MonitorFilterTh label="扣费" tip="账单扣费处理完成情况，点击下拉可按状态筛选。" value={monitorChargeFilter} onChange={setMonitorChargeFilter} width="160px" divider={false} />
+                                                {/* 控制台(客户侧)账单聚合：小时账单始终显示；天/月账单按账期类型显示 */}
+                                                <MonitorFilterTh label="小时账单" tip="控制台(客户侧)按小时维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorHourBillAggFilter} onChange={setMonitorHourBillAggFilter} width="180px" />
                                                 {monitorBillType !== "hour" && (
-                                                    <>
-                                                        <MonitorFilterTh label="天账单" tip="按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorDayBillAggFilter} onChange={setMonitorDayBillAggFilter} width="160px" />
-                                                        {monitorBillType === "month" && (
-                                                            <MonitorFilterTh label="月账单" tip="按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorMonthBillAggFilter} onChange={setMonitorMonthBillAggFilter} width="160px" divider={false} />
-                                                        )}
-                                                    </>
+                                                    <MonitorFilterTh label="天账单" tip="控制台(客户侧)按天维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorDayBillAggFilter} onChange={setMonitorDayBillAggFilter} width="180px" divider={false} />
+                                                )}
+                                                {monitorBillType === "month" && (
+                                                    <MonitorFilterTh label="月账单" tip="控制台(客户侧)按月维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorMonthBillAggFilter} onChange={setMonitorMonthBillAggFilter} width="180px" divider={false} />
+                                                )}
+                                                {/* 后台账单(含经营分析收入)：小时账单始终显示；天/月账单按账期类型显示；橙色分割线区分模块 */}
+                                                <MonitorFilterTh label="小时账单" tip="后台账单(含经营分析收入)按小时维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorBgHourBillAggFilter} onChange={setMonitorBgHourBillAggFilter} width="180px" dividerClass="border-l-2 border-orange-400" />
+                                                {monitorBillType !== "hour" && (
+                                                    <MonitorFilterTh label="天账单" tip="后台账单(含经营分析收入)按天维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorBgDayBillAggFilter} onChange={setMonitorBgDayBillAggFilter} width="180px" divider={false} />
+                                                )}
+                                                {monitorBillType === "month" && (
+                                                    <MonitorFilterTh label="月账单" tip="后台账单(含经营分析收入)按月维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorBgMonthBillAggFilter} onChange={setMonitorBgMonthBillAggFilter} width="180px" divider={false} />
                                                 )}
                                                 <MonitorFilterTh label="成本聚合" tip="产品成本聚合维度进度，点击下拉可按状态筛选。" value={monitorCostAggFilter} onChange={setMonitorCostAggFilter} width="160px" />
                                                 <MonitorFilterTh label="成本生产" tip="产品成本生产维度进度，点击下拉可按状态筛选。" value={monitorCostProdFilter} onChange={setMonitorCostProdFilter} width="160px" divider={false} />
@@ -14385,14 +14600,21 @@ export default function AdminPage() {
                                                     <SettleStageCell name="出账" na={false} node={row.nodes.productBill} onClick={() => setMonitorDetailProduct(row)} />
                                                     {/* 结算（抵扣、扣费两个环节） */}
                                                     <MonitorSettleCell hasPackage={row.hasPackage} offset={row.nodes.offset} charge={row.nodes.charge} onClick={() => setMonitorDetailProduct(row)} />
-                                                    {/* 账单聚合（天账单、月账单两个环节；小时账单不展示） */}
+                                                    {/* 控制台(客户侧)账单聚合：小时账单始终展示；天账单（天/月）、月账单（月）按账期类型展示 */}
+                                                    <BillAggStageCell node={row.nodes.hourBillAgg} divider onClick={() => setMonitorDetailProduct(row)} />
                                                     {monitorBillType !== "hour" && (
-                                                        <>
-                                                            <SettleStageCell name="天账单" na={false} node={row.nodes.dayBillAgg} divider onClick={() => setMonitorDetailProduct(row)} />
-                                                            {monitorBillType === "month" && (
-                                                                <SettleStageCell name="月账单" na={false} node={row.nodes.monthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
-                                                            )}
-                                                        </>
+                                                        <BillAggStageCell node={row.nodes.dayBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                    )}
+                                                    {monitorBillType === "month" && (
+                                                        <BillAggStageCell node={row.nodes.monthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                    )}
+                                                    {/* 后台账单(含经营分析收入)：同上规则；左侧橙色分割线区分两个模块 */}
+                                                    <BillAggStageCell node={row.nodes.bgHourBillAgg} divider dividerClass="border-l-2 border-orange-400" onClick={() => setMonitorDetailProduct(row)} />
+                                                    {monitorBillType !== "hour" && (
+                                                        <BillAggStageCell node={row.nodes.bgDayBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                    )}
+                                                    {monitorBillType === "month" && (
+                                                        <BillAggStageCell node={row.nodes.bgMonthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
                                                     )}
                                                     {/* 成本（成本聚合、成本生产两个环节，样式与结算列一致） */}
                                                     <SettleStageCell name="成本聚合" na={false} node={row.nodes.costAgg} divider onClick={() => setMonitorDetailProduct(row)} />
@@ -14408,7 +14630,7 @@ export default function AdminPage() {
                                             ))}
                                             {filteredMonitorRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={2 + monitorNodeDefs.length + 3} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={monitorBillType === "hour" ? 12 : monitorBillType === "day" ? 14 : 16} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -14495,6 +14717,61 @@ export default function AdminPage() {
                                                                                         </div>
                                                                                     </>
                                                                                 )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    // 账单聚合节点：控制台(客户侧) / 后台账单(含经营分析收入)，各含小时/天/月账单，每个账单内含明细、详情两条聚合进度
+                                                    if (n.key === "consoleBillAgg" || n.key === "backendBillAgg") {
+                                                        // 账期类型联动：小时→仅小时账单；天→小时+天账单；月→全部
+                                                        const allBillStages: { key: string; name: string; tip: string }[] =
+                                                            n.key === "consoleBillAgg" ? [...monitorConsoleBillAggStages] : [...monitorBackendBillAggStages];
+                                                        const billStages = allBillStages.filter((stage) =>
+                                                            stage.key === "dayBillAgg" || stage.key === "bgDayBillAgg"
+                                                                ? monitorBillType !== "hour"
+                                                                : stage.key === "monthBillAgg" || stage.key === "bgMonthBillAgg"
+                                                                    ? monitorBillType === "month"
+                                                                    : true
+                                                        );
+                                                        return (
+                                                            <div key={n.key} className="rounded-lg border border-gray-200 p-4">
+                                                                <div className="mb-3 flex items-center gap-2">
+                                                                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[12px] font-medium text-gray-600">{idx + 1}</span>
+                                                                    <span className="text-sm font-medium text-gray-900">{n.name}</span>
+                                                                </div>
+                                                                <div className="space-y-4 pl-4">
+                                                                    {billStages.map((stage) => {
+                                                                        const st = monitorDetailProduct.nodes[stage.key];
+                                                                        return (
+                                                                            <div key={stage.key}>
+                                                                                <div className="mb-2 text-[13px] font-medium text-gray-700">{stage.name}</div>
+                                                                                <div className="space-y-3 pl-3">
+                                                                                    {(st?.aggSubs ?? []).map((sub) => {
+                                                                                        const c = monitorStatusColor(sub.status);
+                                                                                        return (
+                                                                                            <div key={sub.name}>
+                                                                                                <div className="mb-1.5 flex items-center justify-between">
+                                                                                                    <span className="text-[12px] text-gray-600">{sub.name}</span>
+                                                                                                    <span className={`inline-flex items-center gap-1 text-[12px] leading-none ${c.text}`}>
+                                                                                                        <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                                                                                                        {sub.status === "fail" && sub.failReason ? `异常（${sub.failReason}）` : c.label}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                                                                                    <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${sub.progress}%` }} />
+                                                                                                </div>
+                                                                                                <div className="mt-1 flex items-center justify-between text-[12px] text-gray-400">
+                                                                                                    <span>{sub.progress}%</span>
+                                                                                                    {sub.status === "done" && sub.doneTime && <span>{sub.doneTime}</span>}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
                                                                             </div>
                                                                         );
                                                                     })}
