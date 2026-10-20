@@ -519,11 +519,11 @@ const monitorVerifyStatusColor = (status: MonitorVerifyStatus) =>
             ? { chip: "bg-yellow-50 text-yellow-600 border-yellow-200", dot: "bg-yellow-500", label: "告警" }
             : { chip: "bg-red-50 text-red-600 border-red-200", dot: "bg-red-500", label: "异常" };
 
-// 监控看板 - 普通进度单元格（计量上报 / 聚合出账）
-const MonitorProgressCell = ({ node, onClick }: { node?: MonitorNodeState; onClick?: () => void }) => {
+// 监控看板 - 普通进度单元格（计量上报 / 聚合出账 / 导出账单聚合 / 后台账单）
+const MonitorProgressCell = ({ node, onClick, divider = true, dividerClass }: { node?: MonitorNodeState; onClick?: () => void; divider?: boolean; dividerClass?: string }) => {
     const c = monitorStatusColor(node?.status);
     return (
-        <td className="px-3 py-4 text-left align-middle border-l border-gray-200">
+        <td className={`px-3 py-4 text-left align-middle ${divider ? (dividerClass ?? "border-l border-gray-200") : ""}`}>
             <button
                 onClick={onClick}
                 className="inline-flex w-full max-w-[150px] flex-col items-start gap-1.5"
@@ -1099,8 +1099,8 @@ const monitorNodeDefs = [
     { key: "productBill", name: "出账", tip: "产品账单生成完成情况。" },
     { key: "settle", name: "结算", tip: "结算包含抵扣、扣费两个环节；无资源包抵扣的产品，抵扣环节展示「不涉及」。" },
     { key: "consoleBillAgg", name: "控制台(客户侧)账单聚合", tip: "控制台(客户侧)账单聚合包含小时账单、天账单、月账单，每个账单分别展示明细、详情两条聚合进度。" },
-    { key: "exportBillAgg", name: "导出账单聚合", tip: "导出账单聚合包含小时账单、天账单、月账单，每个账单分别展示明细、详情两条聚合进度。" },
-    { key: "backendBillAgg", name: "后台账单(含经营分析收入)", tip: "后台账单(含经营分析收入)包含小时账单、天账单、月账单，每个账单分别展示明细、详情两条聚合进度。" },
+    { key: "exportBillAgg", name: "导出账单聚合", tip: "导出账单聚合包含小时账单、天账单、月账单，每个账单展示单条聚合进度。" },
+    { key: "backendBillAgg", name: "后台账单(含经营分析收入)", tip: "后台账单(含经营分析收入)包含小时账单、天账单、月账单，每个账单展示单条聚合进度。" },
     { key: "cost", name: "成本", tip: "成本包含成本聚合、成本生产两个维度。" },
     { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
 ];
@@ -1118,18 +1118,18 @@ const monitorConsoleBillAggStages = [
     { key: "monthBillAgg", name: "月账单", tip: "控制台(客户侧)按月维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
 ] as const;
 
-// 导出账单聚合：小时账单、天账单、月账单（控制台账单聚合列之后）
+// 导出账单聚合：小时账单、天账单、月账单（不区分明细/详情，单条平铺进度）
 const monitorExportBillAggStages = [
-    { key: "exHourBillAgg", name: "小时账单", tip: "导出账单按小时维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
-    { key: "exDayBillAgg", name: "天账单", tip: "导出账单按天维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
-    { key: "exMonthBillAgg", name: "月账单", tip: "导出账单按月维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
+    { key: "exHourBillAgg", name: "小时账单", tip: "导出账单按小时维度聚合账单数据完成情况。" },
+    { key: "exDayBillAgg", name: "天账单", tip: "导出账单按天维度聚合账单数据完成情况。" },
+    { key: "exMonthBillAgg", name: "月账单", tip: "导出账单按月维度聚合账单数据完成情况。" },
 ] as const;
 
-// 后台账单(含经营分析收入)：小时账单、天账单、月账单（导出账单聚合列之后）
+// 后台账单(含经营分析收入)：小时账单、天账单、月账单（不区分明细/详情，单条平铺进度）
 const monitorBackendBillAggStages = [
-    { key: "bgHourBillAgg", name: "小时账单", tip: "后台(含经营分析收入)按小时维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
-    { key: "bgDayBillAgg", name: "天账单", tip: "后台(含经营分析收入)按天维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
-    { key: "bgMonthBillAgg", name: "月账单", tip: "后台(含经营分析收入)按月维度聚合账单数据完成情况，分别展示明细、详情两条聚合进度。" },
+    { key: "bgHourBillAgg", name: "小时账单", tip: "后台(含经营分析收入)按小时维度聚合账单数据完成情况。" },
+    { key: "bgDayBillAgg", name: "天账单", tip: "后台(含经营分析收入)按天维度聚合账单数据完成情况。" },
+    { key: "bgMonthBillAgg", name: "月账单", tip: "后台(含经营分析收入)按月维度聚合账单数据完成情况。" },
 ] as const;
 
 // 账单聚合全部环节（控制台侧 + 导出账单 + 后台账单），用于筛选与统计
@@ -1536,7 +1536,18 @@ const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boole
             ? { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, 13, "10:40:00") }
             : { status: "pending", progress: 0 };
 
-    // 账单聚合：控制台(客户侧) 与 后台账单(含经营分析收入)，各自展示 小时/天/月账单
+    // 导出账单聚合 & 后台账单 - 平铺进度节点（不区分明细/详情，单条进度）
+    const flatAggNode = (done: number, running: number, progresses: number[], day: number, time: string): MonitorNodeState => {
+        if (idx < done) {
+            return { status: "done", progress: 100, doneTime: buildMonitorDoneTime(ctx, day, time) };
+        }
+        const runningIdx = idx - done;
+        if (runningIdx < running) {
+            return { status: "running", progress: progresses[runningIdx] ?? 40 };
+        }
+        return { status: "pending", progress: 0 };
+    };
+    // 账单聚合：控制台(客户侧) 展示 小时/天/月账单
     // 每个账单列内包含「明细」「详情」两条子聚合进度，父节点状态由两条子进度汇总（明细、详情均完成才算完成）
     const aggNode = (
         detailCfg: { done: number; running: number; progresses: number[]; day: number; time: string },
@@ -1581,32 +1592,14 @@ const buildMonitorNodes = (idx: number, ctx: MonitorPeriodCtx, hasPackage: boole
         { done: 3, running: 3, progresses: [65, 42, 18], day: 14, time: "10:30:00" },
         { done: 2, running: 3, progresses: [52, 33, 12], day: 14, time: "11:10:00" }
     );
-    // 导出账单聚合：小时账单 / 天账单 / 月账单
-    const exHourBillAgg = aggNode(
-        { done: 5, running: 3, progresses: [80, 54, 28], day: 13, time: "12:10:00" },
-        { done: 4, running: 3, progresses: [68, 44, 19], day: 13, time: "12:30:00" }
-    );
-    const exDayBillAgg = aggNode(
-        { done: 4, running: 3, progresses: [72, 48, 24], day: 14, time: "15:50:00" },
-        { done: 3, running: 3, progresses: [60, 36, 15], day: 14, time: "16:10:00" }
-    );
-    const exMonthBillAgg = aggNode(
-        { done: 3, running: 3, progresses: [60, 38, 16], day: 15, time: "10:50:00" },
-        { done: 2, running: 3, progresses: [48, 28, 13], day: 15, time: "11:20:00" }
-    );
-    // 后台账单(含经营分析收入)：小时账单 / 天账单 / 月账单
-    const bgHourBillAgg = aggNode(
-        { done: 4, running: 3, progresses: [74, 50, 26], day: 13, time: "12:40:00" },
-        { done: 3, running: 3, progresses: [62, 38, 16], day: 13, time: "13:20:00" }
-    );
-    const bgDayBillAgg = aggNode(
-        { done: 3, running: 3, progresses: [68, 45, 20], day: 14, time: "16:30:00" },
-        { done: 2, running: 3, progresses: [55, 34, 11], day: 14, time: "17:10:00" }
-    );
-    const bgMonthBillAgg = aggNode(
-        { done: 2, running: 3, progresses: [58, 36, 14], day: 15, time: "11:40:00" },
-        { done: 2, running: 2, progresses: [44, 25], day: 15, time: "12:20:00" }
-    );
+    // 导出账单聚合：小时账单 / 天账单 / 月账单（不区分明细/详情，单条平铺进度）
+    const exHourBillAgg = flatAggNode(5, 3, [80, 54, 28], 13, "12:10:00");
+    const exDayBillAgg = flatAggNode(4, 3, [72, 48, 24], 14, "15:50:00");
+    const exMonthBillAgg = flatAggNode(3, 3, [60, 38, 16], 15, "10:50:00");
+    // 后台账单(含经营分析收入)：小时账单 / 天账单 / 月账单（不区分明细/详情，单条平铺进度）
+    const bgHourBillAgg = flatAggNode(4, 3, [74, 50, 26], 13, "12:40:00");
+    const bgDayBillAgg = flatAggNode(3, 3, [68, 45, 20], 14, "16:30:00");
+    const bgMonthBillAgg = flatAggNode(2, 3, [58, 36, 14], 15, "11:40:00");
 
     // 成本聚合：前 3 完成，3~5 进行中，5~7 未开始，其余未开始
     const costAggDone = idx < 3;
@@ -4463,7 +4456,7 @@ const unitDeptAttrOptions: { value: UnitDeptAttr; label: string }[] = [
 ];
 const unitDeptAttrTip = '内部结算：内部结算部门，经营分析时是内部收入。外部结算：单独定价的部门，经营分析时归类到外部收入。';
 
-// 内部折扣设置 - 折扣类型（内部结算固定为「内部折扣」，外部结算可选 SVIP/VIP）
+// 内部折扣设置 - 折扣类型（内部结算、外部结算均可选内部折扣/SVIP/VIP）
 // 结算单元命中哪种折扣类型，计费时即取产品定义中对应的折扣值
 type UnitDiscountType = 'internal' | 'svip' | 'vip';
 const unitDiscountTypeOptions: { value: UnitDiscountType; label: string }[] = [
@@ -4491,20 +4484,20 @@ const standaloneProductOptions: Record<StandaloneBillingType, { id: number; name
 const standaloneDiscountTip = '折扣优先级：单独设置的产品或资源包折扣 > 客户计费标签 > 租户折扣 > 官方折扣。';
 
 // 内部折扣设置 - 结算单元的结算属性与折扣配置
-// 规则：内部结算固定为内部折扣，不可再编辑；外部结算可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
+// 规则：内部结算与外部结算均可设置计费标签（内部折扣/SVIP/VIP），也均可单独设置产品/资源包折扣
 type UnitDiscountConfig = {
     deptAttr: UnitDeptAttr | '';            // 结算属性，空字符串代表未配置
-    discount: UnitDiscountType | null;      // 折扣类型（内部结算固定 internal；外部结算可选 svip/vip）
-    standaloneProducts: StandaloneProduct[]; // 单独设置计费的产品/资源包，仅「外部结算」可设置
+    discount: UnitDiscountType | null;      // 折扣类型（内部结算与外部结算均可选 internal/svip/vip）
+    standaloneProducts: StandaloneProduct[]; // 单独设置计费的产品/资源包，内部结算与外部结算均可设置
     updateTime: string;
 };
 const initialUnitDiscounts: Record<string, UnitDiscountConfig> = {
-    // 内部结算：折扣固定为「内部折扣」，不再编辑
+    // 内部结算：默认内部折扣，可后续编辑
     '智汇云-应用平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
     '智汇云-商业化产品部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-18 16:40:12' },
     '智汇云-云平台部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-20 09:12:45' },
     '智汇云-系统运维部': { deptAttr: 'inner', discount: 'internal', standaloneProducts: [], updateTime: '2025-12-20 09:14:02' },
-    // 外部结算部门：可设置 SVIP/VIP 折扣，也可单独设置产品/资源包折扣
+    // 外部结算部门：可设置折扣与单独设置产品/资源包折扣
     '智汇云-基础架构部': { deptAttr: 'biz', discount: 'svip', standaloneProducts: [], updateTime: '2025-11-28 15:02:31' },
     '智汇云-安全技术部': {
         deptAttr: 'biz', discount: 'svip', updateTime: '2025-11-28 15:03:47',
@@ -5940,12 +5933,12 @@ export default function AdminPage() {
             { key: "hourBillAgg", name: "控制台-小时账单", tip: "控制台(客户侧)按小时维度聚合账单数据完成情况（明细、详情）。" },
             { key: "dayBillAgg", name: "控制台-天账单", tip: "控制台(客户侧)按天维度聚合账单数据完成情况（明细、详情）。" },
             { key: "monthBillAgg", name: "控制台-月账单", tip: "控制台(客户侧)按月维度聚合账单数据完成情况（明细、详情）。" },
-            { key: "exHourBillAgg", name: "导出-小时账单", tip: "导出账单按小时维度聚合账单数据完成情况（明细、详情）。" },
-            { key: "exDayBillAgg", name: "导出-天账单", tip: "导出账单按天维度聚合账单数据完成情况（明细、详情）。" },
-            { key: "exMonthBillAgg", name: "导出-月账单", tip: "导出账单按月维度聚合账单数据完成情况（明细、详情）。" },
-            { key: "bgHourBillAgg", name: "后台-小时账单", tip: "后台账单(含经营分析收入)按小时维度聚合账单数据完成情况（明细、详情）。" },
-            { key: "bgDayBillAgg", name: "后台-天账单", tip: "后台账单(含经营分析收入)按天维度聚合账单数据完成情况（明细、详情）。" },
-            { key: "bgMonthBillAgg", name: "后台-月账单", tip: "后台账单(含经营分析收入)按月维度聚合账单数据完成情况（明细、详情）。" },
+            { key: "exHourBillAgg", name: "导出-小时账单", tip: "导出账单按小时维度聚合账单数据完成情况。" },
+            { key: "exDayBillAgg", name: "导出-天账单", tip: "导出账单按天维度聚合账单数据完成情况。" },
+            { key: "exMonthBillAgg", name: "导出-月账单", tip: "导出账单按月维度聚合账单数据完成情况。" },
+            { key: "bgHourBillAgg", name: "后台-小时账单", tip: "后台账单(含经营分析收入)按小时维度聚合账单数据完成情况。" },
+            { key: "bgDayBillAgg", name: "后台-天账单", tip: "后台账单(含经营分析收入)按天维度聚合账单数据完成情况。" },
+            { key: "bgMonthBillAgg", name: "后台-月账单", tip: "后台账单(含经营分析收入)按月维度聚合账单数据完成情况。" },
             { key: "costAgg", name: "成本聚合", tip: "产品成本聚合维度进度。" },
             { key: "costProd", name: "成本生产", tip: "产品成本生产维度进度。" },
             { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
@@ -7452,12 +7445,12 @@ export default function AdminPage() {
     const getDeptAttrLabel = (attr: UnitDeptAttr | '') =>
         attr === '' ? '--' : (unitDeptAttrOptions.find(o => o.value === attr)?.label || '--');
 
-    // 判断结算单元是否为「内部结算」（不可再编辑折扣）
+    // 判断结算单元是否为「内部结算」
     const isInnerDept = (unit: string) => unitDiscounts[unit]?.deptAttr === 'inner';
 
-    // 批量设置折扣仅对「外部结算」生效：「内部结算」固定内部折扣、未配置结算属性的单元均不可批量改折扣
+    // 批量设置计费标签：内部结算与外部结算均支持
     const selectedBizUnits = useMemo(
-        () => selectedDiscountUnits.filter(u => unitDiscounts[u]?.deptAttr === 'biz'),
+        () => selectedDiscountUnits.filter(u => unitDiscounts[u]?.deptAttr === 'biz' || unitDiscounts[u]?.deptAttr === 'inner'),
         [selectedDiscountUnits, unitDiscounts]
     );
 
@@ -7467,8 +7460,8 @@ export default function AdminPage() {
     const handleOpenDiscountDialog = (units: string[], mode: 'both' | 'attr' | 'discount' = 'both') => {
         if (units.length === 0) return;
         const base = units.length === 1 ? unitDiscounts[units[0]] : undefined;
-        // 仅设置折扣模式：只针对外部结算部门，预设 deptAttr 为外部结算，直接展示 SVIP/VIP 折扣选择，无需先选结算属性
-        const presetDeptAttr = mode === 'discount' ? 'biz' : (base?.deptAttr || '');
+        // 仅设置折扣模式：保持原始结算属性，直接展示折扣选择
+        const presetDeptAttr = mode === 'discount' ? (base?.deptAttr || '') : (base?.deptAttr || '');
         setDiscountForm({
             deptAttr: presetDeptAttr,
             discount: base?.discount ?? '',
@@ -7482,7 +7475,7 @@ export default function AdminPage() {
     const handleSaveDiscount = () => {
         if (!discountDialogUnits) return;
         
-        // 仅设置折扣模式：只更新外部结算部门的折扣类型
+        // 仅设置折扣模式：内部结算与外部结算均可更新折扣类型
         if (discountDialogMode === 'discount') {
             const discount = discountForm.discount;
             if (!discount) {
@@ -7494,8 +7487,8 @@ export default function AdminPage() {
                 const next = { ...prev };
                 discountDialogUnits.forEach(u => {
                     const old = prev[u] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' };
-                    // 仅更新外部结算部门的折扣，保持结算属性和单独设置的产品不变
-                    if (old.deptAttr === 'biz') {
+                    // 内部结算与外部结算均更新折扣，保持结算属性和单独设置的产品不变
+                    if (old.deptAttr === 'biz' || old.deptAttr === 'inner') {
                         next[u] = { ...old, discount: discount as UnitDiscountType, updateTime: now };
                     }
                 });
@@ -7513,9 +7506,9 @@ export default function AdminPage() {
             setDiscountFormError('请选择结算属性');
             return;
         }
-        // 外部结算部门需选择折扣类型（SVIP/VIP）
+        // 内部结算与外部结算均需选择折扣类型
         const discount = discountForm.discount;
-        if (deptAttr === 'biz' && !discount) {
+        if (!discount) {
             setDiscountFormError('请选择计费标签');
             return;
         }
@@ -7524,12 +7517,8 @@ export default function AdminPage() {
             const next = { ...prev };
             discountDialogUnits.forEach(u => {
                 const old = prev[u] || { deptAttr: '', discount: null, standaloneProducts: [], updateTime: '--' };
-                // 「内部结算」固定为内部折扣，且清空单独设置的产品；「外部结算」按所选折扣类型取值，单独设置的产品保持不变
-                if (deptAttr === 'inner') {
-                    next[u] = { deptAttr, discount: 'internal', standaloneProducts: [], updateTime: now };
-                } else {
-                    next[u] = { deptAttr, discount: discount as UnitDiscountType, standaloneProducts: old.standaloneProducts, updateTime: now };
-                }
+                // 内部结算与外部结算均按所选折扣类型取值，单独设置的产品保持不变
+                next[u] = { deptAttr, discount: discount as UnitDiscountType, standaloneProducts: old.standaloneProducts, updateTime: now };
             });
             return next;
         });
@@ -7693,11 +7682,19 @@ export default function AdminPage() {
     // 进入编辑态时的配置快照，用于「取消」时整体还原
     const menuConfigSnapshotRef = useRef<Record<MenuPortalKey, ProductTopMenu[]> | null>(null);
 
+    // 菜单配置 - 内外单独定义菜单（仅「内外一套部署」产品可见）
+    //   false：内外Portal共用同一套菜单，展示一个 Tab「内外Portal菜单」
+    //   true ：内外Portal各自定义菜单，展示两个 Tab「内部Portal菜单」「外部Portal菜单」
+    const [separateMenuDefinition, setSeparateMenuDefinition] = useState(false);
+    const separateMenuSnapshotRef = useRef(false);
+    // 菜单配置 - 内外单独定义菜单切换确认弹框（null=无待确认项，true=待开启，false=待关闭）
+    const [separateMenuPending, setSeparateMenuPending] = useState<boolean | null>(null);
+
     // 菜单配置 - 是否跳转单产品链接（各产品对接的过渡期配置）
     //   false：跳转 https://console.zyun.qihoo.net/产品简称   （外部 https://console.zyun.360.cn/产品简称）
     //   true ：跳转 https://console.zyun.qihoo.net/product/产品简称（外部 https://console.zyun.360.cn/product/产品简称）
-    const [singleProductLink, setSingleProductLink] = useState(false);
-    const singleProductLinkSnapshotRef = useRef(false);
+    const [singleProductLink, setSingleProductLink] = useState(true);
+    const singleProductLinkSnapshotRef = useRef(true);
     // 菜单配置 - 访问链接「需求说明」弹框：由 Portal 菜单 Tab 后的高亮按钮触发，
     // 承载原「访问链接」说明模块的文案（链接形态由「是否跳转单产品链接」决定）
     const [accessLinkDescOpen, setAccessLinkDescOpen] = useState(false);
@@ -7705,12 +7702,14 @@ export default function AdminPage() {
     // 进入编辑态：记录快照
     const startMenuConfigEdit = () => {
         menuConfigSnapshotRef.current = JSON.parse(JSON.stringify(productMenuConfig));
+        separateMenuSnapshotRef.current = separateMenuDefinition;
         singleProductLinkSnapshotRef.current = singleProductLink;
         setMenuConfigEditing(true);
     };
     // 取消编辑：还原快照
     const cancelMenuConfigEdit = () => {
         if (menuConfigSnapshotRef.current) setProductMenuConfig(menuConfigSnapshotRef.current);
+        setSeparateMenuDefinition(separateMenuSnapshotRef.current);
         setSingleProductLink(singleProductLinkSnapshotRef.current);
         menuConfigSnapshotRef.current = null;
         setTopMenuDialog(null);
@@ -7760,7 +7759,7 @@ export default function AdminPage() {
         if (!name.trim()) { setTopMenuDialogError('请输入一级tab名称'); return; }
         if (!dirName.trim()) { setTopMenuDialogError('请输入目录名称'); return; }
         if (!iconUrl) { setTopMenuDialogError('请上传 tab icon'); return; }
-        if (!hasChildren && !url.trim()) { setTopMenuDialogError('无子菜单时需填写跳转URL'); return; }
+        if (singleProductLink && !hasChildren && !url.trim()) { setTopMenuDialogError('无子菜单时需填写跳转URL'); return; }
         if (mode === 'create') {
             const newId = nextMenuId();
             setProductMenuConfig(prev => ({
@@ -9827,7 +9826,7 @@ export default function AdminPage() {
                                                                         {row.config.discount == null
                                                                             ? <span className="text-xs text-gray-400">未设置</span>
                                                                             : formatDiscount(row.config.discount)}
-                                                                        {row.config.deptAttr === 'biz' && (
+                                                                        {(row.config.deptAttr === 'biz' || row.config.deptAttr === 'inner') && (
                                                                             <button
                                                                                 onClick={() => handleOpenDiscountDialog([row.unit], 'discount')}
                                                                                 title="设置计费标签"
@@ -9841,7 +9840,7 @@ export default function AdminPage() {
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-3 px-4 text-sm text-gray-700 align-top">
-                                                                    {row.config.deptAttr !== 'biz' ? (
+                                                                    {row.config.deptAttr !== 'biz' && row.config.deptAttr !== 'inner' ? (
                                                                         <span className="text-xs text-gray-400">--</span>
                                                                     ) : (
                                                                         <button
@@ -10214,14 +10213,16 @@ export default function AdminPage() {
                                            内外一套部署 -> 内、外两套菜单均可配置（Tab 切换） */
                                         (() => {
                                             const isAllPortal = settingsProduct.portal === ALL_PORTAL_VALUE;
+                                            // 内外一套部署时：separateMenuDefinition=false → 一个Tab「内外Portal菜单」共用
+                                            //                 separateMenuDefinition=true  → 两个Tab（当前行为）
                                             const availablePortals: MenuPortalKey[] = isAllPortal
-                                                ? ['internal', 'external']
+                                                ? (separateMenuDefinition ? ['internal', 'external'] : ['internal'])
                                                 : [isInternalProduct ? 'internal' : 'external'];
                                             const activePortal: MenuPortalKey = availablePortals.includes(menuConfigPortal)
                                                 ? menuConfigPortal
                                                 : availablePortals[0];
                                             const MENU_PORTAL_LABEL: Record<MenuPortalKey, string> = {
-                                                internal: '内部Portal菜单',
+                                                internal: isAllPortal && !separateMenuDefinition ? '内外Portal菜单' : '内部Portal菜单',
                                                 external: '外部Portal菜单',
                                             };
                                             const menus = productMenuConfig[activePortal];
@@ -10253,15 +10254,40 @@ export default function AdminPage() {
                                                             当前产品的部署Portal为
                                                             <span className="mx-1 font-medium text-gray-900">「{getProductPortalLabel(settingsProduct.portal)}」</span>
                                                             {isAllPortal
-                                                                ? '，内外Portal共用一套部署，需分别配置「内部Portal菜单」与「外部Portal菜单」。'
+                                                                ? (separateMenuDefinition
+                                                                    ? '，内外Portal单独定义菜单，需分别配置「内部Portal菜单」与「外部Portal菜单」。'
+                                                                    : '，内外Portal共用一套菜单。')
                                                                 : `，仅需配置「${MENU_PORTAL_LABEL[availablePortals[0]]}」。`}
                                                         </div>
                                                     </div>
 
+                                                    {/* 内外一套部署时：开关「内外单独定义菜单」—— 独立于编辑配置，始终可操作 */}
+                                                    {isAllPortal && (
+                                                        <div className="mb-4 flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3">
+                                                            <span className="text-sm text-gray-700">内外单独定义菜单：</span>
+                                                            <button
+                                                                onClick={() => setSeparateMenuPending(!separateMenuDefinition)}
+                                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${separateMenuDefinition ? 'bg-[#006bff]' : 'bg-gray-300'}`}
+                                                            >
+                                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${separateMenuDefinition ? 'translate-x-5' : ''}`} />
+                                                            </button>
+                                                            <span className="text-xs text-gray-400">
+                                                                {separateMenuDefinition
+                                                                    ? '已开启：内、外Portal分别维护各自的菜单'
+                                                                    : '已关闭：内外Portal共用同一套菜单'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
                                                     {/* Portal 菜单 Tab：内外一套部署时才有两个 Tab；右上角为「编辑配置 / 保存 + 取消」 */}
                                                     <div className="flex items-center justify-between gap-4 border-b border-gray-200 mb-3">
                                                         <div className="flex items-center gap-6">
-                                                            {availablePortals.map(portal => (
+                                                            {availablePortals.map(portal => {
+                                                                const accessUrl = portal === 'internal' ? internalAccessUrl : externalAccessUrl;
+                                                                const showUrl = isAllPortal && !separateMenuDefinition
+                                                                    ? `${internalAccessUrl} / ${externalAccessUrl}`
+                                                                    : accessUrl;
+                                                                return (
                                                                 /* 每个 Portal 菜单 Tab 后展示该产品在当前 Portal 下唯一的访问链接（灰色字体）：
                                                                    链接形态由「是否内部Portal」（决定域名）与「是否跳转单产品链接」（决定是否带 /product 前缀）共同决定 */
                                                                 <div key={portal} className="flex items-center gap-2">
@@ -10277,8 +10303,8 @@ export default function AdminPage() {
                                                                             <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006bff]" />
                                                                         )}
                                                                     </button>
-                                                                    <span className="text-xs font-mono text-gray-400 truncate max-w-[320px]" title={portal === 'internal' ? internalAccessUrl : externalAccessUrl}>
-                                                                        {portal === 'internal' ? internalAccessUrl : externalAccessUrl}
+                                                                    <span className="text-xs font-mono text-gray-400 truncate max-w-[380px]" title={showUrl}>
+                                                                        {showUrl}
                                                                     </span>
                                                                     {/* 需求说明：橙色高亮按钮，点击弹出「访问链接」规则说明（原访问链接模块文案） */}
                                                                     <button
@@ -10291,7 +10317,8 @@ export default function AdminPage() {
                                                                         需求说明
                                                                     </button>
                                                                 </div>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </div>
                                                         {/* 编辑配置：开启后可统一增删改一级/二级菜单，并一次性保存 */}
                                                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -10357,6 +10384,43 @@ export default function AdminPage() {
                                                                         className="px-4 h-8 text-sm text-white bg-[#006bff] rounded-lg hover:bg-blue-700 transition-colors"
                                                                     >
                                                                         知道了
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 内外单独定义菜单切换确认弹框 */}
+                                                    {separateMenuPending !== null && (
+                                                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setSeparateMenuPending(null)}>
+                                                            <div className="w-full max-w-[420px] bg-white rounded-xl shadow-xl" onClick={(e) => e.stopPropagation()}>
+                                                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                                                                    <span className="text-base font-semibold text-gray-900">确认切换配置</span>
+                                                                    <button onClick={() => setSeparateMenuPending(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                                <div className="px-5 py-4 text-sm text-gray-600 leading-[1.8]">
+                                                                    {separateMenuPending ? (
+                                                                        <p>确认<span className="mx-1 font-medium text-gray-900">开启</span>内外单独定义菜单？开启后，内、外Portal需<span className="text-[#006bff] font-medium">分别配置各自的菜单</span>。</p>
+                                                                    ) : (
+                                                                        <p>确认<span className="mx-1 font-medium text-gray-900">关闭</span>内外单独定义菜单？关闭后，内外Portal将共用同一套菜单，<span className="text-red-500 font-medium">外部Portal的单独菜单配置将被舍弃</span>。</p>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex justify-end gap-3 px-5 py-3 border-t border-gray-200">
+                                                                    <button
+                                                                        onClick={() => setSeparateMenuPending(null)}
+                                                                        className="px-4 h-8 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                                    >
+                                                                        取消
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => { setSeparateMenuDefinition(!!separateMenuPending); setSeparateMenuPending(null); }}
+                                                                        className="px-4 h-8 text-sm text-white bg-[#006bff] rounded-lg hover:bg-blue-700 transition-colors"
+                                                                    >
+                                                                        确认
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -10520,18 +10584,18 @@ export default function AdminPage() {
                                                                                             className={`${fieldInputCls} ${menuConfigEditing ? '' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
                                                                                         />
                                                                                     </div>
-                                                                                    {/* URL地址：二级菜单为末级菜单，必填 */}
+                                                                                    {/* URL地址：二级菜单为末级菜单；是否跳转单产品链接开启时必填，关闭时非必填 */}
                                                                                     <div className="flex items-start gap-3">
                                                                                         <div className={fieldLabelCls}>
-                                                                                            <span className="text-red-500 mr-0.5">*</span>URL地址：
+                                                                                            {singleProductLink && <span className="text-red-500 mr-0.5">*</span>}URL地址：
                                                                                         </div>
                                                                                         <input
                                                                                             type="text"
                                                                                             value={sub.url}
-                                                                                            disabled={!menuConfigEditing}
+                                                                                            disabled={!singleProductLink || !menuConfigEditing}
                                                                                             onChange={(e) => updateProductSubMenu(activePortal, top.id, sub.id, { url: e.target.value })}
-                                                                                            placeholder="跳转URL"
-                                                                                            className={`${fieldInputCls} ${menuConfigEditing ? '' : 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'}`}
+                                                                                            placeholder={singleProductLink ? "跳转URL" : "关闭「跳转单产品链接」时非必填"}
+                                                                                            className={`${fieldInputCls} ${(!singleProductLink || !menuConfigEditing) ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : ''}`}
                                                                                         />
                                                                                     </div>
                                                                                 </div>
@@ -14493,7 +14557,7 @@ export default function AdminPage() {
                             {/* 数据口径说明 */}
                             <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
                                 <p className="text-[13px] leading-[1.9] text-blue-600">
-                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 控制台(客户侧)账单聚合 → 导出账单聚合 → 后台账单(含经营分析收入) → 成本 → 账单核验</span>（三类账单聚合均包含小时账单、天账单、月账单，每个账单分别展示「明细」「详情」两条聚合进度；账期类型选「小时」仅展示小时账单进度，选「天」展示小时与天账单进度，选「月」展示小时、天、月账单进度；账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
+                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 控制台(客户侧)账单聚合 → 导出账单聚合 → 后台账单(含经营分析收入) → 成本 → 账单核验</span>（控制台(客户侧)账单聚合包含小时账单、天账单、月账单，每个账单分别展示「明细」「详情」两条聚合进度；导出账单聚合与后台账单各包含小时账单、天账单、月账单，不区分明细/详情，单条进度展示；账期类型选「小时」仅展示小时账单进度，选「天」展示小时与天账单进度，选「月」展示小时、天、月账单进度；账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
                                 </p>
                             </div>
 
@@ -14730,7 +14794,7 @@ export default function AdminPage() {
                                                     colSpan={monitorBillType === "hour" ? 1 : monitorBillType === "day" ? 2 : 3}
                                                     divider
                                                     dividerClass="border-l-2 border-violet-400"
-                                                    tip="导出账单聚合包含小时账单、天账单、月账单三个环节，每个环节分别展示「明细」「详情」两条聚合进度。"
+                                                    tip="导出账单聚合包含小时账单、天账单、月账单三个环节，不区分明细/详情，单条进度展示。"
                                                 />
                                                 {/* 后台账单：橙色分割线区分两个模块 */}
                                                 <AnalysisTh
@@ -14740,7 +14804,7 @@ export default function AdminPage() {
                                                     colSpan={monitorBillType === "hour" ? 1 : monitorBillType === "day" ? 2 : 3}
                                                     divider
                                                     dividerClass="border-l-2 border-orange-400"
-                                                    tip="后台账单(含经营分析收入)包含小时账单、天账单、月账单三个环节，每个环节分别展示「明细」「详情」两条聚合进度。"
+                                                    tip="后台账单(含经营分析收入)包含小时账单、天账单、月账单三个环节，不区分明细/详情，单条进度展示。"
                                                 />
                                                 <AnalysisTh label="成本" align="left" width="320px" colSpan={2} divider tip="产品成本展示，包含成本聚合与成本生产两个维度。" />
                                                 <MonitorVerifyFilterTh
@@ -14765,21 +14829,21 @@ export default function AdminPage() {
                                                 {monitorBillType === "month" && (
                                                     <MonitorFilterTh label="月账单" tip="控制台(客户侧)按月维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorMonthBillAggFilter} onChange={setMonitorMonthBillAggFilter} width="180px" divider={false} />
                                                 )}
-                                                {/* 导出账单聚合：小时账单始终显示；天/月账单按账期类型显示；紫色分割线区分模块 */}
-                                                <MonitorFilterTh label="小时账单" tip="导出账单按小时维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorExHourBillAggFilter} onChange={setMonitorExHourBillAggFilter} width="180px" dividerClass="border-l-2 border-violet-400" />
+                                                {/* 导出账单聚合：不区分明细/详情，单条进度；紫色分割线区分模块 */}
+                                                <MonitorFilterTh label="小时账单" tip="导出账单按小时维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExHourBillAggFilter} onChange={setMonitorExHourBillAggFilter} width="180px" dividerClass="border-l-2 border-violet-400" />
                                                 {monitorBillType !== "hour" && (
-                                                    <MonitorFilterTh label="天账单" tip="导出账单按天维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorExDayBillAggFilter} onChange={setMonitorExDayBillAggFilter} width="180px" divider={false} />
+                                                    <MonitorFilterTh label="天账单" tip="导出账单按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExDayBillAggFilter} onChange={setMonitorExDayBillAggFilter} width="180px" divider={false} />
                                                 )}
                                                 {monitorBillType === "month" && (
-                                                    <MonitorFilterTh label="月账单" tip="导出账单按月维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorExMonthBillAggFilter} onChange={setMonitorExMonthBillAggFilter} width="180px" divider={false} />
+                                                    <MonitorFilterTh label="月账单" tip="导出账单按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExMonthBillAggFilter} onChange={setMonitorExMonthBillAggFilter} width="180px" divider={false} />
                                                 )}
-                                                {/* 后台账单(含经营分析收入)：小时账单始终显示；天/月账单按账期类型显示；橙色分割线区分模块 */}
-                                                <MonitorFilterTh label="小时账单" tip="后台账单(含经营分析收入)按小时维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorBgHourBillAggFilter} onChange={setMonitorBgHourBillAggFilter} width="180px" dividerClass="border-l-2 border-orange-400" />
+                                                {/* 后台账单(含经营分析收入)：不区分明细/详情，单条进度；橙色分割线区分模块 */}
+                                                <MonitorFilterTh label="小时账单" tip="后台账单(含经营分析收入)按小时维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgHourBillAggFilter} onChange={setMonitorBgHourBillAggFilter} width="180px" dividerClass="border-l-2 border-orange-400" />
                                                 {monitorBillType !== "hour" && (
-                                                    <MonitorFilterTh label="天账单" tip="后台账单(含经营分析收入)按天维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorBgDayBillAggFilter} onChange={setMonitorBgDayBillAggFilter} width="180px" divider={false} />
+                                                    <MonitorFilterTh label="天账单" tip="后台账单(含经营分析收入)按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgDayBillAggFilter} onChange={setMonitorBgDayBillAggFilter} width="180px" divider={false} />
                                                 )}
                                                 {monitorBillType === "month" && (
-                                                    <MonitorFilterTh label="月账单" tip="后台账单(含经营分析收入)按月维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorBgMonthBillAggFilter} onChange={setMonitorBgMonthBillAggFilter} width="180px" divider={false} />
+                                                    <MonitorFilterTh label="月账单" tip="后台账单(含经营分析收入)按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgMonthBillAggFilter} onChange={setMonitorBgMonthBillAggFilter} width="180px" divider={false} />
                                                 )}
                                                 <MonitorFilterTh label="成本聚合" tip="产品成本聚合维度进度，点击下拉可按状态筛选。" value={monitorCostAggFilter} onChange={setMonitorCostAggFilter} width="160px" />
                                                 <MonitorFilterTh label="成本生产" tip="产品成本生产维度进度，点击下拉可按状态筛选。" value={monitorCostProdFilter} onChange={setMonitorCostProdFilter} width="160px" divider={false} />
@@ -14839,21 +14903,21 @@ export default function AdminPage() {
                                                     {monitorBillType === "month" && (
                                                         <BillAggStageCell node={row.nodes.monthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
                                                     )}
-                                                    {/* 导出账单聚合：同上规则；左侧紫色分割线区分模块 */}
-                                                    <BillAggStageCell node={row.nodes.exHourBillAgg} divider dividerClass="border-l-2 border-violet-400" onClick={() => setMonitorDetailProduct(row)} />
+                                                    {/* 导出账单聚合：不区分明细/详情，单条进度；左侧紫色分割线区分模块 */}
+                                                    <MonitorProgressCell node={row.nodes.exHourBillAgg} divider dividerClass="border-l-2 border-violet-400" onClick={() => setMonitorDetailProduct(row)} />
                                                     {monitorBillType !== "hour" && (
-                                                        <BillAggStageCell node={row.nodes.exDayBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                        <MonitorProgressCell node={row.nodes.exDayBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
                                                     )}
                                                     {monitorBillType === "month" && (
-                                                        <BillAggStageCell node={row.nodes.exMonthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                        <MonitorProgressCell node={row.nodes.exMonthBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
                                                     )}
-                                                    {/* 后台账单(含经营分析收入)：同上规则；左侧橙色分割线区分两个模块 */}
-                                                    <BillAggStageCell node={row.nodes.bgHourBillAgg} divider dividerClass="border-l-2 border-orange-400" onClick={() => setMonitorDetailProduct(row)} />
+                                                    {/* 后台账单(含经营分析收入)：不区分明细/详情，单条进度；左侧橙色分割线区分两个模块 */}
+                                                    <MonitorProgressCell node={row.nodes.bgHourBillAgg} divider dividerClass="border-l-2 border-orange-400" onClick={() => setMonitorDetailProduct(row)} />
                                                     {monitorBillType !== "hour" && (
-                                                        <BillAggStageCell node={row.nodes.bgDayBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                        <MonitorProgressCell node={row.nodes.bgDayBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
                                                     )}
                                                     {monitorBillType === "month" && (
-                                                        <BillAggStageCell node={row.nodes.bgMonthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
+                                                        <MonitorProgressCell node={row.nodes.bgMonthBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
                                                     )}
                                                     {/* 成本（成本聚合、成本生产两个环节，样式与结算列一致） */}
                                                     <SettleStageCell name="成本聚合" na={false} node={row.nodes.costAgg} divider onClick={() => setMonitorDetailProduct(row)} />
@@ -14964,7 +15028,8 @@ export default function AdminPage() {
                                                         );
                                                     }
 
-                                                    // 账单聚合节点：控制台(客户侧) / 导出账单聚合 / 后台账单(含经营分析收入)，各含小时/天/月账单，每个账单内含明细、详情两条聚合进度
+                                                    // 账单聚合节点：控制台(客户侧) / 导出账单聚合 / 后台账单(含经营分析收入)，各含小时/天/月账单
+                                                    // 控制台账单每个账单内含明细、详情两条聚合进度；导出账单和后台账单不区分明细/详情，单条平铺进度
                                                     if (n.key === "consoleBillAgg" || n.key === "exportBillAgg" || n.key === "backendBillAgg") {
                                                         // 账期类型联动：小时→仅小时账单；天→小时+天账单；月→全部
                                                         const allBillStages: { key: string; name: string; tip: string }[] =
@@ -14972,6 +15037,7 @@ export default function AdminPage() {
                                                                 : n.key === "exportBillAgg" ? [...monitorExportBillAggStages]
                                                                     : [...monitorBackendBillAggStages];
                                                         const billStages = allBillStages.filter((stage) => monitorBillAggStageVisible(stage.key, monitorBillType));
+                                                        const isFlatAgg = n.key === "exportBillAgg" || n.key === "backendBillAgg";
                                                         return (
                                                             <div key={n.key} className="rounded-lg border border-gray-200 p-4">
                                                                 <div className="mb-3 flex items-center gap-2">
@@ -14981,6 +15047,30 @@ export default function AdminPage() {
                                                                 <div className="space-y-4 pl-4">
                                                                     {billStages.map((stage) => {
                                                                         const st = monitorDetailProduct.nodes[stage.key];
+                                                                        if (isFlatAgg) {
+                                                                            // 导出账单 / 后台账单：平铺进度，不区分明细/详情
+                                                                            const c = monitorStatusColor(st?.status);
+                                                                            return (
+                                                                                <div key={stage.key}>
+                                                                                    <div className="mb-1.5 flex items-center justify-between">
+                                                                                        <span className="text-[13px] font-medium text-gray-700">{stage.name}</span>
+                                                                                        <span className={`inline-flex items-center gap-1 text-[12px] leading-none ${c.text}`}>
+                                                                                            <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                                                                                            {st?.status === "fail" && st?.failReason ? `异常（${st.failReason}）` : c.label}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="pl-3">
+                                                                                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                                                                            <span className={`block h-full rounded-full ${c.bar}`} style={{ width: `${st?.progress ?? 0}%` }} />
+                                                                                        </div>
+                                                                                        <div className="mt-1 flex items-center justify-between text-[12px] text-gray-400">
+                                                                                            <span>{st?.progress ?? 0}%</span>
+                                                                                            {st?.status === "done" && st?.doneTime && <span>{st.doneTime}</span>}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            );
+                                                                        }
                                                                         return (
                                                                             <div key={stage.key}>
                                                                                 <div className="mb-2 text-[13px] font-medium text-gray-700">{stage.name}</div>
@@ -15463,13 +15553,13 @@ export default function AdminPage() {
                                                                     </button>
                                                                 </div>
                                                             </td>
-                                                            {/* 折扣：本列单独配置；「内部结算」固定内部折扣不可编辑 */}
+                                                            {/* 折扣：本列单独配置；内部结算与外部结算均可编辑 */}
                                                             <td className="py-3 px-4 text-sm text-gray-700 align-top">
                                                                 <div className="flex items-center gap-2">
                                                                     {row.config.discount == null
                                                                         ? <span className="text-xs text-gray-400">未设置</span>
                                                                         : formatDiscount(row.config.discount)}
-                                                                    {row.config.deptAttr === 'biz' && (
+                                                                    {(row.config.deptAttr === 'biz' || row.config.deptAttr === 'inner') && (
                                                                         <button
                                                                             onClick={() => handleOpenDiscountDialog([row.unit], 'discount')}
                                                                             title="设置计费标签"
@@ -15484,7 +15574,7 @@ export default function AdminPage() {
                                                             </td>
                                                             {/* 单独设置折扣：展示单独设置的产品数，标蓝可点击查看明细；不支持批量设置 */}
                                                             <td className="py-3 px-4 text-sm text-gray-700 align-top">
-                                                                {row.config.deptAttr !== 'biz' ? (
+                                                                {row.config.deptAttr !== 'biz' && row.config.deptAttr !== 'inner' ? (
                                                                     <span className="text-xs text-gray-400">--</span>
                                                                 ) : (
                                                                     <button
@@ -21634,7 +21724,7 @@ export default function AdminPage() {
 
                              {/* 批量模式说明 */}
                              {discountDialogMode === 'attr' && (
-                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置结算属性，选择「内部结算」将自动清空该结算单元已设置的单独计费产品。</p>
+                                 <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置结算属性，不影响各结算单元已单独设置的计费产品和折扣。</p>
                              )}
                              {discountDialogMode === 'discount' && discountDialogUnits.length > 1 && (
                                  <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">批量设置计费标签，不影响各结算单元已单独设置的计费产品。</p>
@@ -21669,21 +21759,16 @@ export default function AdminPage() {
                             {/* 折扣配置 */}
                             {discountDialogMode !== 'attr' && (                                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    计费标签 {discountForm.deptAttr === 'biz' && <span className="text-red-500">*</span>}
+                                    计费标签 {(discountForm.deptAttr === 'biz' || discountForm.deptAttr === 'inner') && <span className="text-red-500">*</span>}
                                 </label>
-                                {discountForm.deptAttr === 'inner' ? (
-                                    <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
-                                        内部折扣
-                                        <span className="text-xs text-gray-400">（内部结算固定为内部折扣，不可编辑）</span>
-                                    </div>
-                                ) : discountForm.deptAttr === 'biz' ? (
+                                {(discountForm.deptAttr === 'biz' || discountForm.deptAttr === 'inner') ? (
                                     <select
                                         value={discountForm.discount}
                                         onChange={(e) => { setDiscountForm({ ...discountForm, discount: e.target.value as UnitDiscountType | '' }); setDiscountFormError(''); }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                                     >
                                         <option value="">请选择计费标签</option>
-                                        {unitDiscountTypeOptions.filter(o => o.value !== 'internal').map(o => (
+                                        {unitDiscountTypeOptions.map(o => (
                                             <option key={o.value} value={o.value}>{o.label}</option>
                                         ))}
                                     </select>
@@ -21692,7 +21777,7 @@ export default function AdminPage() {
                                         请先选择结算属性
                                     </div>
                                 )}
-                                <p className="mt-1.5 text-xs text-gray-400">结算属性为「外部结算」的结算单元可通过 SVIP / VIP 客户计费标签设置折扣；「内部结算」固定为内部折扣，不可再编辑。</p>
+                                <p className="mt-1.5 text-xs text-gray-400">内部结算与外部结算均可通过内部折扣 / SVIP / VIP 客户计费标签设置折扣。</p>
                             </div>
                             )}
 
@@ -22085,14 +22170,15 @@ export default function AdminPage() {
                             {!topMenuDialog.hasChildren && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        <span className="text-red-500 mr-0.5">*</span>跳转URL
+                                        {singleProductLink && <span className="text-red-500 mr-0.5">*</span>}跳转URL
                                     </label>
                                     <input
                                         type="text"
                                         value={topMenuDialog.url}
+                                        disabled={!singleProductLink}
                                         onChange={(e) => setTopMenuDialog(prev => prev ? { ...prev, url: e.target.value } : null)}
-                                        placeholder="无子菜单时必填，例如 /console/overview"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+                                        placeholder={singleProductLink ? "无子菜单时必填，例如 /console/overview" : "关闭「跳转单产品链接」时非必填"}
+                                        className={`w-full px-3 py-2 border rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:border-blue-500 ${!singleProductLink ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'border-gray-300 text-gray-700'}`}
                                     />
                                 </div>
                             )}
