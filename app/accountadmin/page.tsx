@@ -1098,9 +1098,9 @@ const monitorNodeDefs = [
     { key: "dataAggregate", name: "聚合", tip: "计量数据完成聚合处理的进度。" },
     { key: "productBill", name: "出账", tip: "产品账单生成完成情况。" },
     { key: "settle", name: "结算", tip: "结算包含抵扣、扣费两个环节；无资源包抵扣的产品，抵扣环节展示「不涉及」。" },
-    { key: "consoleBillAgg", name: "控制台(客户侧)账单聚合", tip: "控制台(客户侧)账单聚合包含小时账单、天账单、月账单，每个账单分别展示明细、详情两条聚合进度。" },
-    { key: "exportBillAgg", name: "导出账单聚合", tip: "导出账单聚合包含小时账单、天账单、月账单，每个账单展示单条聚合进度。" },
-    { key: "backendBillAgg", name: "后台账单(含经营分析收入)", tip: "后台账单(含经营分析收入)包含小时账单、天账单、月账单，每个账单展示单条聚合进度。" },
+    { key: "consoleBillAgg", name: "控制台(客户侧)账单聚合", tip: "控制台(客户侧)账单聚合随账期类型联动，仅展示对应账单（小时/天/月），该账单分别展示明细、详情两条聚合进度。" },
+    { key: "exportBillAgg", name: "导出账单聚合", tip: "导出账单聚合随账期类型联动，仅展示对应账单（小时/天/月），展示单条聚合进度。" },
+    { key: "backendBillAgg", name: "后台账单(含经营分析收入)", tip: "后台账单(含经营分析收入)随账期类型联动，仅展示对应账单（小时/天/月），展示单条聚合进度。" },
     { key: "cost", name: "成本", tip: "成本包含成本聚合、成本生产两个维度。" },
     { key: "verify", name: "账单核验", tip: "账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验。" },
 ];
@@ -1135,9 +1135,10 @@ const monitorBackendBillAggStages = [
 // 账单聚合全部环节（控制台侧 + 导出账单 + 后台账单），用于筛选与统计
 const monitorBillAggStages = [...monitorConsoleBillAggStages, ...monitorExportBillAggStages, ...monitorBackendBillAggStages];
 
-// 账单聚合环节 - 账期类型联动可见性：小时→仅小时账单；天→小时+天账单；月→小时+天+月账单
+// 账单聚合环节 - 账期类型联动可见性：小时→仅小时账单；天→仅天账单；月→仅月账单（三个模块各只展示与账期类型对应的那一个账单）
 const monitorBillAggStageVisible = (key: string, billType: MonitorBillType): boolean => {
-    if (key === "dayBillAgg" || key === "exDayBillAgg" || key === "bgDayBillAgg") return billType !== "hour";
+    if (key === "hourBillAgg" || key === "exHourBillAgg" || key === "bgHourBillAgg") return billType === "hour";
+    if (key === "dayBillAgg" || key === "exDayBillAgg" || key === "bgDayBillAgg") return billType === "day";
     if (key === "monthBillAgg" || key === "exMonthBillAgg" || key === "bgMonthBillAgg") return billType === "month";
     return true;
 };
@@ -5736,7 +5737,7 @@ export default function AdminPage() {
     };
 
     // ===== 经营分析 - 监控看板 =====
-    const [monitorBillType, setMonitorBillType] = useState<MonitorBillType>("month");    // 账期类型：小时 / 天 / 月
+    const [monitorBillType, setMonitorBillType] = useState<MonitorBillType>("hour");     // 账期类型：小时 / 天 / 月（默认小时）
     const [monitorPeriod, setMonitorPeriod] = useState("2026-09");                       // 账期（月账单）
     const [monitorDate, setMonitorDate] = useState("2026-09-10");                        // 账期（天/小时账单）
     const [monitorHour, setMonitorHour] = useState(8);                                   // 账期（小时账单，0~23）
@@ -7682,13 +7683,12 @@ export default function AdminPage() {
     // 进入编辑态时的配置快照，用于「取消」时整体还原
     const menuConfigSnapshotRef = useRef<Record<MenuPortalKey, ProductTopMenu[]> | null>(null);
 
-    // 菜单配置 - 内外单独定义菜单（仅「内外一套部署」产品可见）
-    //   false：内外Portal共用同一套菜单，展示一个 Tab「内外Portal菜单」
-    //   true ：内外Portal各自定义菜单，展示两个 Tab「内部Portal菜单」「外部Portal菜单」
-    const [separateMenuDefinition, setSeparateMenuDefinition] = useState(false);
-    const separateMenuSnapshotRef = useRef(false);
-    // 菜单配置 - 内外单独定义菜单切换确认弹框（null=无待确认项，true=待开启，false=待关闭）
-    const [separateMenuPending, setSeparateMenuPending] = useState<boolean | null>(null);
+    // 产品目录：用于构建产品访问链接路径，如 https://console.qihoo.net/【产品目录】
+    // 只能输入小写字母；统一纳入「编辑配置」内与菜单一起编辑、一起保存/取消（必填）
+    const [productDirectory, setProductDirectory] = useState('');
+    const [productDirectoryDraft, setProductDirectoryDraft] = useState('');
+    // 菜单配置保存校验错误（如产品目录未填）
+    const [menuConfigError, setMenuConfigError] = useState('');
 
     // 菜单配置 - 是否跳转单产品链接（各产品对接的过渡期配置）
     //   false：跳转 https://console.zyun.qihoo.net/产品简称   （外部 https://console.zyun.360.cn/产品简称）
@@ -7699,25 +7699,33 @@ export default function AdminPage() {
     // 承载原「访问链接」说明模块的文案（链接形态由「是否跳转单产品链接」决定）
     const [accessLinkDescOpen, setAccessLinkDescOpen] = useState(false);
 
-    // 进入编辑态：记录快照
+    // 进入编辑态：记录快照，并把已保存的产品目录带入草稿一起编辑
     const startMenuConfigEdit = () => {
         menuConfigSnapshotRef.current = JSON.parse(JSON.stringify(productMenuConfig));
-        separateMenuSnapshotRef.current = separateMenuDefinition;
         singleProductLinkSnapshotRef.current = singleProductLink;
+        setProductDirectoryDraft(productDirectory);
+        setMenuConfigError('');
         setMenuConfigEditing(true);
     };
-    // 取消编辑：还原快照
+    // 取消编辑：还原快照（含产品目录草稿丢弃）
     const cancelMenuConfigEdit = () => {
         if (menuConfigSnapshotRef.current) setProductMenuConfig(menuConfigSnapshotRef.current);
-        setSeparateMenuDefinition(separateMenuSnapshotRef.current);
         setSingleProductLink(singleProductLinkSnapshotRef.current);
+        setProductDirectoryDraft('');
+        setMenuConfigError('');
         menuConfigSnapshotRef.current = null;
         setTopMenuDialog(null);
         setTopMenuDialogError('');
         setMenuConfigEditing(false);
     };
-    // 保存编辑：一次性保存所有菜单改动
+    // 保存编辑：一次性保存产品目录 + 所有菜单改动（产品目录必填）
     const saveMenuConfigEdit = () => {
+        if (!productDirectoryDraft.trim()) {
+            setMenuConfigError('请填写产品目录');
+            return;
+        }
+        setProductDirectory(productDirectoryDraft.trim());
+        setMenuConfigError('');
         menuConfigSnapshotRef.current = null;
         setMenuConfigEditing(false);
     };
@@ -10208,21 +10216,20 @@ export default function AdminPage() {
                                     <div className="flex-1 overflow-auto p-6">
                                     {productSettingsNav === 'menu' ? (
                                         /* ===== 菜单配置 =====
-                                           可配置的 Portal 由产品的「部署Portal」决定：
-                                           内部Portal产品 -> 仅内部Portal菜单；外部Portal产品 -> 仅外部Portal菜单；
-                                           内外一套部署 -> 内、外两套菜单均可配置（Tab 切换） */
+                                           内外一套部署的产品只有一套菜单，统一配置即可。
+                                           内部Portal产品 -> 仅内部Portal菜单；外部Portal产品 -> 仅外部Portal菜单 */
                                         (() => {
                                             const isAllPortal = settingsProduct.portal === ALL_PORTAL_VALUE;
-                                            // 内外一套部署时：separateMenuDefinition=false → 一个Tab「内外Portal菜单」共用
-                                            //                 separateMenuDefinition=true  → 两个Tab（当前行为）
+                                            // 内外一套部署：仅一个Tab「内外Portal菜单」；
+                                            // 内部Portal产品：仅「内部Portal菜单」；外部Portal产品：仅「外部Portal菜单」
                                             const availablePortals: MenuPortalKey[] = isAllPortal
-                                                ? (separateMenuDefinition ? ['internal', 'external'] : ['internal'])
+                                                ? ['internal']
                                                 : [isInternalProduct ? 'internal' : 'external'];
                                             const activePortal: MenuPortalKey = availablePortals.includes(menuConfigPortal)
                                                 ? menuConfigPortal
                                                 : availablePortals[0];
                                             const MENU_PORTAL_LABEL: Record<MenuPortalKey, string> = {
-                                                internal: isAllPortal && !separateMenuDefinition ? '内外Portal菜单' : '内部Portal菜单',
+                                                internal: isAllPortal ? '内外Portal菜单' : '内部Portal菜单',
                                                 external: '外部Portal菜单',
                                             };
                                             const menus = productMenuConfig[activePortal];
@@ -10234,15 +10241,18 @@ export default function AdminPage() {
                                             });
                                             const fieldLabelCls = 'w-32 flex-shrink-0 text-right text-sm text-gray-700 pt-2';
                                             const fieldInputCls = 'flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-500';
-                                            // 产品简称：内部Portal产品标识统一以 _in 结尾，访问链接使用去掉 _in 后的简称
+                                            // 产品简称：内部Portal产品标识统一以 _in 结尾
                                             const productShortName = (settingsProduct.identifier || '产品简称').replace(/_in$/, '');
+                                            // 访问链接使用产品目录（编辑态下实时取草稿值，便于预览链接变化）
+                                            const effectiveDirectory = menuConfigEditing ? productDirectoryDraft : productDirectory;
+                                            const dirPath = effectiveDirectory || '产品目录';
                                             // 访问链接：是否跳转单产品链接决定是否带 /product 前缀
                                             const internalAccessUrl = singleProductLink
-                                                ? `https://console.zyun.qihoo.net/product/${productShortName}`
-                                                : `https://console.zyun.qihoo.net/${productShortName}`;
+                                                ? `https://console.zyun.qihoo.net/product/${dirPath}`
+                                                : `https://console.zyun.qihoo.net/${dirPath}`;
                                             const externalAccessUrl = singleProductLink
-                                                ? `https://console.zyun.360.cn/product/${productShortName}`
-                                                : `https://console.zyun.360.cn/${productShortName}`;
+                                                ? `https://console.zyun.360.cn/product/${dirPath}`
+                                                : `https://console.zyun.360.cn/${dirPath}`;
                                             return (
                                                 <div>
                                                     {/* 部署Portal 说明 */}
@@ -10254,39 +10264,18 @@ export default function AdminPage() {
                                                             当前产品的部署Portal为
                                                             <span className="mx-1 font-medium text-gray-900">「{getProductPortalLabel(settingsProduct.portal)}」</span>
                                                             {isAllPortal
-                                                                ? (separateMenuDefinition
-                                                                    ? '，内外Portal单独定义菜单，需分别配置「内部Portal菜单」与「外部Portal菜单」。'
-                                                                    : '，内外Portal共用一套菜单。')
+                                                                ? '，内外Portal共用一套菜单。'
                                                                 : `，仅需配置「${MENU_PORTAL_LABEL[availablePortals[0]]}」。`}
                                                         </div>
                                                     </div>
-
-                                                    {/* 内外一套部署时：开关「内外单独定义菜单」—— 独立于编辑配置，始终可操作 */}
-                                                    {isAllPortal && (
-                                                        <div className="mb-4 flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3">
-                                                            <span className="text-sm text-gray-700">内外单独定义菜单：</span>
-                                                            <button
-                                                                onClick={() => setSeparateMenuPending(!separateMenuDefinition)}
-                                                                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${separateMenuDefinition ? 'bg-[#006bff]' : 'bg-gray-300'}`}
-                                                            >
-                                                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${separateMenuDefinition ? 'translate-x-5' : ''}`} />
-                                                            </button>
-                                                            <span className="text-xs text-gray-400">
-                                                                {separateMenuDefinition
-                                                                    ? '已开启：内、外Portal分别维护各自的菜单'
-                                                                    : '已关闭：内外Portal共用同一套菜单'}
-                                                            </span>
-                                                        </div>
-                                                    )}
 
                                                     {/* Portal 菜单 Tab：内外一套部署时才有两个 Tab；右上角为「编辑配置 / 保存 + 取消」 */}
                                                     <div className="flex items-center justify-between gap-4 border-b border-gray-200 mb-3">
                                                         <div className="flex items-center gap-6">
                                                             {availablePortals.map(portal => {
-                                                                const accessUrl = portal === 'internal' ? internalAccessUrl : externalAccessUrl;
-                                                                const showUrl = isAllPortal && !separateMenuDefinition
+                                                                const showUrl = isAllPortal
                                                                     ? `${internalAccessUrl} / ${externalAccessUrl}`
-                                                                    : accessUrl;
+                                                                    : (portal === 'internal' ? internalAccessUrl : externalAccessUrl);
                                                                 return (
                                                                 /* 每个 Portal 菜单 Tab 后展示该产品在当前 Portal 下唯一的访问链接（灰色字体）：
                                                                    链接形态由「是否内部Portal」（决定域名）与「是否跳转单产品链接」（决定是否带 /product 前缀）共同决定 */
@@ -10320,12 +10309,12 @@ export default function AdminPage() {
                                                                 );
                                                             })}
                                                         </div>
-                                                        {/* 编辑配置：开启后可统一增删改一级/二级菜单，并一次性保存 */}
+                                                        {/* 编辑配置：开启后可统一配置「产品目录」与一级/二级菜单，并一次性保存 */}
                                                         <div className="flex items-center gap-2 flex-shrink-0">
                                                             {!menuConfigEditing ? (
                                                                 <button
                                                                     onClick={startMenuConfigEdit}
-                                                                    className="px-4 h-8 text-sm text-[#006bff] border border-[#006bff] rounded-lg hover:bg-blue-50 transition-colors"
+                                                                    className="px-4 h-8 text-sm rounded-lg transition-colors text-[#006bff] border border-[#006bff] hover:bg-blue-50"
                                                                 >
                                                                     编辑配置
                                                                 </button>
@@ -10348,6 +10337,40 @@ export default function AdminPage() {
                                                         </div>
                                                     </div>
 
+                                                    {/* 产品目录：与菜单同属「编辑配置」范围 —— 只读态展示已保存值，编辑态可修改，随菜单一起保存/取消。
+                                                        用于构建产品访问链接路径，只能输入小写字母 */}
+                                                    <div className="mb-3 bg-gray-50 rounded-lg border border-gray-200 px-4 py-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm text-gray-700 flex-shrink-0">
+                                                                <span className="text-red-500 mr-0.5">*</span>产品目录：
+                                                            </span>
+                                                            {menuConfigEditing ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={productDirectoryDraft}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value.replace(/[^a-z]/g, '');
+                                                                        setProductDirectoryDraft(val);
+                                                                        if (val.trim()) setMenuConfigError('');
+                                                                    }}
+                                                                    placeholder="只能输入小写字母，用于产品链接"
+                                                                    className={`flex-1 min-w-0 max-w-[360px] px-3 py-2 border rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none font-mono bg-white ${menuConfigError ? 'border-red-400 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+                                                                />
+                                                            ) : (
+                                                                <span className={`text-sm font-mono ${productDirectory ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                                    {productDirectory || '未配置'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="mt-1.5 text-xs text-gray-400">
+                                                            产品目录用于构建产品访问链接：<span className="font-mono text-gray-500">https://console.qihoo.net/<span className="text-blue-600 font-medium">{effectiveDirectory || '{产品目录}'}</span></span>
+                                                            ，只能输入小写字母{menuConfigEditing ? '，与菜单配置一起保存生效。' : '。'}
+                                                        </p>
+                                                        {menuConfigError && (
+                                                            <p className="mt-1 text-xs text-red-500">{menuConfigError}</p>
+                                                        )}
+                                                    </div>
+
                                                     {/* 访问链接 - 需求说明弹框：由 Portal 菜单 Tab 后的「需求说明」按钮触发，
                                                         链接形态由「是否跳转单产品链接」决定，并标注当前生效项 */}
                                                     {accessLinkDescOpen && (
@@ -10365,16 +10388,16 @@ export default function AdminPage() {
                                                                     <div className="font-medium text-gray-700 mb-0.5">访问链接：</div>
                                                                     <div className={singleProductLink ? '' : 'text-gray-900'}>
                                                                         (1) 如果<span className="mx-0.5 font-medium">不是</span>跳转单产品链接，内部Portal是
-                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.qihoo.net/产品简称</span>
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.qihoo.net/{dirPath}</span>
                                                                         ，外部Portal是
-                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.360.cn/产品简称</span>
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.360.cn/{dirPath}</span>
                                                                         {!singleProductLink && <span className="ml-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 text-[10px] leading-none">当前</span>}
                                                                     </div>
                                                                     <div className={singleProductLink ? 'text-gray-900' : ''}>
                                                                         (2) 如果<span className="mx-0.5 font-medium">是</span>跳转单产品链接，内部Portal是
-                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.qihoo.net/product/产品简称</span>
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.qihoo.net/product/{dirPath}</span>
                                                                         ，外部Portal是
-                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.360.cn/product/产品简称</span>
+                                                                        <span className="mx-1 font-mono text-gray-800">https://console.zyun.360.cn/product/{dirPath}</span>
                                                                         {singleProductLink && <span className="ml-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 text-[10px] leading-none">当前</span>}
                                                                     </div>
                                                                 </div>
@@ -10390,42 +10413,6 @@ export default function AdminPage() {
                                                         </div>
                                                     )}
 
-                                                    {/* 内外单独定义菜单切换确认弹框 */}
-                                                    {separateMenuPending !== null && (
-                                                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setSeparateMenuPending(null)}>
-                                                            <div className="w-full max-w-[420px] bg-white rounded-xl shadow-xl" onClick={(e) => e.stopPropagation()}>
-                                                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-                                                                    <span className="text-base font-semibold text-gray-900">确认切换配置</span>
-                                                                    <button onClick={() => setSeparateMenuPending(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                        </svg>
-                                                                    </button>
-                                                                </div>
-                                                                <div className="px-5 py-4 text-sm text-gray-600 leading-[1.8]">
-                                                                    {separateMenuPending ? (
-                                                                        <p>确认<span className="mx-1 font-medium text-gray-900">开启</span>内外单独定义菜单？开启后，内、外Portal需<span className="text-[#006bff] font-medium">分别配置各自的菜单</span>。</p>
-                                                                    ) : (
-                                                                        <p>确认<span className="mx-1 font-medium text-gray-900">关闭</span>内外单独定义菜单？关闭后，内外Portal将共用同一套菜单，<span className="text-red-500 font-medium">外部Portal的单独菜单配置将被舍弃</span>。</p>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex justify-end gap-3 px-5 py-3 border-t border-gray-200">
-                                                                    <button
-                                                                        onClick={() => setSeparateMenuPending(null)}
-                                                                        className="px-4 h-8 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                                                    >
-                                                                        取消
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => { setSeparateMenuDefinition(!!separateMenuPending); setSeparateMenuPending(null); }}
-                                                                        className="px-4 h-8 text-sm text-white bg-[#006bff] rounded-lg hover:bg-blue-700 transition-colors"
-                                                                    >
-                                                                        确认
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
 
                                                     {/* 菜单列表标题栏：共N个一级菜单 + 是否跳转单产品链接；编辑态下右侧可新增一级菜单 */}
                                                     <div className="flex items-center justify-between gap-4 mb-3">
@@ -14557,7 +14544,7 @@ export default function AdminPage() {
                             {/* 数据口径说明 */}
                             <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
                                 <p className="text-[13px] leading-[1.9] text-blue-600">
-                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 控制台(客户侧)账单聚合 → 导出账单聚合 → 后台账单(含经营分析收入) → 成本 → 账单核验</span>（控制台(客户侧)账单聚合包含小时账单、天账单、月账单，每个账单分别展示「明细」「详情」两条聚合进度；导出账单聚合与后台账单各包含小时账单、天账单、月账单，不区分明细/详情，单条进度展示；账期类型选「小时」仅展示小时账单进度，选「天」展示小时与天账单进度，选「月」展示小时、天、月账单进度；账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
+                                    监控看板展示平台各产品在各计费节点的进度，计费节点依次为：<span className="font-medium">计量上报 → 聚合出账 → 结算（抵扣、扣费） → 控制台(客户侧)账单聚合 → 导出账单聚合 → 后台账单(含经营分析收入) → 成本 → 账单核验</span>（控制台(客户侧)账单聚合分别展示「明细」「详情」两条聚合进度；导出账单聚合与后台账单不区分明细/详情，单条进度展示；上述 3 个账单聚合模块均随账期类型联动，选「小时」仅展示小时账单，选「天」仅展示天账单，选「月」仅展示月账单；账单核验按用量、金额、详情链、明细聚合链、月级取整差等字段逐项核验）。无资源包抵扣的产品，结算列中的抵扣环节展示「不涉及」。
                                 </p>
                             </div>
 
@@ -14571,7 +14558,13 @@ export default function AdminPage() {
                                             onClick={() => {
                                                 setMonitorBillType(t);
                                                 // 切换账期类型后隐藏的账单列，其列头筛选需同步清除，避免「看不见的筛选」影响列表
-                                                if (t === "hour") {
+                                                // 三个账单聚合模块仅展示与账期类型对应的那一个账单列，其余两类账单的筛选全部清除
+                                                if (t !== "hour") {
+                                                    setMonitorHourBillAggFilter("");
+                                                    setMonitorExHourBillAggFilter("");
+                                                    setMonitorBgHourBillAggFilter("");
+                                                }
+                                                if (t !== "day") {
                                                     setMonitorDayBillAggFilter("");
                                                     setMonitorExDayBillAggFilter("");
                                                     setMonitorBgDayBillAggFilter("");
@@ -14769,7 +14762,8 @@ export default function AdminPage() {
                             {/* 数据表格 */}
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
-                                    <table className={`w-full ${monitorBillType === "hour" ? "min-w-[1860px]" : monitorBillType === "day" ? "min-w-[2400px]" : "min-w-[2940px]"}`}>
+                                    {/* 三个账单聚合模块各固定 1 列（仅展示与账期类型对应的账单），表格总宽固定 */}
+                                    <table className="w-full min-w-[1860px]">
                                         <thead>
                                             <tr className="border-b border-gray-200 bg-gray-50">
                                                 <AnalysisTh label="产品名称" align="left" width="280px" rowSpan={2} />
@@ -14777,34 +14771,34 @@ export default function AdminPage() {
                                                 <MonitorFilterTh label="计量上报" tip="各产品计量数据按账期上报完成情况，点击下拉可按状态筛选。" value={monitorMeterFilter} onChange={setMonitorMeterFilter} width="180px" rowSpan={2} />
                                                 <AnalysisTh label="聚合出账" align="left" width="320px" colSpan={2} divider tip="聚合出账包含聚合、出账两个环节。" />
                                                 <AnalysisTh label="结算" align="left" width="320px" colSpan={2} divider />
-                                                {/* 控制台账单：小时始终有，天/月按账期类型显示 */}
+                                                {/* 控制台账单：仅展示与账期类型对应的账单（小时 / 天 / 月），固定 1 列 */}
                                                 <AnalysisTh
                                                     label="控制台(客户侧)账单聚合"
                                                     align="left"
-                                                    width={monitorBillType === "hour" ? "180px" : monitorBillType === "day" ? "360px" : "540px"}
-                                                    colSpan={monitorBillType === "hour" ? 1 : monitorBillType === "day" ? 2 : 3}
+                                                    width="180px"
+                                                    colSpan={1}
                                                     divider
-                                                    tip="控制台(客户侧)账单聚合包含小时账单、天账单、月账单三个环节，每个环节分别展示「明细」「详情」两条聚合进度。"
+                                                    tip="控制台(客户侧)账单聚合仅展示与账期类型对应的账单（选「小时」展示小时账单，选「天」展示天账单，选「月」展示月账单），该账单分别展示「明细」「详情」两条聚合进度。"
                                                 />
                                                 {/* 导出账单聚合：紫色分割线区分模块 */}
                                                 <AnalysisTh
                                                     label="导出账单聚合"
                                                     align="left"
-                                                    width={monitorBillType === "hour" ? "180px" : monitorBillType === "day" ? "360px" : "540px"}
-                                                    colSpan={monitorBillType === "hour" ? 1 : monitorBillType === "day" ? 2 : 3}
+                                                    width="180px"
+                                                    colSpan={1}
                                                     divider
                                                     dividerClass="border-l-2 border-violet-400"
-                                                    tip="导出账单聚合包含小时账单、天账单、月账单三个环节，不区分明细/详情，单条进度展示。"
+                                                    tip="导出账单聚合仅展示与账期类型对应的账单（选「小时」展示小时账单，选「天」展示天账单，选「月」展示月账单），不区分明细/详情，单条进度展示。"
                                                 />
                                                 {/* 后台账单：橙色分割线区分两个模块 */}
                                                 <AnalysisTh
                                                     label="后台账单(含经营分析收入)"
                                                     align="left"
-                                                    width={monitorBillType === "hour" ? "180px" : monitorBillType === "day" ? "360px" : "540px"}
-                                                    colSpan={monitorBillType === "hour" ? 1 : monitorBillType === "day" ? 2 : 3}
+                                                    width="180px"
+                                                    colSpan={1}
                                                     divider
                                                     dividerClass="border-l-2 border-orange-400"
-                                                    tip="后台账单(含经营分析收入)包含小时账单、天账单、月账单三个环节，不区分明细/详情，单条进度展示。"
+                                                    tip="后台账单(含经营分析收入)仅展示与账期类型对应的账单（选「小时」展示小时账单，选「天」展示天账单，选「月」展示月账单），不区分明细/详情，单条进度展示。"
                                                 />
                                                 <AnalysisTh label="成本" align="left" width="320px" colSpan={2} divider tip="产品成本展示，包含成本聚合与成本生产两个维度。" />
                                                 <MonitorVerifyFilterTh
@@ -14821,29 +14815,35 @@ export default function AdminPage() {
                                                 <MonitorFilterTh label="出账" tip="产品账单生成完成情况，点击下拉可按状态筛选。" value={monitorProductBillFilter} onChange={setMonitorProductBillFilter} width="160px" divider={false} />
                                                 <MonitorFilterTh label="抵扣" tip="账单抵扣处理完成情况；无资源包抵扣的产品不涉及此环节，点击下拉可按状态筛选。" value={monitorOffsetFilter} onChange={setMonitorOffsetFilter} width="160px" />
                                                 <MonitorFilterTh label="扣费" tip="账单扣费处理完成情况，点击下拉可按状态筛选。" value={monitorChargeFilter} onChange={setMonitorChargeFilter} width="160px" divider={false} />
-                                                {/* 控制台(客户侧)账单聚合：小时账单始终显示；天/月账单按账期类型显示 */}
-                                                <MonitorFilterTh label="小时账单" tip="控制台(客户侧)按小时维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorHourBillAggFilter} onChange={setMonitorHourBillAggFilter} width="180px" />
-                                                {monitorBillType !== "hour" && (
-                                                    <MonitorFilterTh label="天账单" tip="控制台(客户侧)按天维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorDayBillAggFilter} onChange={setMonitorDayBillAggFilter} width="180px" divider={false} />
+                                                {/* 控制台(客户侧)账单聚合：仅展示与账期类型对应的账单（小时 / 天 / 月） */}
+                                                {monitorBillType === "hour" && (
+                                                    <MonitorFilterTh label="小时账单" tip="控制台(客户侧)按小时维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorHourBillAggFilter} onChange={setMonitorHourBillAggFilter} width="180px" />
+                                                )}
+                                                {monitorBillType === "day" && (
+                                                    <MonitorFilterTh label="天账单" tip="控制台(客户侧)按天维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorDayBillAggFilter} onChange={setMonitorDayBillAggFilter} width="180px" />
                                                 )}
                                                 {monitorBillType === "month" && (
-                                                    <MonitorFilterTh label="月账单" tip="控制台(客户侧)按月维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorMonthBillAggFilter} onChange={setMonitorMonthBillAggFilter} width="180px" divider={false} />
+                                                    <MonitorFilterTh label="月账单" tip="控制台(客户侧)按月维度聚合账单数据完成情况（明细、详情），点击下拉可按状态筛选。" value={monitorMonthBillAggFilter} onChange={setMonitorMonthBillAggFilter} width="180px" />
                                                 )}
-                                                {/* 导出账单聚合：不区分明细/详情，单条进度；紫色分割线区分模块 */}
-                                                <MonitorFilterTh label="小时账单" tip="导出账单按小时维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExHourBillAggFilter} onChange={setMonitorExHourBillAggFilter} width="180px" dividerClass="border-l-2 border-violet-400" />
-                                                {monitorBillType !== "hour" && (
-                                                    <MonitorFilterTh label="天账单" tip="导出账单按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExDayBillAggFilter} onChange={setMonitorExDayBillAggFilter} width="180px" divider={false} />
+                                                {/* 导出账单聚合：不区分明细/详情，单条进度；紫色分割线区分模块；仅展示与账期类型对应的账单 */}
+                                                {monitorBillType === "hour" && (
+                                                    <MonitorFilterTh label="小时账单" tip="导出账单按小时维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExHourBillAggFilter} onChange={setMonitorExHourBillAggFilter} width="180px" dividerClass="border-l-2 border-violet-400" />
                                                 )}
-                                                {monitorBillType === "month" && (
-                                                    <MonitorFilterTh label="月账单" tip="导出账单按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExMonthBillAggFilter} onChange={setMonitorExMonthBillAggFilter} width="180px" divider={false} />
-                                                )}
-                                                {/* 后台账单(含经营分析收入)：不区分明细/详情，单条进度；橙色分割线区分模块 */}
-                                                <MonitorFilterTh label="小时账单" tip="后台账单(含经营分析收入)按小时维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgHourBillAggFilter} onChange={setMonitorBgHourBillAggFilter} width="180px" dividerClass="border-l-2 border-orange-400" />
-                                                {monitorBillType !== "hour" && (
-                                                    <MonitorFilterTh label="天账单" tip="后台账单(含经营分析收入)按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgDayBillAggFilter} onChange={setMonitorBgDayBillAggFilter} width="180px" divider={false} />
+                                                {monitorBillType === "day" && (
+                                                    <MonitorFilterTh label="天账单" tip="导出账单按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExDayBillAggFilter} onChange={setMonitorExDayBillAggFilter} width="180px" dividerClass="border-l-2 border-violet-400" />
                                                 )}
                                                 {monitorBillType === "month" && (
-                                                    <MonitorFilterTh label="月账单" tip="后台账单(含经营分析收入)按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgMonthBillAggFilter} onChange={setMonitorBgMonthBillAggFilter} width="180px" divider={false} />
+                                                    <MonitorFilterTh label="月账单" tip="导出账单按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorExMonthBillAggFilter} onChange={setMonitorExMonthBillAggFilter} width="180px" dividerClass="border-l-2 border-violet-400" />
+                                                )}
+                                                {/* 后台账单(含经营分析收入)：不区分明细/详情，单条进度；橙色分割线区分模块；仅展示与账期类型对应的账单 */}
+                                                {monitorBillType === "hour" && (
+                                                    <MonitorFilterTh label="小时账单" tip="后台账单(含经营分析收入)按小时维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgHourBillAggFilter} onChange={setMonitorBgHourBillAggFilter} width="180px" dividerClass="border-l-2 border-orange-400" />
+                                                )}
+                                                {monitorBillType === "day" && (
+                                                    <MonitorFilterTh label="天账单" tip="后台账单(含经营分析收入)按天维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgDayBillAggFilter} onChange={setMonitorBgDayBillAggFilter} width="180px" dividerClass="border-l-2 border-orange-400" />
+                                                )}
+                                                {monitorBillType === "month" && (
+                                                    <MonitorFilterTh label="月账单" tip="后台账单(含经营分析收入)按月维度聚合账单数据完成情况，点击下拉可按状态筛选。" value={monitorBgMonthBillAggFilter} onChange={setMonitorBgMonthBillAggFilter} width="180px" dividerClass="border-l-2 border-orange-400" />
                                                 )}
                                                 <MonitorFilterTh label="成本聚合" tip="产品成本聚合维度进度，点击下拉可按状态筛选。" value={monitorCostAggFilter} onChange={setMonitorCostAggFilter} width="160px" />
                                                 <MonitorFilterTh label="成本生产" tip="产品成本生产维度进度，点击下拉可按状态筛选。" value={monitorCostProdFilter} onChange={setMonitorCostProdFilter} width="160px" divider={false} />
@@ -14895,30 +14895,26 @@ export default function AdminPage() {
                                                     <SettleStageCell name="出账" na={false} node={row.nodes.productBill} onClick={() => setMonitorDetailProduct(row)} />
                                                     {/* 结算（抵扣、扣费两个环节） */}
                                                     <MonitorSettleCell hasPackage={row.hasPackage} offset={row.nodes.offset} charge={row.nodes.charge} onClick={() => setMonitorDetailProduct(row)} />
-                                                    {/* 控制台(客户侧)账单聚合：小时账单始终展示；天账单（天/月）、月账单（月）按账期类型展示 */}
-                                                    <BillAggStageCell node={row.nodes.hourBillAgg} divider onClick={() => setMonitorDetailProduct(row)} />
-                                                    {monitorBillType !== "hour" && (
-                                                        <BillAggStageCell node={row.nodes.dayBillAgg} onClick={() => setMonitorDetailProduct(row)} />
-                                                    )}
-                                                    {monitorBillType === "month" && (
-                                                        <BillAggStageCell node={row.nodes.monthBillAgg} onClick={() => setMonitorDetailProduct(row)} />
-                                                    )}
-                                                    {/* 导出账单聚合：不区分明细/详情，单条进度；左侧紫色分割线区分模块 */}
-                                                    <MonitorProgressCell node={row.nodes.exHourBillAgg} divider dividerClass="border-l-2 border-violet-400" onClick={() => setMonitorDetailProduct(row)} />
-                                                    {monitorBillType !== "hour" && (
-                                                        <MonitorProgressCell node={row.nodes.exDayBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
-                                                    )}
-                                                    {monitorBillType === "month" && (
-                                                        <MonitorProgressCell node={row.nodes.exMonthBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
-                                                    )}
-                                                    {/* 后台账单(含经营分析收入)：不区分明细/详情，单条进度；左侧橙色分割线区分两个模块 */}
-                                                    <MonitorProgressCell node={row.nodes.bgHourBillAgg} divider dividerClass="border-l-2 border-orange-400" onClick={() => setMonitorDetailProduct(row)} />
-                                                    {monitorBillType !== "hour" && (
-                                                        <MonitorProgressCell node={row.nodes.bgDayBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
-                                                    )}
-                                                    {monitorBillType === "month" && (
-                                                        <MonitorProgressCell node={row.nodes.bgMonthBillAgg} divider={false} onClick={() => setMonitorDetailProduct(row)} />
-                                                    )}
+                                                    {/* 控制台(客户侧)账单聚合：仅展示与账期类型对应的账单（小时 / 天 / 月） */}
+                                                    <BillAggStageCell
+                                                        node={monitorBillType === "hour" ? row.nodes.hourBillAgg : monitorBillType === "day" ? row.nodes.dayBillAgg : row.nodes.monthBillAgg}
+                                                        divider
+                                                        onClick={() => setMonitorDetailProduct(row)}
+                                                    />
+                                                    {/* 导出账单聚合：不区分明细/详情，单条进度；左侧紫色分割线区分模块；仅展示与账期类型对应的账单 */}
+                                                    <MonitorProgressCell
+                                                        node={monitorBillType === "hour" ? row.nodes.exHourBillAgg : monitorBillType === "day" ? row.nodes.exDayBillAgg : row.nodes.exMonthBillAgg}
+                                                        divider
+                                                        dividerClass="border-l-2 border-violet-400"
+                                                        onClick={() => setMonitorDetailProduct(row)}
+                                                    />
+                                                    {/* 后台账单(含经营分析收入)：不区分明细/详情，单条进度；左侧橙色分割线区分两个模块；仅展示与账期类型对应的账单 */}
+                                                    <MonitorProgressCell
+                                                        node={monitorBillType === "hour" ? row.nodes.bgHourBillAgg : monitorBillType === "day" ? row.nodes.bgDayBillAgg : row.nodes.bgMonthBillAgg}
+                                                        divider
+                                                        dividerClass="border-l-2 border-orange-400"
+                                                        onClick={() => setMonitorDetailProduct(row)}
+                                                    />
                                                     {/* 成本（成本聚合、成本生产两个环节，样式与结算列一致） */}
                                                     <SettleStageCell name="成本聚合" na={false} node={row.nodes.costAgg} divider onClick={() => setMonitorDetailProduct(row)} />
                                                     <SettleStageCell name="成本生产" na={false} node={row.nodes.costProd} onClick={() => setMonitorDetailProduct(row)} />
