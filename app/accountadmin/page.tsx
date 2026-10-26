@@ -410,6 +410,7 @@ const cleanProductName = (name: string) => name.replace(/\([a-z0-9_]+\)\s*$/i, "
 
 // 产品分析 - 表头单元格（支持问号提示 / 重点列高亮 / 合并单元格）
 // highlight: "inner" 内部收入列橙色高亮，"outer" 外部收入列蓝色高亮
+//            "sort" 当前排序列强调高亮，"sortSub" 排序列的关联占比列浅色高亮
 const AnalysisTh = ({
     label,
     tip,
@@ -425,7 +426,7 @@ const AnalysisTh = ({
     tip?: string;
     align?: "left" | "right" | "center";
     width?: string;
-    highlight?: "inner" | "outer";   // 内部收入橙色 / 外部收入蓝色
+    highlight?: "inner" | "outer" | "sort" | "sortSub";   // 内部收入橙色 / 外部收入蓝色 / 排序列强调 / 排序列关联列浅色
     colSpan?: number;
     rowSpan?: number;
     divider?: boolean;     // 是否在列左侧加分割线
@@ -435,7 +436,11 @@ const AnalysisTh = ({
         ? "bg-orange-500 text-white"
         : highlight === "outer"
             ? "bg-blue-500 text-white"
-            : "text-gray-600";
+            : highlight === "sort"
+                ? "bg-blue-600 text-white"
+                : highlight === "sortSub"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600";
     const tipIconClass = highlight
         ? "text-white/80 hover:text-white"
         : "text-gray-400 hover:text-gray-500";
@@ -1942,6 +1947,8 @@ interface OverallAnalysisRow {
     zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
     unitRevenue: number;            // 本结算单元收入(元)
     outerRevenue: number;           // 企业外收入(元)
+    outerGroupRevenue: number;      // 企业外收入 - 企业内外部结算收入(元)
+    outerPortalRevenue: number;     // 企业外收入 - 企业外(非内部企业账号)收入(元)
     outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
     innerTotalRevenue: number;      // 内结算总收入(元)
     productCost: number;            // 产品成本(元)
@@ -1967,6 +1974,8 @@ const overallBaseTotals = productAnalysisData.reduce(
             zyunNonUnitRevenue: acc.zyunNonUnitRevenue + row.zyunNonUnitRevenue,
             unitRevenue: acc.unitRevenue + row.unitRevenue,
             outerRevenue: acc.outerRevenue + row.outerRevenue,
+            outerGroupRevenue: acc.outerGroupRevenue + row.outerGroupRevenue,
+            outerPortalRevenue: acc.outerPortalRevenue + row.outerPortalRevenue,
             outerInnerPriceRevenue: acc.outerInnerPriceRevenue + row.outerInnerPriceRevenue,
             innerTotalRevenue: acc.innerTotalRevenue + row.innerTotalRevenue,
             productCost: acc.productCost + row.productCost,
@@ -1978,7 +1987,8 @@ const overallBaseTotals = productAnalysisData.reduce(
     {
         totalRevenue: 0, innerRevenue: 0, innerSettleRevenue: 0, innerBizRevenue: 0,
         innerNonZyunRevenue: 0,
-        zyunNonUnitRevenue: 0, unitRevenue: 0, outerRevenue: 0, outerInnerPriceRevenue: 0,
+        zyunNonUnitRevenue: 0, unitRevenue: 0, outerRevenue: 0,
+        outerGroupRevenue: 0, outerPortalRevenue: 0, outerInnerPriceRevenue: 0,
         innerTotalRevenue: 0, productCost: 0, innerProfit: 0, outerProfit: 0, balance: 0,
     }
 );
@@ -1990,18 +2000,29 @@ const overallWave = (seed: number) => {
 };
 
 // 整体分析 - 按账期与缩放比例构造一行合计数据
+// 各明细列使用相互独立的稳定波动系数，因此每列的环比各不相同；
+// 聚合列（总收入 / 企业外收入 / 内结算总收入 / 利润 / 毛利率）均由明细列按业务口径推导，保证列间关系自洽：
+//   总收入 = 企业内收入 + 企业外收入；企业外收入 = 企业内外部结算收入 + 企业外(外部Portal)收入
+//   内结算总收入 = 企业内收入 + 外部收入对应的内结算价收入
+//   内结算价利润 = 内结算总收入 - 产品成本；外部利润 = 企业外收入 - 外部收入对应的内结算价收入
 const buildOverallRow = (id: number, period: string, scale: number, seed: number): OverallAnalysisRow => {
-    const revFactor = scale * (0.88 + overallWave(seed) * 0.26);       // 收入波动
-    const costFactor = scale * (0.9 + overallWave(seed + 77) * 0.22);  // 成本波动
     const b = overallBaseTotals;
+    // 第 k 列的收入波动系数（同一账期同一列结果恒定）
+    const f = (k: number) => scale * (0.88 + overallWave(seed + k * 37) * 0.26);
+    const costFactor = scale * (0.9 + overallWave(seed + 77) * 0.22);  // 成本波动
 
-    const totalRevenue = b.totalRevenue * revFactor;
-    const innerRevenue = b.innerRevenue * revFactor;
-    const innerSettleRevenue = b.innerSettleRevenue * revFactor;
-    const innerBizRevenue = b.innerBizRevenue * revFactor;
-    const outerRevenue = b.outerRevenue * revFactor;
-    const outerInnerPriceRevenue = b.outerInnerPriceRevenue * revFactor;
-    const innerTotalRevenue = b.innerTotalRevenue * revFactor;
+    // 企业内收入 = 企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入
+    const innerNonZyunRevenue = b.innerNonZyunRevenue * f(7);
+    const zyunNonUnitRevenue = b.zyunNonUnitRevenue * f(8);
+    const unitRevenue = b.unitRevenue * f(9);
+    const innerRevenue = innerNonZyunRevenue + zyunNonUnitRevenue + unitRevenue;
+    // 企业外收入 = 企业内外部结算收入 + 外部收入
+    const outerGroupRevenue = b.outerGroupRevenue * f(2);
+    const outerPortalRevenue = b.outerPortalRevenue * f(3);
+    const outerRevenue = outerGroupRevenue + outerPortalRevenue;
+    const totalRevenue = innerRevenue + outerRevenue;
+    const outerInnerPriceRevenue = b.outerInnerPriceRevenue * f(4);
+    const innerTotalRevenue = innerRevenue + outerInnerPriceRevenue;
     const productCost = b.productCost * costFactor;
     const outerCost = outerRevenue;             // 外部成本(元) = 所有产品的外部收入
     const innerCost = productCost - outerCost;  // 内部成本(元) = 总成本 - 外部成本
@@ -2013,12 +2034,14 @@ const buildOverallRow = (id: number, period: string, scale: number, seed: number
         period,
         totalRevenue,
         innerRevenue,
-        innerSettleRevenue,
-        innerBizRevenue,
-        innerNonZyunRevenue: b.innerNonZyunRevenue * revFactor,
-        zyunNonUnitRevenue: b.zyunNonUnitRevenue * revFactor,
-        unitRevenue: b.unitRevenue * revFactor,
+        innerSettleRevenue: b.innerSettleRevenue * f(5),
+        innerBizRevenue: b.innerBizRevenue * f(6),
+        innerNonZyunRevenue,
+        zyunNonUnitRevenue,
+        unitRevenue,
         outerRevenue,
+        outerGroupRevenue,
+        outerPortalRevenue,
         outerInnerPriceRevenue,
         innerTotalRevenue,
         productCost,
@@ -2415,6 +2438,8 @@ interface OverallProductRow {
     innerSettleRevenue: number;     // 内结收入(元)：经营属性为内结的结算单元对应的内部收入
     innerBizRevenue: number;        // 经营收入(元)：经营属性为经营的结算单元对应的内部收入
     outerRevenue: number;           // 集团外收入(元)
+    innerTotalRevenue: number;      // 内结算总收入(元)：内结毛利率分母
+    outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
     innerMargin: number;            // 内结毛利率(%)
     outerMargin: number;            // 外部毛利率(%)
     profit: number;                 // 收支差额(元) = 总收入 - 总成本
@@ -2482,6 +2507,8 @@ const buildOverallProductRows = (period: string, billType: string): OverallProdu
             innerSettleRevenue,
             innerBizRevenue,
             outerRevenue,
+            innerTotalRevenue,
+            outerInnerPriceRevenue: outerInnerPrice,
             innerMargin: innerTotalRevenue === 0 ? 0 : (innerProfit / innerTotalRevenue) * 100,
             outerMargin: outerRevenue === 0 ? 0 : (outerProfit / outerRevenue) * 100,
             profit: totalRevenue - productCost,
@@ -2510,6 +2537,10 @@ interface OverallUnitRow {
     innerSettleRevenue: number;     // 内结收入(元)
     innerBizRevenue: number;        // 经营收入(元)
     outerRevenue: number;           // 外部收入(元)
+    innerTotalRevenue: number;      // 内结算总收入(元)
+    outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
+    innerMargin: number;            // 内结毛利率(%) = (内结算总收入 - 成本) / 内结算总收入
+    outerMargin: number;            // 外部毛利率(%) = (外部收入 - 对应内结算价收入) / 外部收入
     productCost: number;            // 成本(元)
     innerCost: number;              // 内部成本(元)
     outerCost: number;              // 外部成本(元)
@@ -2536,6 +2567,10 @@ const buildOverallUnitRows = (rows: OverallProductRow[]): OverallUnitRow[] => {
                 outerCost: 0,
                 profit: 0,
                 productCount: 0,
+                innerTotalRevenue: 0,
+                outerInnerPriceRevenue: 0,
+                innerMargin: 0,
+                outerMargin: 0,
             };
         cur.totalRevenue += r.totalRevenue;
         cur.innerRevenue += r.innerRevenue;
@@ -2545,20 +2580,33 @@ const buildOverallUnitRows = (rows: OverallProductRow[]): OverallUnitRow[] => {
         cur.productCost += r.productCost;
         cur.innerCost += r.innerCost;
         cur.outerCost += r.outerCost;
+        cur.innerTotalRevenue += r.innerTotalRevenue;
+        cur.outerInnerPriceRevenue += r.outerInnerPriceRevenue;
         cur.productCount += 1;
         map.set(r.settlementUnit, cur);
     });
     return Array.from(map.values())
-        .map((u) => ({ ...u, profit: u.totalRevenue - u.productCost }))
+        .map((u) => ({
+            ...u,
+            profit: u.totalRevenue - u.productCost,
+            // 结算单元毛利率按合计值单独计算，非各产品毛利率求和
+            innerMargin: u.innerTotalRevenue === 0 ? 0 : ((u.innerTotalRevenue - u.productCost) / u.innerTotalRevenue) * 100,
+            outerMargin: u.outerRevenue === 0 ? 0 : ((u.outerRevenue - u.outerInnerPriceRevenue) / u.outerRevenue) * 100,
+        }))
         .sort((a, b) => b.totalRevenue - a.totalRevenue);
 };
 
 // 整体分析 - 结算单元数量概览
+// 有收入：归属该结算单元的产品账单金额和不为 0
+// 盈利：内结毛利率 > 0；亏损：内结毛利率 < 0
+// 异常：内结毛利率 < 外部毛利率
 const buildOverallUnitStats = (units: OverallUnitRow[]) => ({
     revenueCount: units.filter((u) => u.totalRevenue > 0).length,
+    incomeCount: units.filter((u) => u.totalRevenue !== 0).length,
     costCount: units.filter((u) => u.productCost > 0).length,
-    profitCount: units.filter((u) => u.profit > 0).length,
-    lossCount: units.filter((u) => u.profit < 0).length,
+    profitCount: units.filter((u) => u.innerMargin > 0).length,
+    lossCount: units.filter((u) => u.innerMargin < 0).length,
+    abnormalCount: units.filter((u) => u.innerMargin < u.outerMargin).length,
 });
 
 // ===== 整体分析 - 部门概览 =====
@@ -2578,32 +2626,117 @@ const overallDeptConfigs: OverallDeptConfig[] = [
 ];
 
 interface OverallDeptMember {
-    unit: string;          // 结算单元名称
-    totalRevenue: number;  // 收入(元)
-    productCost: number;   // 成本(元)
+    unit: string;               // 结算单元名称
+    totalRevenue: number;       // 收入(元)
+    productCost: number;        // 成本(元)
+    innerRevenue: number;       // 内部收入(元)
+    outerRevenue: number;       // 外部收入(元)
+    innerCost: number;          // 内部成本(元)
+    outerCost: number;          // 外部成本(元)
+    innerMargin: number;        // 内结毛利率(%)
+    outerMargin: number;        // 外部毛利率(%)
 }
 
 interface OverallDeptRow {
     name: string;
     path: string;
     members: OverallDeptMember[];
+    unitCount: number;          // 关联结算单元数（一个部门可关联多个结算单元）
     totalRevenue: number;       // 部门收入(元) = 各结算单元收入求和
     innerRevenue: number;       // 部门内部收入(元)
     innerSettleRevenue: number; // 部门内结收入(元)
     innerBizRevenue: number;    // 部门经营收入(元)
     outerRevenue: number;       // 部门外部收入(元)
+    innerTotalRevenue: number;  // 内结算总收入(元) = 各结算单元求和
+    outerInnerPriceRevenue: number; // 外部收入对应的内结算价收入(元)
+    innerMargin: number;        // 部门内结毛利率(%)：口径与结算单元一致，按合计值计算
+    outerMargin: number;        // 部门外部毛利率(%)：口径与结算单元一致，按合计值计算
     productCost: number;        // 部门成本(元) = 各结算单元成本求和
     innerCost: number;          // 部门内部成本(元)
     outerCost: number;          // 部门外部成本(元)
     profit: number;             // 收支差额(元)
 }
 
-// 注：部门聚合在组件内基于 overallUnitRows 计算（与「结算单元概览」同源、随账期联动）
+// 整体分析 - 部门聚合（数据源即「结算单元概览」的 overallUnitRows）
+// 一个部门关联多个结算单元，部门数据 = 其关联的全部结算单元对应值求和；
+// 未在 overallDeptConfigs 中配置的结算单元自成一个部门，保证两个模块的收入/成本与数量统计始终一致。
+const buildOverallDeptRows = (unitRows: OverallUnitRow[]): OverallDeptRow[] => {
+    const unitToCfg = new Map<string, OverallDeptConfig>();
+    overallDeptConfigs.forEach((cfg) => cfg.units.forEach((u) => unitToCfg.set(u, cfg)));
 
-// 整体分析 - 部门数量概览
+    const deptMap = new Map<string, OverallDeptRow>();
+    unitRows.forEach((u) => {
+        const cfg = unitToCfg.get(u.unit);
+        const name = cfg?.name ?? u.unit;
+        const path = cfg?.path ?? u.unit;
+        const cur =
+            deptMap.get(name) ??
+            {
+                name,
+                path,
+                members: [] as OverallDeptMember[],
+                unitCount: 0,
+                totalRevenue: 0,
+                innerRevenue: 0,
+                innerSettleRevenue: 0,
+                innerBizRevenue: 0,
+                outerRevenue: 0,
+                innerTotalRevenue: 0,
+                outerInnerPriceRevenue: 0,
+                innerMargin: 0,
+                outerMargin: 0,
+                productCost: 0,
+                innerCost: 0,
+                outerCost: 0,
+                profit: 0,
+            };
+        cur.members.push({
+            unit: u.unit,
+            totalRevenue: u.totalRevenue,
+            productCost: u.productCost,
+            innerRevenue: u.innerRevenue,
+            outerRevenue: u.outerRevenue,
+            innerCost: u.innerCost,
+            outerCost: u.outerCost,
+            innerMargin: u.innerMargin,
+            outerMargin: u.outerMargin,
+        });
+        cur.unitCount += 1;
+        cur.totalRevenue += u.totalRevenue;
+        cur.innerRevenue += u.innerRevenue;
+        cur.innerSettleRevenue += u.innerSettleRevenue;
+        cur.innerBizRevenue += u.innerBizRevenue;
+        cur.outerRevenue += u.outerRevenue;
+        cur.innerTotalRevenue += u.innerTotalRevenue;
+        cur.outerInnerPriceRevenue += u.outerInnerPriceRevenue;
+        cur.productCost += u.productCost;
+        cur.innerCost += u.innerCost;
+        cur.outerCost += u.outerCost;
+        deptMap.set(name, cur);
+    });
+
+    return Array.from(deptMap.values())
+        .map((d) => ({
+            ...d,
+            profit: d.totalRevenue - d.productCost,
+            // 毛利率按部门合计值计算（与结算单元口径一致），非各结算单元毛利率平均
+            innerMargin: d.innerTotalRevenue === 0 ? 0 : ((d.innerTotalRevenue - d.productCost) / d.innerTotalRevenue) * 100,
+            outerMargin: d.outerRevenue === 0 ? 0 : ((d.outerRevenue - d.outerInnerPriceRevenue) / d.outerRevenue) * 100,
+        }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue);
+};
+
+// 整体分析 - 部门数量概览（口径与「结算单元数量概览」完全一致，只是统计对象由结算单元换成部门）
+// 有收入：部门收入不为 0（= 其关联结算单元收入之和）
+// 盈利：内结毛利率 > 0；亏损：内结毛利率 < 0
+// 异常：内结毛利率 < 外部毛利率
 const buildOverallDeptStats = (rows: OverallDeptRow[]) => ({
-    profitCount: rows.filter((d) => d.profit >= 0).length,
-    lossCount: rows.filter((d) => d.profit < 0).length,
+    revenueCount: rows.filter((d) => d.totalRevenue > 0).length,
+    incomeCount: rows.filter((d) => d.totalRevenue !== 0).length,
+    costCount: rows.filter((d) => d.productCost > 0).length,
+    profitCount: rows.filter((d) => d.innerMargin > 0).length,
+    lossCount: rows.filter((d) => d.innerMargin < 0).length,
+    abnormalCount: rows.filter((d) => d.innerMargin < d.outerMargin).length,
 });
 
 // 整体分析 - 结算单元柱状图通用绘制（纯 SVG 实现）
@@ -2982,12 +3115,18 @@ const OverallPieChart = ({
     valueKey,
     title,
     color,
+    prevItems,
+    size = 150,
 }: {
     items: PieChartItem[];
     valueKey: "totalRevenue" | "productCost";
     title: string;
     color: string;
+    prevItems?: PieChartItem[];   // 上一账期数据（传入时展示各扇区及合计的环比）
+    size?: number;                // 饼图尺寸(px)，同时决定图例行高
 }) => {
+    // 饼图放大时同步加大图例行间距，使左右两侧高度协调
+    const legendGap = size > 150 ? "gap-[7px]" : "gap-[3px]";
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
     const PIE_COLORS = [
@@ -3000,10 +3139,14 @@ const OverallPieChart = ({
         .filter((d) => d.value > 0);
 
     if (data.length === 0) {
-        return <div className="flex h-[180px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+        return <div className="flex items-center justify-center text-sm text-gray-400" style={{ height: size + 30 }}>暂无数据</div>;
     }
 
     const total = data.reduce((s, d) => s + d.value, 0);
+    // 上一账期同名项金额（用于环比）
+    const showMom = !!prevItems;
+    const prevMap = new Map((prevItems ?? []).map((p) => [p.name, p[valueKey]]));
+    const prevTotal = (prevItems ?? []).reduce((s, p) => s + (p[valueKey] > 0 ? p[valueKey] : 0), 0);
     const CX = 80, CY = 80, R = 68, IR = 34;
 
     // 计算各扇形起止角度
@@ -3031,10 +3174,19 @@ const OverallPieChart = ({
 
     return (
         <div>
-            <div className="mb-1 text-[12px] font-medium text-gray-600">{title}</div>
-            <div className="flex items-center gap-3">
-                {/* 饼图 SVG */}
-                <svg viewBox="0 0 160 160" className="flex-shrink-0" style={{ width: 150, height: 150 }}>
+            <div className="mb-2 flex items-center gap-2">
+                <span className="text-[12px] font-medium text-gray-600">{title}</span>
+                {showMom && (
+                    <span className="flex items-center gap-1.5 text-[12px] text-gray-500">
+                        <span className="text-gray-300">|</span>
+                        合计 <span className="font-medium text-gray-900">{formatWan(total)}</span>
+                        <OverallMomBadge mom={calcOverallMom(total, prevTotal)} />
+                    </span>
+                )}
+            </div>
+            <div className={size > 150 ? "flex flex-col items-stretch gap-3" : "flex items-center gap-3"}>
+                {/* 饼图 SVG（大尺寸时饼图在上居中、图例在下占满整列，避免窄列下图例被挤出） */}
+                <svg viewBox="0 0 160 160" className={`flex-shrink-0 ${size > 150 ? "self-center" : ""}`} style={{ width: size, height: size }}>
                     {slices.map((s, i) => {
                         const isActive = activeIndex === i;
                         const mid = (s.start + s.end) / 2;
@@ -3067,21 +3219,40 @@ const OverallPieChart = ({
                     </text>
                 </svg>
                 {/* 图例 */}
-                <div className="flex flex-1 min-w-0 flex-col justify-center gap-[3px] pr-1">
+                <div className={`flex flex-1 min-w-0 flex-col justify-center ${legendGap} pr-1`}>
+                    {showMom && (
+                        <div className="flex items-center gap-1.5 border-b border-gray-100 pb-1 text-[11px] text-gray-400">
+                            <span className="inline-block w-2.5 flex-shrink-0" />
+                            <span className="min-w-0 flex-1">名称</span>
+                            <span className="w-[78px] flex-shrink-0 text-right">金额</span>
+                            <span className="w-[46px] flex-shrink-0 text-right">占比</span>
+                            <span className="w-[72px] flex-shrink-0 text-right">环比</span>
+                        </div>
+                    )}
                     {slices.map((s, i) => (
                         <div
                             key={s.unit}
-                            className="flex items-center gap-1.5 cursor-pointer"
+                            className={`flex items-center gap-1.5 cursor-pointer rounded-sm ${activeIndex === i ? "bg-gray-50" : ""}`}
                             onMouseEnter={() => setActiveIndex(i)}
                             onMouseLeave={() => setActiveIndex(null)}
                         >
                             <span className="flex-shrink-0 inline-block w-2.5 h-2.5 rounded-sm" style={{ background: s.color, opacity: activeIndex === null || activeIndex === i ? 1 : 0.4 }} />
-                            <span className="text-[11px] text-gray-600 truncate leading-tight" title={s.unit}>
+                            <span className="min-w-0 flex-1 text-[11px] text-gray-600 truncate leading-tight" title={s.unit}>
                                 {s.unit.replace(/^智汇云-/, "").replace(/^基础架构部-/, "")}
                             </span>
-                            <span className="ml-auto flex-shrink-0 text-[11px] text-gray-500 font-medium">
+                            {showMom && (
+                                <span className="w-[78px] flex-shrink-0 text-right text-[11px] text-gray-900" title={formatExactAmount(s.value)}>
+                                    {formatWan(s.value)}
+                                </span>
+                            )}
+                            <span className={`${showMom ? "w-[46px] text-right" : "ml-auto"} flex-shrink-0 text-[11px] text-gray-500 font-medium`}>
                                 {((s.value / total) * 100).toFixed(1)}%
                             </span>
+                            {showMom && (
+                                <span className="w-[72px] flex-shrink-0 text-right leading-none">
+                                    <OverallMomBadge mom={calcOverallMom(s.value, prevMap.get(s.unit) ?? 0)} />
+                                </span>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -3096,37 +3267,203 @@ const OverallUnitPieChart = ({
     valueKey,
     title,
     color,
+    prevUnits,
+    size,
 }: {
     units: OverallUnitRow[];
     valueKey: "totalRevenue" | "productCost";
     title: string;
     color: string;
+    prevUnits?: OverallUnitRow[];
+    size?: number;
 }) => (
     <OverallPieChart
         items={units.map((u) => ({ name: u.unit, totalRevenue: u.totalRevenue, productCost: u.productCost }))}
+        prevItems={prevUnits?.map((u) => ({ name: u.unit, totalRevenue: u.totalRevenue, productCost: u.productCost }))}
         valueKey={valueKey}
         title={title}
         color={color}
+        size={size}
     />
 );
 
-// 整体分析 - 部门收入/成本分布饼图
+// 整体分析 - 毛利率 TOP 榜通用组件（结算单元 / 部门共用；按毛利率倒序，横向条形 + 上一账期环比 pp）
+// 内结毛利率仅统计内结算总收入不为 0 的对象；外部毛利率仅统计外部收入不为 0 的对象
+interface MarginTopItem {
+    name: string;
+    innerTotalRevenue: number;
+    outerRevenue: number;
+    innerMargin: number;
+    outerMargin: number;
+}
+
+const OverallMarginTop = ({
+    items,
+    prevItems,
+    marginKey,
+    title,
+    tip,
+    color,
+    nameHeader = "结算单元",
+    limit = 10,
+}: {
+    items: MarginTopItem[];
+    prevItems?: MarginTopItem[];
+    marginKey: "innerMargin" | "outerMargin";
+    title: string;
+    tip: string;
+    color: string;
+    nameHeader?: string;   // 名称列表头（结算单元 / 部门）
+    limit?: number;
+}) => {
+    const baseKey = marginKey === "innerMargin" ? "innerTotalRevenue" : "outerRevenue";
+    const list = items
+        .filter((u) => u[baseKey] !== 0)
+        .sort((a, b) => b[marginKey] - a[marginKey])
+        .slice(0, limit);
+    const prevMap = new Map((prevItems ?? []).filter((p) => p[baseKey] !== 0).map((p) => [p.name, p[marginKey]]));
+    // 条形长度按绝对值相对最大值计算（负毛利率以红色条展示）
+    const maxAbs = Math.max(...list.map((u) => Math.abs(u[marginKey])), 1);
+
+    return (
+        // 撑满所在列高度（与左侧饼图列等高），列表行在剩余高度内均匀分布，避免底部留白
+        <div className="flex h-full min-w-0 flex-1 flex-col">
+            <div className="mb-2 flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
+                <span className="flex-shrink-0 text-[12px] font-medium text-gray-600">{title}</span>
+                <span className="min-w-0 truncate text-[11px] text-gray-400" title={`${tip}，按毛利率倒序`}>
+                    （{tip}，按毛利率倒序）
+                </span>
+            </div>
+            {list.length === 0 ? (
+                <div className="flex min-h-[200px] flex-1 items-center justify-center text-sm text-gray-400">暂无数据</div>
+            ) : (
+                <div className="flex flex-1 flex-col gap-2">
+                    <div className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap border-b border-gray-100 pb-1 text-[11px] text-gray-400">
+                        <span className="w-7 flex-shrink-0 text-center">排名</span>
+                        <span className="min-w-0 flex-1">{nameHeader}</span>
+                        <span className="w-[60px] flex-shrink-0 text-right">毛利率</span>
+                        <span className="w-[76px] flex-shrink-0 text-right">环比</span>
+                    </div>
+                    <div className="flex flex-1 flex-col justify-between gap-2">
+                    {list.map((u, i) => {
+                        const v = u[marginKey];
+                        const prev = prevMap.get(u.name);
+                        const pct = (Math.abs(v) / maxAbs) * 100;
+                        return (
+                            <div key={u.name} className="flex items-center gap-2 rounded-sm hover:bg-gray-50">
+                                <span
+                                    className={`w-7 flex-shrink-0 text-center text-[11px] font-semibold ${i < 3 ? "text-amber-600" : "text-gray-400"}`}
+                                >
+                                    {i + 1}
+                                </span>
+                                {/* 结算单元名称 + 下方细条形（长度 = |毛利率| / 榜内最大 |毛利率|） */}
+                                <div className="min-w-0 flex-1">
+                                    <div className="truncate text-[11px] leading-tight text-gray-600" title={u.name}>
+                                        {u.name.replace(/^智汇云-/, "")}
+                                    </div>
+                                    <div className="mt-1.5 h-2 overflow-hidden rounded-sm bg-gray-100">
+                                        <div
+                                            className="h-full rounded-sm"
+                                            style={{ width: `${pct}%`, background: v >= 0 ? color : "#ef4444" }}
+                                        />
+                                    </div>
+                                </div>
+                                <span className={`w-[60px] flex-shrink-0 whitespace-nowrap text-right text-[11px] font-medium ${v >= 0 ? "text-gray-900" : "text-red-500"}`}>
+                                    {v.toFixed(2)}%
+                                </span>
+                                <span className="w-[76px] flex-shrink-0 whitespace-nowrap text-right leading-none">
+                                    {prev === undefined ? (
+                                        <span className="text-[12px] text-gray-400">环比 -</span>
+                                    ) : (
+                                        <OverallMomBadge mom={calcMarginMom(v, prev)} isMargin />
+                                    )}
+                                </span>
+                            </div>
+                        );
+                    })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// 整体分析 - 毛利率 TOP 榜数据映射（结算单元 / 部门 → 通用项）
+const toMarginTopItem = (name: string, r: Omit<MarginTopItem, "name">): MarginTopItem => ({
+    name,
+    innerTotalRevenue: r.innerTotalRevenue,
+    outerRevenue: r.outerRevenue,
+    innerMargin: r.innerMargin,
+    outerMargin: r.outerMargin,
+});
+
+// 整体分析 - 结算单元毛利率 TOP 榜
+const OverallUnitMarginTop = ({
+    units,
+    prevUnits,
+    ...rest
+}: {
+    units: OverallUnitRow[];
+    prevUnits?: OverallUnitRow[];
+    marginKey: "innerMargin" | "outerMargin";
+    title: string;
+    tip: string;
+    color: string;
+    limit?: number;
+}) => (
+    <OverallMarginTop
+        items={units.map((u) => toMarginTopItem(u.unit, u))}
+        prevItems={prevUnits?.map((u) => toMarginTopItem(u.unit, u))}
+        nameHeader="结算单元"
+        {...rest}
+    />
+);
+
+// 整体分析 - 部门毛利率 TOP 榜（口径与结算单元一致：部门毛利率按关联结算单元合计值计算）
+const OverallDeptMarginTop = ({
+    depts,
+    prevDepts,
+    ...rest
+}: {
+    depts: OverallDeptRow[];
+    prevDepts?: OverallDeptRow[];
+    marginKey: "innerMargin" | "outerMargin";
+    title: string;
+    tip: string;
+    color: string;
+    limit?: number;
+}) => (
+    <OverallMarginTop
+        items={depts.map((d) => toMarginTopItem(d.name, d))}
+        prevItems={prevDepts?.map((d) => toMarginTopItem(d.name, d))}
+        nameHeader="部门"
+        {...rest}
+    />
+);
+
+// 整体分析 - 部门收入/成本分布饼图（与结算单元一致：支持上一账期环比与尺寸）
 const OverallDeptPieChart = ({
     depts,
     valueKey,
     title,
     color,
+    prevDepts,
+    size,
 }: {
     depts: OverallDeptRow[];
     valueKey: "totalRevenue" | "productCost";
     title: string;
     color: string;
+    prevDepts?: OverallDeptRow[];
+    size?: number;
 }) => (
     <OverallPieChart
         items={depts.map((d) => ({ name: d.name, totalRevenue: d.totalRevenue, productCost: d.productCost }))}
+        prevItems={prevDepts?.map((d) => ({ name: d.name, totalRevenue: d.totalRevenue, productCost: d.productCost }))}
         valueKey={valueKey}
         title={title}
         color={color}
+        size={size}
     />
 );
 
@@ -4945,6 +5282,114 @@ const OverallMomBadge = ({
     );
 };
 
+// 整体分析 - 统计表金额单元格（上行金额，下行环比；hover 展示精确值）
+// highlight 为重点列高亮底色：inner=浅橙 / outer=浅蓝（与「产品分析」口径一致）
+const OverallSumCell = ({
+    value,
+    mom,
+    highlight,
+}: {
+    value: number;
+    mom: { pct: number; up: boolean; valid?: boolean };
+    highlight?: "inner" | "outer";
+}) => {
+    const highlightBg = highlight === "inner" ? "bg-orange-50/70" : highlight === "outer" ? "bg-blue-50/70" : "";
+    return (
+        <td className={`px-3 py-3 text-right text-sm whitespace-nowrap ${highlightBg}`}>
+            <span className="group/amt relative inline-block text-gray-900">
+                {formatWan(value)}
+                <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] text-white shadow-lg group-hover/amt:block">
+                    {formatExactAmount(value)}
+                    <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                </span>
+            </span>
+            <div className="mt-0.5"><OverallMomBadge mom={mom} /></div>
+        </td>
+    );
+};
+
+// 整体分析 - 统计表毛利率单元格（单独计算：内结毛利率 = 内结算价利润合计 / 内结算总收入合计；
+// 外部毛利率 = 外部利润合计 / 企业外收入合计。环比为百分点差值）
+const OverallSumMarginCell = ({
+    value,
+    mom,
+}: {
+    value: number;
+    mom: { pct: number; up: boolean };
+}) => (
+    <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+        <span className={value < 0 ? "text-red-500" : "text-gray-900"}>{value.toFixed(2)}%</span>
+        <div className="mt-0.5"><OverallMomBadge mom={mom} isMargin /></div>
+    </td>
+);
+
+// 整体分析 - 统计模块字段卡片（替代原宽表格的单元格：金额 / 毛利率两类）
+// highlight 为重点字段底色：inner=浅橙（企业内收入口径）/ outer=浅蓝（企业外收入口径），与「产品分析」一致
+const OverallStatFieldCard = ({
+    label,
+    value,
+    mom,
+    type = "amount",
+    tip,
+    highlight,
+    valueClass,
+}: {
+    label: string;
+    value: number;
+    mom: { pct: number; up: boolean; valid?: boolean };
+    type?: "amount" | "margin";
+    tip?: string;
+    highlight?: "inner" | "outer";
+    valueClass?: string;
+}) => {
+    const shellClass =
+        highlight === "inner"
+            ? "border-orange-100 bg-orange-50/70"
+            : highlight === "outer"
+                ? "border-blue-100 bg-blue-50/70"
+                : "border-gray-200 bg-gray-50/60";
+    const tone = valueClass ?? (value < 0 ? "text-red-500" : "text-gray-900");
+    return (
+        <div className={`rounded-lg border px-4 py-3 transition-shadow hover:shadow-sm ${shellClass}`}>
+            <div className="flex items-start gap-1 text-[12px] leading-[1.5] text-gray-500">
+                <span className="min-w-0 flex-1">{label}</span>
+                {tip && (
+                    <span className="group/tip relative mt-0.5 inline-flex flex-shrink-0">
+                        <svg className="h-3.5 w-3.5 text-gray-400 hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 hidden w-[220px] -translate-x-1/2 rounded bg-gray-700 px-2.5 py-1.5 text-left text-[12px] font-normal leading-[1.6] text-white shadow-lg group-hover/tip:block">
+                            {tip}
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-700" />
+                        </span>
+                    </span>
+                )}
+            </div>
+            <div className="mt-2 flex items-end justify-between gap-2">
+                <span className={`group/amt relative inline-block text-[20px] font-semibold leading-none ${tone}`}>
+                    {type === "margin" ? `${value.toFixed(2)}%` : formatWan(value)}
+                    {type === "amount" && (
+                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                            {formatExactAmount(value)}
+                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                        </span>
+                    )}
+                </span>
+                <OverallMomBadge mom={mom} isMargin={type === "margin"} />
+            </div>
+        </div>
+    );
+};
+
+// 整体分析 - 统计模块分组标题（左侧色条 + 文案 + 口径说明）
+const OverallStatGroupTitle = ({ title, desc, barClass = "bg-blue-500" }: { title: string; desc?: string; barClass?: string }) => (
+    <div className="mb-2.5 flex items-center gap-2">
+        <span className={`h-3 w-[3px] rounded-full ${barClass}`} />
+        <span className="text-[13px] font-semibold leading-none text-gray-800">{title}</span>
+        {desc && <span className="text-[12px] leading-none text-gray-400">{desc}</span>}
+    </div>
+);
+
 // 整体分析 - 指标卡片（金额类：hover 展示精确值 + 环比；毛利率类：展示百分比 + 环比百分点）
 const OverallMetricCard = ({
     label,
@@ -4977,18 +5422,37 @@ const OverallMetricCard = ({
 );
 
 // 整体分析 - 数量概览小卡（产品 / 结算单元数量统计，支持问号说明）
+// 整体分析 - 数量环比徽标（与上一账期数量对比，相对百分比；持平 / 上期为 0 时特殊展示）
+const OverallCountMom = ({ cur, prev }: { cur: number; prev?: number }) => {
+    if (prev === undefined || prev === 0) return <span className="text-[12px] leading-none text-gray-400">环比 -</span>;
+    const diff = cur - prev;
+    if (diff === 0) return <span className="text-[12px] leading-none text-gray-400">环比 持平</span>;
+    const up = diff > 0;
+    return (
+        <span className={`inline-flex items-center gap-0.5 text-[12px] leading-none ${up ? "text-red-500" : "text-green-600"}`} title={`上一账期：${prev}`}>
+            <span className="text-gray-400">环比</span>
+            <span className="text-[10px] leading-none">{up ? "▲" : "▼"}</span>
+            {Math.abs((diff / prev) * 100).toFixed(2)}%
+        </span>
+    );
+};
+
 const OverallCountCard = ({
     label,
     value,
     valueClass = "text-gray-900",
     tip,
     onClick,
+    prev,
+    showMom = false,
 }: {
     label: string;
     value: number;
     valueClass?: string;
     tip?: string;
     onClick?: () => void;
+    prev?: number;       // 上一账期数量
+    showMom?: boolean;   // 是否展示环比
 }) => (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-4 py-3">
         <div className="flex items-center gap-1 text-[12px] leading-none text-gray-500">
@@ -5005,13 +5469,16 @@ const OverallCountCard = ({
                 </span>
             )}
         </div>
-        <div
-            onClick={onClick}
-            className={`mt-1.5 text-[22px] font-semibold leading-none ${valueClass} ${
-                onClick ? "cursor-pointer hover:opacity-80" : ""
-            }`}
-        >
-            {value}
+        <div className="mt-1.5 flex items-end justify-between gap-2">
+            <div
+                onClick={onClick}
+                className={`text-[22px] font-semibold leading-none ${valueClass} ${
+                    onClick ? "cursor-pointer hover:opacity-80" : ""
+                }`}
+            >
+                {value}
+            </div>
+            {showMom && <OverallCountMom cur={value} prev={prev} />}
         </div>
     </div>
 );
@@ -5022,7 +5489,7 @@ const OverallCountPairCard = ({
     items,
 }: {
     title?: string;
-    items: { label: string; value: number; valueClass?: string; tip?: string; onClick?: () => void }[];
+    items: { label: string; value: number; valueClass?: string; tip?: string; onClick?: () => void; prev?: number; showMom?: boolean }[];
 }) => (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-4 py-3">
         {title && <div className="mb-2 text-[12px] leading-none text-gray-500">{title}</div>}
@@ -5043,13 +5510,16 @@ const OverallCountPairCard = ({
                             </span>
                         )}
                     </div>
-                    <div
-                        onClick={it.onClick}
-                        className={`mt-1.5 text-[22px] font-semibold leading-none ${it.valueClass ?? "text-gray-900"} ${
-                            it.onClick ? "cursor-pointer hover:opacity-80" : ""
-                        }`}
-                    >
-                        {it.value}
+                    <div className="mt-1.5 flex items-end justify-between gap-2">
+                        <div
+                            onClick={it.onClick}
+                            className={`text-[22px] font-semibold leading-none ${it.valueClass ?? "text-gray-900"} ${
+                                it.onClick ? "cursor-pointer hover:opacity-80" : ""
+                            }`}
+                        >
+                            {it.value}
+                        </div>
+                        {it.showMom && <OverallCountMom cur={it.value} prev={it.prev} />}
                     </div>
                 </div>
             ))}
@@ -5078,33 +5548,37 @@ const OverallHorizontalBarCard = ({
     mom,
     items,
     valueClass = "text-blue-600",
+    className = "",
 }: {
     label: string;
-    tip: string;
-    value: number;
-    mom: { pct: number; up: boolean; valid?: boolean };
+    tip?: string;
+    value?: number; // 不传时不展示汇总金额，仅展示分项（如「内结收入」）
+    mom?: { pct: number; up: boolean; valid?: boolean };
     items: { label: string; value: number; color: string; tip?: string; mom?: { pct: number; up: boolean; valid?: boolean } }[];
     valueClass?: string;
+    className?: string; // 外层追加样式（如 flex-1 撑满同行高度）
 }) => {
     const maxVal = Math.max(...items.map((i) => i.value), 1);
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className={`flex flex-col rounded-lg border border-gray-200 bg-white p-5 ${className}`}>
             <div className="mb-2 flex items-center gap-1 text-sm text-gray-500">
                 <span>{label}</span>
-                <OverallTipIcon tip={tip} />
+                {tip && <OverallTipIcon tip={tip} />}
             </div>
-            <div className="flex items-end justify-between gap-2">
-                <span className={`group/amt relative inline-block text-2xl font-bold ${valueClass}`}>
-                    {formatWan(value)}
-                    <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                        {formatExactAmount(value)}
-                        <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+            {value !== undefined && (
+                <div className="flex items-end justify-between gap-2">
+                    <span className={`group/amt relative inline-block text-2xl font-bold ${valueClass}`}>
+                        {formatWan(value)}
+                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                            {formatExactAmount(value)}
+                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+                        </span>
                     </span>
-                </span>
-                <OverallMomBadge mom={mom} />
-            </div>
-            {/* 分组横向柱状图 */}
-            <div className="mt-4 space-y-3">
+                    {mom && <OverallMomBadge mom={mom} />}
+                </div>
+            )}
+            {/* 分组横向柱状图（卡片被拉伸时，柱状图区域在剩余空间内垂直均分，避免底部大块留白） */}
+            <div className={`${value !== undefined ? "mt-4" : "mt-3"} flex flex-1 flex-col justify-evenly gap-3`}>
                 {items.map((it) => (
                     <div key={it.label}>
                         <div className="mb-1 flex items-center justify-between text-[12px] text-gray-500">
@@ -5136,7 +5610,50 @@ const OverallHorizontalBarCard = ({
     );
 };
 
-// 整体分析 - 总收入层级结构卡片（根据多企业开关展示不同层级：企业内收入 → 内结/外结；多企业开启时额外展示企业外收入）
+// 整体分析 - 层级卡片中的子项行（名称 + 金额 + 环比 + 占比条）
+type OverallMomValue = { pct: number; up: boolean; valid?: boolean };
+const OverallRevenueSubRow = ({
+    name,
+    tip,
+    value,
+    mom,
+    maxVal,
+    color,
+}: {
+    name: string;
+    tip: string;
+    value: number;
+    mom: OverallMomValue;
+    maxVal: number;
+    color: string;
+}) => (
+    <div>
+        {/* 名称与金额同行展示（空间不足时自动换行），压缩卡片高度 */}
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 text-[12px] text-gray-500">
+            <div className="flex min-w-0 items-center gap-1">
+                <span className="min-w-0 break-words">{name}</span>
+                <OverallTipIcon tip={tip} />
+            </div>
+            <div className="ml-auto flex items-center gap-x-2">
+                <span className="group/amt relative inline-block whitespace-nowrap text-gray-700">
+                    {formatWan(value)}
+                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                        {formatExactAmount(value)}
+                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                    </span>
+                </span>
+                <OverallMomBadge mom={mom} />
+            </div>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="h-2 rounded-full" style={{ width: `${Math.max(0, (value / maxVal) * 100)}%`, backgroundColor: color }} />
+        </div>
+    </div>
+);
+
+// 整体分析 - 总收入层级结构卡片（月/日/小时报表通用）
+//   企业内收入 = 企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入
+//   外部收入 = 企业内外部结算收入 + 企业外收入（仅多企业开启时展示；展示文案已按需求与「企业外收入」互换）
 const OverallHierarchicalRevenueCard = ({
     label,
     tip,
@@ -5145,30 +5662,42 @@ const OverallHierarchicalRevenueCard = ({
     valueClass = "text-blue-600",
     allowMultiEnterprise,
     innerRevenue,
-    innerSettleRevenue,
-    innerBizRevenue,
+    innerNonZyunRevenue,
+    zyunNonUnitRevenue,
+    unitRevenue,
     outerRevenue,
+    outerGroupRevenue,
+    outerPortalRevenue,
     innerMom,
-    innerSettleMom,
-    innerBizMom,
+    innerNonZyunMom,
+    zyunNonUnitMom,
+    unitMom,
     outerMom,
+    outerGroupMom,
+    outerPortalMom,
 }: {
     label: string;
     tip: string;
     totalValue: number;
-    mom: { pct: number; up: boolean; valid?: boolean };
+    mom: OverallMomValue;
     valueClass?: string;
     allowMultiEnterprise: boolean;
     innerRevenue: number;
-    innerSettleRevenue: number;
-    innerBizRevenue: number;
+    innerNonZyunRevenue: number;
+    zyunNonUnitRevenue: number;
+    unitRevenue: number;
     outerRevenue: number;
-    innerMom: { pct: number; up: boolean; valid?: boolean };
-    innerSettleMom: { pct: number; up: boolean; valid?: boolean };
-    innerBizMom: { pct: number; up: boolean; valid?: boolean };
-    outerMom: { pct: number; up: boolean; valid?: boolean };
+    outerGroupRevenue: number;
+    outerPortalRevenue: number;
+    innerMom: OverallMomValue;
+    innerNonZyunMom: OverallMomValue;
+    zyunNonUnitMom: OverallMomValue;
+    unitMom: OverallMomValue;
+    outerMom: OverallMomValue;
+    outerGroupMom: OverallMomValue;
+    outerPortalMom: OverallMomValue;
 }) => {
-    const maxVal = Math.max(innerRevenue, innerSettleRevenue, innerBizRevenue, ...(allowMultiEnterprise ? [outerRevenue] : []), 1);
+    const maxVal = Math.max(innerRevenue, ...(allowMultiEnterprise ? [outerRevenue] : []), 1);
     return (
         <div className="rounded-lg border border-gray-200 bg-white p-5">
             {/* 卡片头部：总收入 + 环比 */}
@@ -5189,12 +5718,12 @@ const OverallHierarchicalRevenueCard = ({
 
             {/* 企业内收入分组（始终展示） */}
             <div className="mt-4 rounded-md border border-blue-100 bg-blue-50/40 p-3">
-                <div className="mb-2 flex items-center justify-between text-[12px] text-gray-600">
-                    <span className="inline-flex items-center gap-1 font-medium">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[12px] text-gray-600">
+                    <span className="inline-flex items-center gap-1 whitespace-nowrap font-medium">
                         <span>企业内收入(元)</span>
-                        <OverallTipIcon tip="标记为内部企业的账号的账单金额总和" />
+                        <OverallTipIcon tip="企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入" />
                     </span>
-                    <span className="flex items-center gap-2">
+                    <span className="ml-auto flex items-center gap-2 whitespace-nowrap">
                         <span className="group/amt relative inline-block font-medium text-gray-800">
                             {formatWan(innerRevenue)}
                             <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
@@ -5209,64 +5738,44 @@ const OverallHierarchicalRevenueCard = ({
                     <div className="h-2.5 rounded-full bg-blue-500" style={{ width: `${(innerRevenue / maxVal) * 100}%` }} />
                 </div>
 
-                {/* 企业内收入子项：内结收入 + 外结收入 */}
+                {/* 企业内收入子项：企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入 */}
                 <div className="space-y-2 border-l-2 border-blue-200 pl-3">
-                    {/* 内结收入 */}
-                    <div>
-                        <div className="mb-1 flex items-center justify-between text-[12px] text-gray-500">
-                            <span className="inline-flex items-center gap-1">
-                                <span>内结收入(元)</span>
-                                <OverallTipIcon tip="经营属性为「内结」的结算单元账单金额和" />
-                            </span>
-                            <span className="flex items-center gap-2">
-                                <span className="group/amt relative inline-block text-gray-700">
-                                    {formatWan(innerSettleRevenue)}
-                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                                        {formatExactAmount(innerSettleRevenue)}
-                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                    </span>
-                                </span>
-                                <OverallMomBadge mom={innerSettleMom} />
-                            </span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                            <div className="h-2 rounded-full" style={{ width: `${(innerSettleRevenue / maxVal) * 100}%`, backgroundColor: "#1d4ed8" }} />
-                        </div>
-                    </div>
-                    {/* 外结收入 */}
-                    <div>
-                        <div className="mb-1 flex items-center justify-between text-[12px] text-gray-500">
-                            <span className="inline-flex items-center gap-1">
-                                <span>外结收入(元)</span>
-                                <OverallTipIcon tip="标记为内部企业的账号中，经营属性为「经营」的结算单元账单金额和" />
-                            </span>
-                            <span className="flex items-center gap-2">
-                                <span className="group/amt relative inline-block text-gray-700">
-                                    {formatWan(innerBizRevenue)}
-                                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                                        {formatExactAmount(innerBizRevenue)}
-                                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                    </span>
-                                </span>
-                                <OverallMomBadge mom={innerBizMom} />
-                            </span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                            <div className="h-2 rounded-full" style={{ width: `${(innerBizRevenue / maxVal) * 100}%`, backgroundColor: "#3b82f6" }} />
-                        </div>
-                    </div>
+                    <OverallRevenueSubRow
+                        name="企业内非智汇云收入(元)"
+                        tip="内部企业账号中，非智汇云产品的账单金额和"
+                        value={innerNonZyunRevenue}
+                        mom={innerNonZyunMom}
+                        maxVal={maxVal}
+                        color="#1d4ed8"
+                    />
+                    <OverallRevenueSubRow
+                        name="智汇云内非本结算单元收入(元)"
+                        tip="内部企业账号中，智汇云产品但不属于本结算单元的账单金额和"
+                        value={zyunNonUnitRevenue}
+                        mom={zyunNonUnitMom}
+                        maxVal={maxVal}
+                        color="#3b82f6"
+                    />
+                    <OverallRevenueSubRow
+                        name="本结算单元收入(元)"
+                        tip="内部企业账号中，本结算单元产生的账单金额和"
+                        value={unitRevenue}
+                        mom={unitMom}
+                        maxVal={maxVal}
+                        color="#60a5fa"
+                    />
                 </div>
             </div>
 
-            {/* 企业外收入（仅多企业开启时展示） */}
+            {/* 外部收入分组（仅多企业开启时展示） */}
             {allowMultiEnterprise && (
-                <div className="mt-3">
-                    <div className="mb-1 flex items-center justify-between text-[12px] text-gray-600">
-                        <span className="inline-flex items-center gap-1 font-medium">
-                            <span>企业外收入(元)</span>
-                            <OverallTipIcon tip="非标记为内部企业的账号的账单金额" />
+                <div className="mt-3 rounded-md border border-sky-100 bg-sky-50/40 p-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[12px] text-gray-600">
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap font-medium">
+                            <span>外部收入(元)</span>
+                            <OverallTipIcon tip="企业内外部结算收入 + 企业外收入" />
                         </span>
-                        <span className="flex items-center gap-2">
+                        <span className="ml-auto flex items-center gap-2 whitespace-nowrap">
                             <span className="group/amt relative inline-block font-medium text-gray-800">
                                 {formatWan(outerRevenue)}
                                 <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
@@ -5277,8 +5786,28 @@ const OverallHierarchicalRevenueCard = ({
                             <OverallMomBadge mom={outerMom} />
                         </span>
                     </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-                        <div className="h-2.5 rounded-full bg-blue-300" style={{ width: `${(outerRevenue / maxVal) * 100}%` }} />
+                    <div className="mb-3 h-2.5 w-full overflow-hidden rounded-full bg-sky-100">
+                        <div className="h-2.5 rounded-full bg-sky-500" style={{ width: `${(outerRevenue / maxVal) * 100}%` }} />
+                    </div>
+
+                    {/* 外部收入子项：企业内外部结算收入 + 企业外收入 */}
+                    <div className="space-y-2 border-l-2 border-sky-200 pl-3">
+                        <OverallRevenueSubRow
+                            name="企业内外部结算收入(元)"
+                            tip="内部企业账号中，按外部价格结算的账单金额和"
+                            value={outerGroupRevenue}
+                            mom={outerGroupMom}
+                            maxVal={maxVal}
+                            color="#0284c7"
+                        />
+                        <OverallRevenueSubRow
+                            name="企业外收入(元)"
+                            tip="非内部企业账号（外部Portal 360.cn）的账单金额和"
+                            value={outerPortalRevenue}
+                            mom={outerPortalMom}
+                            maxVal={maxVal}
+                            color="#38bdf8"
+                        />
                     </div>
                 </div>
             )}
@@ -5286,61 +5815,110 @@ const OverallHierarchicalRevenueCard = ({
     );
 };
 
-// 整体分析 - 毛利率合并卡片（整体内结毛利率 + 整体外部毛利率）
+// 整体分析 - 毛利及毛利率合并卡片（两行两列：内结价利润 | 整体内部毛利率；外部利润 | 整体外部毛利率）
 const OverallMarginCard = ({
     innerLabel,
     innerTip,
     innerValue,
     innerMom,
+    innerProfitLabel,
+    innerProfitTip,
+    innerProfit,
+    innerProfitMom,
     outerLabel,
     outerTip,
     outerValue,
     outerMom,
+    outerProfitLabel,
+    outerProfitTip,
+    outerProfit,
+    outerProfitMom,
 }: {
     innerLabel: string;
     innerTip: string;
     innerValue: number;
     innerMom: { pct: number; up: boolean; valid?: boolean };
+    innerProfitLabel: string;
+    innerProfitTip: string;
+    innerProfit: number;
+    innerProfitMom: { pct: number; up: boolean; valid?: boolean };
     outerLabel: string;
     outerTip: string;
     outerValue: number;
     outerMom: { pct: number; up: boolean; valid?: boolean };
+    outerProfitLabel: string;
+    outerProfitTip: string;
+    outerProfit: number;
+    outerProfitMom: { pct: number; up: boolean; valid?: boolean };
 }) => (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <div className="mb-3 text-sm text-gray-500">毛利率</div>
-        <div className="space-y-4">
-            <div>
-                <div className="mb-1 flex items-center gap-1 text-[12px] text-gray-500">
-                    <span>{innerLabel}</span>
-                    <OverallTipIcon tip={innerTip} />
-                </div>
-                <div className="flex items-end justify-between gap-2">
-                    <span className="group/mom relative inline-block text-2xl font-bold text-green-600">
-                        {innerValue.toFixed(2)}%
-                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/mom:block">
-                            较上个账期{innerMom.up ? "增加" : "下降"}{innerMom.pct.toFixed(2)}个点
-                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
-                        </span>
-                    </span>
-                    <OverallMomBadge mom={innerMom} isMargin />
-                </div>
-            </div>
-            <div className="border-t border-gray-100 pt-4">
-                <div className="mb-1 flex items-center gap-1 text-[12px] text-gray-500">
-                    <span>{outerLabel}</span>
-                    <OverallTipIcon tip={outerTip} />
-                </div>
-                <div className="flex items-end justify-between gap-2">
-                    <span className="group/mom relative inline-block text-2xl font-bold text-green-600">
-                        {outerValue.toFixed(2)}%
-                        <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/mom:block">
-                            较上个账期{outerMom.up ? "增加" : "下降"}{outerMom.pct.toFixed(2)}个点
-                            <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
-                        </span>
-                    </span>
-                    <OverallMomBadge mom={outerMom} isMargin />
-                </div>
-            </div>
+    <div className="flex flex-col rounded-lg border border-gray-200 bg-white p-5">
+        <div className="mb-3 text-sm text-gray-500">毛利及毛利率</div>
+        {/* 两行两列：第一行 内结价利润 | 整体内部毛利率；第二行 外部利润 | 整体外部毛利率（随卡片高度均分撑满） */}
+        <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-3">
+            <OverallProfitCell label={innerProfitLabel} tip={innerProfitTip} value={innerProfit} mom={innerProfitMom} />
+            <OverallMarginCell label={innerLabel} tip={innerTip} value={innerValue} mom={innerMom} />
+            <OverallProfitCell label={outerProfitLabel} tip={outerProfitTip} value={outerProfit} mom={outerProfitMom} />
+            <OverallMarginCell label={outerLabel} tip={outerTip} value={outerValue} mom={outerMom} />
+        </div>
+    </div>
+);
+
+// 整体分析 - 毛利及毛利率卡片：利润金额单元格（名称 + 金额(hover 精确值) + 环比）
+const OverallProfitCell = ({
+    label,
+    tip,
+    value,
+    mom,
+}: {
+    label: string;
+    tip: string;
+    value: number;
+    mom: { pct: number; up: boolean; valid?: boolean };
+}) => (
+    <div className="flex flex-col justify-center rounded-md bg-gray-50 px-3 py-3">
+        <div className="mb-1.5 flex items-center gap-1 text-[12px] text-gray-500">
+            <span>{label}</span>
+            <OverallTipIcon tip={tip} />
+        </div>
+        <div className={`group/amt relative inline-block self-start text-xl font-bold ${value < 0 ? "text-red-500" : "text-gray-800"}`}>
+            {formatWan(value)}
+            <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                {formatExactAmount(value)}
+                <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+            </span>
+        </div>
+        <div className="mt-1">
+            <OverallMomBadge mom={mom} />
+        </div>
+    </div>
+);
+
+// 整体分析 - 毛利及毛利率卡片：毛利率单元格（名称 + 百分比(hover 环比说明) + 环比百分点）
+const OverallMarginCell = ({
+    label,
+    tip,
+    value,
+    mom,
+}: {
+    label: string;
+    tip: string;
+    value: number;
+    mom: { pct: number; up: boolean; valid?: boolean };
+}) => (
+    <div className="flex flex-col justify-center rounded-md bg-gray-50 px-3 py-3">
+        <div className="mb-1.5 flex items-center gap-1 text-[12px] text-gray-500">
+            <span>{label}</span>
+            <OverallTipIcon tip={tip} />
+        </div>
+        <div className={`group/mom relative inline-block self-start text-xl font-bold ${value < 0 ? "text-red-500" : "text-green-600"}`}>
+            {value.toFixed(2)}%
+            <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 hidden whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/mom:block">
+                较上个账期{mom.up ? "增加" : "下降"}{mom.pct.toFixed(2)}个点
+                <span className="absolute left-4 top-full border-4 border-transparent border-t-gray-700" />
+            </span>
+        </div>
+        <div className="mt-1">
+            <OverallMomBadge mom={mom} isMargin />
         </div>
     </div>
 );
@@ -5382,6 +5960,10 @@ export default function AdminPage() {
     const [overallTopType, setOverallTopType] = useState<"revenue" | "cost" | "innerMargin" | "outerMargin">("revenue"); // 产品TOP维度：收入TOP / 成本TOP / 内结毛利率TOP / 外部毛利率TOP
     // 整体分析 - 产品数量卡片点击抽屉（按筛选维度展示产品列表）
     const [overallCountDrawer, setOverallCountDrawer] = useState<{ title: string; rows: OverallProductRow[] } | null>(null);
+    // 整体分析 - 结算单元数量卡片点击抽屉（有收入 / 盈利 / 亏损 / 异常）
+    const [overallUnitCountDrawer, setOverallUnitCountDrawer] = useState<{ title: string; rows: OverallUnitRow[] } | null>(null);
+    // 整体分析 - 部门数量卡片点击抽屉（口径同结算单元数量卡片）
+    const [overallDeptCountDrawer, setOverallDeptCountDrawer] = useState<{ title: string; rows: OverallDeptRow[] } | null>(null);
 
     // 趋势 - 时间区间（月趋势最多 6 个月 / 日趋势最多 31 天 / 小时趋势最多 7 天）
     const [overallTrendMonthStart, setOverallTrendMonthStart] = useState("2026-03");
@@ -5486,7 +6068,17 @@ export default function AdminPage() {
             innerRevenue: cur.innerRevenue,
             innerSettleRevenue: cur.innerSettleRevenue,
             innerBizRevenue: cur.innerBizRevenue,
+            innerNonZyunRevenue: cur.innerNonZyunRevenue,
+            zyunNonUnitRevenue: cur.zyunNonUnitRevenue,
+            unitRevenue: cur.unitRevenue,
             outerRevenue: cur.outerRevenue,
+            outerGroupRevenue: cur.outerGroupRevenue,
+            outerPortalRevenue: cur.outerPortalRevenue,
+            outerInnerPriceRevenue: cur.outerInnerPriceRevenue,
+            innerTotalRevenue: cur.innerTotalRevenue,
+            innerProfit: cur.innerProfit,
+            outerProfit: cur.outerProfit,
+            balance: cur.balance,
             innerMargin: cur.innerMargin,
             outerMargin: cur.outerMargin,
             mom: {
@@ -5497,7 +6089,17 @@ export default function AdminPage() {
                 innerRevenue: mom(cur.innerRevenue, prev?.innerRevenue),
                 innerSettleRevenue: mom(cur.innerSettleRevenue, prev?.innerSettleRevenue),
                 innerBizRevenue: mom(cur.innerBizRevenue, prev?.innerBizRevenue),
+                innerNonZyunRevenue: mom(cur.innerNonZyunRevenue, prev?.innerNonZyunRevenue),
+                zyunNonUnitRevenue: mom(cur.zyunNonUnitRevenue, prev?.zyunNonUnitRevenue),
+                unitRevenue: mom(cur.unitRevenue, prev?.unitRevenue),
                 outerRevenue: mom(cur.outerRevenue, prev?.outerRevenue),
+                outerGroupRevenue: mom(cur.outerGroupRevenue, prev?.outerGroupRevenue),
+                outerPortalRevenue: mom(cur.outerPortalRevenue, prev?.outerPortalRevenue),
+                outerInnerPriceRevenue: mom(cur.outerInnerPriceRevenue, prev?.outerInnerPriceRevenue),
+                innerTotalRevenue: mom(cur.innerTotalRevenue, prev?.innerTotalRevenue),
+                innerProfit: mom(cur.innerProfit, prev?.innerProfit),
+                outerProfit: mom(cur.outerProfit, prev?.outerProfit),
+                balance: mom(cur.balance, prev?.balance),
                 innerMargin: marginMom(cur.innerMargin, prev?.innerMargin),
                 outerMargin: marginMom(cur.outerMargin, prev?.outerMargin),
             },
@@ -5527,8 +6129,19 @@ export default function AdminPage() {
         });
     }, [overallChartRows, overallBillType, overallPrevPeriod]);
 
+    // 整体分析 - 上一账期的产品维度数据（用于数量卡片 / 分布饼图的环比）
+    const overallPrevProductRows = useMemo(
+        () => (overallPrevPeriod ? buildOverallProductRows(overallPrevPeriod, overallBillType) : []),
+        [overallPrevPeriod, overallBillType]
+    );
+
     // 整体分析 - 产品数量概览
     const overallProductStats = useMemo(() => buildOverallProductStats(overallProductRows), [overallProductRows]);
+    // 整体分析 - 上一账期产品数量概览（无上期数据时为 null，卡片显示"环比 -"）
+    const overallPrevProductStats = useMemo(
+        () => (overallPrevProductRows.length ? buildOverallProductStats(overallPrevProductRows) : null),
+        [overallPrevProductRows]
+    );
 
     // 整体分析 - 产品数量卡片点击抽屉数据（与卡片口径一致）
     const overallCountDrawerRows = useMemo(
@@ -5559,40 +6172,24 @@ export default function AdminPage() {
     // 整体分析 - 结算单元聚合数据与数量概览
     const overallUnitRows = useMemo(() => buildOverallUnitRows(overallProductRows), [overallProductRows]);
     const overallUnitStats = useMemo(() => buildOverallUnitStats(overallUnitRows), [overallUnitRows]);
+    // 整体分析 - 上一账期结算单元聚合数据与数量概览（用于环比）
+    const overallPrevUnitRows = useMemo(() => buildOverallUnitRows(overallPrevProductRows), [overallPrevProductRows]);
+    const overallPrevUnitStats = useMemo(
+        () => (overallPrevUnitRows.length ? buildOverallUnitStats(overallPrevUnitRows) : null),
+        [overallPrevUnitRows]
+    );
 
-    // 整体分析 - 部门聚合数据
-    // 数据源即「结算单元概览」的 overallUnitRows：遍历所有结算单元，按配置归入所属部门
-    // （未配置的结算单元自成一个部门），因此两个模块的收入/成本始终一致并随账期联动
-    const overallDeptRows = useMemo(() => {
-        // 结算单元 → 部门配置 索引
-        const unitToCfg = new Map<string, OverallDeptConfig>();
-        overallDeptConfigs.forEach((cfg) => cfg.units.forEach((u) => unitToCfg.set(u, cfg)));
-
-        const deptMap = new Map<string, OverallDeptRow>();
-        overallUnitRows.forEach((u) => {
-            const cfg = unitToCfg.get(u.unit);
-            const name = cfg?.name ?? u.unit;
-            const path = cfg?.path ?? u.unit;
-            const cur =
-                deptMap.get(name) ??
-                { name, path, members: [] as OverallDeptMember[], totalRevenue: 0, innerRevenue: 0, innerSettleRevenue: 0, innerBizRevenue: 0, outerRevenue: 0, productCost: 0, innerCost: 0, outerCost: 0, profit: 0 };
-            cur.members.push({ unit: u.unit, totalRevenue: u.totalRevenue, productCost: u.productCost });
-            cur.totalRevenue += u.totalRevenue;
-            cur.innerRevenue += u.innerRevenue;
-            cur.innerSettleRevenue += u.innerSettleRevenue;
-            cur.innerBizRevenue += u.innerBizRevenue;
-            cur.outerRevenue += u.outerRevenue;
-            cur.productCost += u.productCost;
-            cur.innerCost += u.innerCost;
-            cur.outerCost += u.outerCost;
-            deptMap.set(name, cur);
-        });
-
-        return Array.from(deptMap.values())
-            .map((d) => ({ ...d, profit: d.totalRevenue - d.productCost }))
-            .sort((a, b) => b.totalRevenue - a.totalRevenue);
-    }, [overallUnitRows]);
+    // 整体分析 - 部门聚合数据与数量概览
+    // 数据源即「结算单元概览」的 overallUnitRows：一个部门关联多个结算单元，按配置归入所属部门
+    // （未配置的结算单元自成一个部门），因此两个模块的收入/成本及数量统计口径始终一致并随账期联动
+    const overallDeptRows = useMemo(() => buildOverallDeptRows(overallUnitRows), [overallUnitRows]);
     const overallDeptStats = useMemo(() => buildOverallDeptStats(overallDeptRows), [overallDeptRows]);
+    // 整体分析 - 上一账期部门聚合数据与数量概览（用于环比）
+    const overallPrevDeptRows = useMemo(() => buildOverallDeptRows(overallPrevUnitRows), [overallPrevUnitRows]);
+    const overallPrevDeptStats = useMemo(
+        () => (overallPrevDeptRows.length ? buildOverallDeptStats(overallPrevDeptRows) : null),
+        [overallPrevDeptRows]
+    );
 
     // 整体分析 - 选中账期展示标签（报表区标题说明）
     const overallPeriodLabel = useMemo(
@@ -9299,7 +9896,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>产品分析</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-department')}
@@ -9310,6 +9906,7 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>部门分析</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-monitor')}
@@ -9320,7 +9917,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>监控看板</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                             </div>
                         )}
@@ -13066,59 +13662,215 @@ export default function AdminPage() {
                                                 valueClass="text-blue-600"
                                                 allowMultiEnterprise={allowMultiEnterprise}
                                                 innerRevenue={overallReportSummary?.innerRevenue ?? 0}
-                                                innerSettleRevenue={overallReportSummary?.innerSettleRevenue ?? 0}
-                                                innerBizRevenue={overallReportSummary?.innerBizRevenue ?? 0}
+                                                innerNonZyunRevenue={overallReportSummary?.innerNonZyunRevenue ?? 0}
+                                                zyunNonUnitRevenue={overallReportSummary?.zyunNonUnitRevenue ?? 0}
+                                                unitRevenue={overallReportSummary?.unitRevenue ?? 0}
                                                 outerRevenue={overallReportSummary?.outerRevenue ?? 0}
+                                                outerGroupRevenue={overallReportSummary?.outerGroupRevenue ?? 0}
+                                                outerPortalRevenue={overallReportSummary?.outerPortalRevenue ?? 0}
                                                 innerMom={overallReportSummary?.mom.innerRevenue ?? { pct: 0, up: false, valid: false }}
-                                                innerSettleMom={overallReportSummary?.mom.innerSettleRevenue ?? { pct: 0, up: false, valid: false }}
-                                                innerBizMom={overallReportSummary?.mom.innerBizRevenue ?? { pct: 0, up: false, valid: false }}
+                                                innerNonZyunMom={overallReportSummary?.mom.innerNonZyunRevenue ?? { pct: 0, up: false, valid: false }}
+                                                zyunNonUnitMom={overallReportSummary?.mom.zyunNonUnitRevenue ?? { pct: 0, up: false, valid: false }}
+                                                unitMom={overallReportSummary?.mom.unitRevenue ?? { pct: 0, up: false, valid: false }}
                                                 outerMom={overallReportSummary?.mom.outerRevenue ?? { pct: 0, up: false, valid: false }}
+                                                outerGroupMom={overallReportSummary?.mom.outerGroupRevenue ?? { pct: 0, up: false, valid: false }}
+                                                outerPortalMom={overallReportSummary?.mom.outerPortalRevenue ?? { pct: 0, up: false, valid: false }}
                                             />
-                                            <OverallHorizontalBarCard
-                                                label="总成本(元)"
-                                                tip="选中时间，所有结算单元下资源组消费的账单金额总和+所有产品的外部收入。"
-                                                value={overallReportSummary?.productCost ?? 0}
-                                                mom={overallReportSummary?.mom.productCost ?? { pct: 0, up: false, valid: false }}
-                                                valueClass="text-orange-500"
-                                                items={[
-                                                    { label: "内部成本(元)", value: overallReportSummary?.innerCost ?? 0, color: "#f97316", tip: "选中时间，所有结算单元的资源组消费的金额总和。", mom: overallReportSummary?.mom.innerCost ?? { pct: 0, up: false, valid: false } },
-                                                    { label: "外部成本(元)", value: overallReportSummary?.outerCost ?? 0, color: "#fdba74", tip: "选中时间，所有产品的外部成本总和。", mom: overallReportSummary?.mom.outerCost ?? { pct: 0, up: false, valid: false } },
-                                                ]}
-                                            />
+                                            <div className="flex flex-col gap-4">
+                                                <OverallHorizontalBarCard
+                                                    className="flex-1"
+                                                    label="总成本(元)"
+                                                    tip="选中时间，所有结算单元下资源组消费的账单金额总和+所有产品的外部收入。"
+                                                    value={overallReportSummary?.productCost ?? 0}
+                                                    mom={overallReportSummary?.mom.productCost ?? { pct: 0, up: false, valid: false }}
+                                                    valueClass="text-orange-500"
+                                                    items={[
+                                                        { label: "内部成本(元)", value: overallReportSummary?.innerCost ?? 0, color: "#f97316", tip: "选中时间，所有结算单元的资源组消费的金额总和。", mom: overallReportSummary?.mom.innerCost ?? { pct: 0, up: false, valid: false } },
+                                                        { label: "外部成本(元)", value: overallReportSummary?.outerCost ?? 0, color: "#fdba74", tip: "选中时间，所有产品的外部成本总和。", mom: overallReportSummary?.mom.outerCost ?? { pct: 0, up: false, valid: false } },
+                                                    ]}
+                                                />
+                                                {/* 内结收入：内结算总收入 + 外部收入对应的内结算价收入 */}
+                                                <OverallHorizontalBarCard
+                                                    className="flex-1"
+                                                    label="内结收入"
+                                                    items={[
+                                                        { label: "内结算总收入(元)", value: overallReportSummary?.innerTotalRevenue ?? 0, color: "#0d9488", tip: "选中时间，所有产品按内结算价计算的收入总和。", mom: overallReportSummary?.mom.innerTotalRevenue ?? { pct: 0, up: false, valid: false } },
+                                                        { label: "外部收入对应的内结算价收入(元)", value: overallReportSummary?.outerInnerPriceRevenue ?? 0, color: "#5eead4", tip: "选中时间，所有产品的企业外收入按内结算价折算的收入总和。", mom: overallReportSummary?.mom.outerInnerPriceRevenue ?? { pct: 0, up: false, valid: false } },
+                                                    ]}
+                                                />
+                                            </div>
                                             <OverallMarginCard
-                                                innerLabel="整体内结毛利率"
-                                                innerTip="整体内结毛利率 = SUM (每个产品的内结价收入 - 成本) / SUM (每个产品的内结价收入)。"
+                                                innerLabel="整体内部毛利率"
+                                                innerTip="整体内部毛利率 = SUM (每个产品的内结价收入 - 成本) / SUM (每个产品的内结价收入)。"
                                                 innerValue={overallReportSummary?.innerMargin ?? 0}
                                                 innerMom={overallReportSummary?.mom.innerMargin ?? { pct: 0, up: false }}
+                                                innerProfitLabel="内结价利润(元)"
+                                                innerProfitTip="内结算总收入 - 总成本。"
+                                                innerProfit={overallReportSummary?.innerProfit ?? 0}
+                                                innerProfitMom={overallReportSummary?.mom.innerProfit ?? { pct: 0, up: false, valid: false }}
                                                 outerLabel="整体外部毛利率"
-                                                outerTip="整体外部毛利率 = SUM (每个产品的外部收入 - 外部收入对应的内结价收入) / SUM (每个产品的外部收入)。"
+                                                outerTip="外部利润/外部收入"
                                                 outerValue={overallReportSummary?.outerMargin ?? 0}
                                                 outerMom={overallReportSummary?.mom.outerMargin ?? { pct: 0, up: false }}
+                                                outerProfitLabel="外部利润(元)"
+                                                outerProfitTip="企业外收入 - 外部收入对应的内结算价收入。"
+                                                outerProfit={overallReportSummary?.outerProfit ?? 0}
+                                                outerProfitMom={overallReportSummary?.mom.outerProfit ?? { pct: 0, up: false, valid: false }}
                                             />
                                         </div>
                                     </div>
 
-                                    {/* 模块二：产品TOP */}
+                                    {/* 模块一点五：统计（产品分析各列求和 + 环比）—— 暂时隐藏，移除 hidden 即可恢复 */}
+                                    <div className="mb-4 hidden overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                        <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3.5">
+                                            <h3 className="text-sm font-semibold text-gray-900">统计</h3>
+                                            <span className="text-[12px] text-gray-400">
+                                                各列为「产品分析」对应列的全部产品求和；内结算毛利率、外部毛利率按合计值单独计算，非各产品毛利率的求和。金额下方为环比上一{overallBillType === "month" ? "月" : overallBillType === "day" ? "天" : "小时"}的变化（毛利率为百分点 pp）
+                                            </span>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            {overallReportSummary ? (
+                                                <div className="px-5 py-4">
+                                                    {/* 账期标识 */}
+                                                    <div className="mb-3 flex items-center gap-2">
+                                                        <span className="text-[12px] leading-none text-gray-500">账期</span>
+                                                        <span className="rounded bg-gray-100 px-2 py-1 text-[12px] font-medium leading-none text-gray-700">{overallPeriodLabel}</span>
+                                                    </div>
+
+                                                    {/* 分组一：收入 */}
+                                                    <OverallStatGroupTitle title="收入" desc="总收入 = 企业内收入 + 企业外收入" barClass="bg-blue-500" />
+                                                    <div className="mb-4 grid grid-cols-4 gap-3">
+                                                        <OverallStatFieldCard
+                                                            label="总收入(元)"
+                                                            tip="选中账期内全部产品的收入合计，含企业内收入与企业外收入。"
+                                                            value={overallReportSummary.totalRevenue}
+                                                            mom={overallReportSummary.mom.totalRevenue}
+                                                            valueClass="text-blue-600"
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="企业内收入(元)"
+                                                            tip="来自企业内部各部门与中台的收入合计。"
+                                                            value={overallReportSummary.innerRevenue}
+                                                            mom={overallReportSummary.mom.innerRevenue}
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="企业内非智汇云收入(元)"
+                                                            value={overallReportSummary.innerNonZyunRevenue}
+                                                            mom={overallReportSummary.mom.innerNonZyunRevenue}
+                                                            highlight="inner"
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="智汇云内非本结算单元收入(元)"
+                                                            value={overallReportSummary.zyunNonUnitRevenue}
+                                                            mom={overallReportSummary.mom.zyunNonUnitRevenue}
+                                                            highlight="inner"
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="本结算单元收入(元)"
+                                                            value={overallReportSummary.unitRevenue}
+                                                            mom={overallReportSummary.mom.unitRevenue}
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="企业内外部结算收入(元)"
+                                                            tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入合计。"
+                                                            value={overallReportSummary.outerGroupRevenue}
+                                                            mom={overallReportSummary.mom.outerGroupRevenue}
+                                                            highlight="outer"
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="企业外收入(元)"
+                                                            tip="非内部企业账号（外部Portal 客户）产生的收入合计。"
+                                                            value={overallReportSummary.outerPortalRevenue}
+                                                            mom={overallReportSummary.mom.outerPortalRevenue}
+                                                            highlight="outer"
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="外部收入对应的内结算价收入(元)"
+                                                            value={overallReportSummary.outerInnerPriceRevenue}
+                                                            mom={overallReportSummary.mom.outerInnerPriceRevenue}
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="内结算总收入(元)"
+                                                            value={overallReportSummary.innerTotalRevenue}
+                                                            mom={overallReportSummary.mom.innerTotalRevenue}
+                                                        />
+                                                    </div>
+
+                                                    {/* 分组二：成本与利润 */}
+                                                    <OverallStatGroupTitle title="成本与利润" desc="内结算价利润 = 内结算总收入 - 产品成本" barClass="bg-orange-500" />
+                                                    <div className="mb-4 grid grid-cols-4 gap-3">
+                                                        <OverallStatFieldCard
+                                                            label="产品成本(元)"
+                                                            tip="选中账期内全部产品分摊的资源成本合计。"
+                                                            value={overallReportSummary.productCost}
+                                                            mom={overallReportSummary.mom.productCost}
+                                                            valueClass="text-orange-500"
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="内结算价利润(元)"
+                                                            tip="内结算总收入合计 - 产品成本合计。"
+                                                            value={overallReportSummary.innerProfit}
+                                                            mom={overallReportSummary.mom.innerProfit}
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="外部利润(元)"
+                                                            tip="企业外收入合计 - 外部收入对应的内结算价收入合计。"
+                                                            value={overallReportSummary.outerProfit}
+                                                            mom={overallReportSummary.mom.outerProfit}
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="收支差额(元)"
+                                                            value={overallReportSummary.balance}
+                                                            mom={overallReportSummary.mom.balance}
+                                                        />
+                                                    </div>
+
+                                                    {/* 分组三：毛利率（按合计值单独计算，环比为百分点 pp） */}
+                                                    <OverallStatGroupTitle title="毛利率" desc="按合计值单独计算，环比为百分点差值（pp）" barClass="bg-green-500" />
+                                                    <div className="grid grid-cols-4 gap-3">
+                                                        <OverallStatFieldCard
+                                                            label="内结算毛利率"
+                                                            tip="内结算价利润合计 / 内结算总收入合计 × 100%。单独计算，不是各产品毛利率的求和或平均。环比为与上一账期的百分点差值。"
+                                                            value={overallReportSummary.innerMargin}
+                                                            mom={overallReportSummary.mom.innerMargin}
+                                                            type="margin"
+                                                        />
+                                                        <OverallStatFieldCard
+                                                            label="外部毛利率"
+                                                            tip="外部利润/外部收入"
+                                                            value={overallReportSummary.outerMargin}
+                                                            mom={overallReportSummary.mom.outerMargin}
+                                                            type="margin"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="px-4 py-12 text-center text-sm text-gray-400">暂无符合条件的数据</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 模块二：产品TOP10 */}
                                     <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
                                         <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3.5">
-                                            <h3 className="text-sm font-semibold text-gray-900">产品TOP</h3>
+                                            <h3 className="text-sm font-semibold text-gray-900">产品TOP10</h3>
                                         </div>
 
                                         {/* 第一部分：产品数量概览（统计口径与下方TOP维度无关，不随tab切换变化） */}
                                         <div className="grid grid-cols-3 gap-3 px-5 py-4">
                                             <OverallCountPairCard
                                                 items={[
-                                                    { label: "有收入", value: overallProductStats.revenueCount, valueClass: "text-blue-600", tip: "选中账期，有收入的产品数量。", onClick: () => setOverallCountDrawer({ title: "收入产品", rows: overallCountDrawerRows.revenue }) },
-                                                    { label: "有成本", value: overallProductStats.costCount, valueClass: "text-orange-500", tip: "选中账期，有内部成本或外部成本的产品数量。", onClick: () => setOverallCountDrawer({ title: "成本产品", rows: overallCountDrawerRows.cost }) },
+                                                    { label: "有收入", value: overallProductStats.revenueCount, prev: overallPrevProductStats?.revenueCount, showMom: true, valueClass: "text-blue-600", tip: "选中账期，有收入的产品数量。右侧环比为与上一账期数量对比的变化率。", onClick: () => setOverallCountDrawer({ title: "收入产品", rows: overallCountDrawerRows.revenue }) },
+                                                    { label: "有成本", value: overallProductStats.costCount, prev: overallPrevProductStats?.costCount, showMom: true, valueClass: "text-orange-500", tip: "选中账期，有内部成本或外部成本的产品数量。右侧环比为与上一账期数量对比的变化率。", onClick: () => setOverallCountDrawer({ title: "成本产品", rows: overallCountDrawerRows.cost }) },
                                                 ]}
                                             />
                                             <OverallCountPairCard
                                                 items={[
-                                                    { label: "盈利", value: overallProductStats.profitCount, valueClass: "text-green-600", tip: "内结毛利率大于等于 0 的产品数量。", onClick: () => setOverallCountDrawer({ title: "盈利产品", rows: overallCountDrawerRows.profit }) },
-                                                    { label: "亏损", value: overallProductStats.lossCount, valueClass: "text-red-500", tip: "内结毛利率小于 0 的产品数量。", onClick: () => setOverallCountDrawer({ title: "亏损产品", rows: overallCountDrawerRows.loss }) },
+                                                    { label: "盈利", value: overallProductStats.profitCount, prev: overallPrevProductStats?.profitCount, showMom: true, valueClass: "text-green-600", tip: "内结毛利率大于等于 0 的产品数量。右侧环比为与上一账期数量对比的变化率。", onClick: () => setOverallCountDrawer({ title: "盈利产品", rows: overallCountDrawerRows.profit }) },
+                                                    { label: "亏损", value: overallProductStats.lossCount, prev: overallPrevProductStats?.lossCount, showMom: true, valueClass: "text-red-500", tip: "内结毛利率小于 0 的产品数量。右侧环比为与上一账期数量对比的变化率。", onClick: () => setOverallCountDrawer({ title: "亏损产品", rows: overallCountDrawerRows.loss }) },
                                                 ]}
                                             />
-                                            <OverallCountCard label="异常" value={overallProductStats.abnormalCount} valueClass="text-red-500" tip="外部毛利率小于 0，或只有成本没有收入的产品数量。" onClick={() => setOverallCountDrawer({ title: "异常产品", rows: overallCountDrawerRows.abnormal })} />
+                                            <OverallCountCard label="异常" value={overallProductStats.abnormalCount} prev={overallPrevProductStats?.abnormalCount} showMom valueClass="text-red-500" tip="外部毛利率小于 0，或只有成本没有收入的产品数量。" onClick={() => setOverallCountDrawer({ title: "异常产品", rows: overallCountDrawerRows.abnormal })} />
                                         </div>
 
                                         {/* 第二部分：产品TOP10 列表 */}
@@ -13152,18 +13904,21 @@ export default function AdminPage() {
                                                     <tr className="border-b border-gray-200 bg-gray-50">
                                                         <AnalysisTh label="排名" align="center" width="60px" />
                                                         <AnalysisTh label="产品名称" align="left" width="240px" />
-                                                        <AnalysisTh label="总收入(元)" tip="产品在本账期内的收入合计（集团内收入+集团外收入），括号内为环比上一账期的变化。" width="150px" />
-                                                        <AnalysisTh label="收入占比" tip="当前产品收入占本账期所有产品总收入的百分比。" width="90px" />
-                                                        <AnalysisTh label="总成本(元)" tip="产品在本账期内分摊的资源成本合计，括号内为环比上一账期的变化。" width="150px" />
-                                                        <AnalysisTh label="成本占比" tip="当前产品成本占本账期所有产品总成本的百分比。" width="90px" />
-                                                        <AnalysisTh label="内结毛利率" tip="内结算价利润 / 内结算总收入 × 100%。" width="100px" />
-                                                        <AnalysisTh label="外部毛利率" tip="外部利润 / 集团外收入 × 100%。" width="100px" />
+                                                        {/* 当前排序维度所在列高亮，随右上角 TOP 切换联动 */}
+                                                        <AnalysisTh label="总收入(元)" tip="产品在本账期内的收入合计（集团内收入+集团外收入），括号内为环比上一账期的变化。" width="150px" highlight={overallTopType === "revenue" ? "sort" : undefined} />
+                                                        <AnalysisTh label="收入占比" tip="当前产品收入占本账期所有产品总收入的百分比。" width="90px" highlight={overallTopType === "revenue" ? "sortSub" : undefined} />
+                                                        <AnalysisTh label="总成本(元)" tip="产品在本账期内分摊的资源成本合计，括号内为环比上一账期的变化。" width="150px" highlight={overallTopType === "cost" ? "sort" : undefined} />
+                                                        <AnalysisTh label="成本占比" tip="当前产品成本占本账期所有产品总成本的百分比。" width="90px" highlight={overallTopType === "cost" ? "sortSub" : undefined} />
+                                                        <AnalysisTh label="内结毛利率" tip="内结算价利润 / 内结算总收入 × 100%。" width="100px" highlight={overallTopType === "innerMargin" ? "sort" : undefined} />
+                                                        <AnalysisTh label="外部毛利率" tip="外部利润/外部收入" width="100px" highlight={overallTopType === "outerMargin" ? "sort" : undefined} />
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-200">
                                                     {(() => {
                                                         const totalRev = overallTopProducts.reduce((s, r) => s + r.totalRevenue, 0);
                                                         const totalCost = overallTopProducts.reduce((s, r) => s + r.productCost, 0);
+                                                        // 当前排序维度对应列的单元格浅色高亮（与表头联动）
+                                                        const sortCell = (k: typeof overallTopType) => (overallTopType === k ? "bg-blue-50/70" : "");
                                                         return overallTopProducts.map((row, idx) => (
                                                             <tr key={row.id} className="hover:bg-gray-50">
                                                                 {/* 排名：前三名徽标高亮 */}
@@ -13201,7 +13956,7 @@ export default function AdminPage() {
                                                                     <div className="mt-0.5 text-[12px] text-gray-400">{row.settlementUnit}</div>
                                                                 </td>
                                                                 {/* 总收入 + 收入环比 */}
-                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                <td className={`px-3 py-3 text-right text-sm whitespace-nowrap ${sortCell("revenue")}`}>
                                                                     <span className="group/amt relative inline-block text-gray-900">
                                                                         {formatWan(row.totalRevenue)}
                                                                         <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] text-white shadow-lg group-hover/amt:block">
@@ -13212,11 +13967,11 @@ export default function AdminPage() {
                                                                     <div className="mt-0.5"><OverallMomBadge mom={row.revenueMom} /></div>
                                                                 </td>
                                                                 {/* 收入占比 */}
-                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                <td className={`px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700 ${sortCell("revenue")}`}>
                                                                     {totalRev > 0 ? `${((row.totalRevenue / totalRev) * 100).toFixed(1)}%` : "-"}
                                                                 </td>
                                                                 {/* 总成本 + 成本环比 */}
-                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                <td className={`px-3 py-3 text-right text-sm whitespace-nowrap ${sortCell("cost")}`}>
                                                                     <span className="group/amt relative inline-block text-gray-900">
                                                                         {formatWan(row.productCost)}
                                                                         <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] text-white shadow-lg group-hover/amt:block">
@@ -13227,15 +13982,15 @@ export default function AdminPage() {
                                                                     <div className="mt-0.5"><OverallMomBadge mom={row.costMom} /></div>
                                                                 </td>
                                                                 {/* 成本占比 */}
-                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                <td className={`px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700 ${sortCell("cost")}`}>
                                                                     {totalCost > 0 ? `${((row.productCost / totalCost) * 100).toFixed(1)}%` : "-"}
                                                                 </td>
-                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                <td className={`px-3 py-3 text-right text-sm whitespace-nowrap ${sortCell("innerMargin")}`}>
                                                                     <span className={row.innerMargin < 0 ? "text-red-500" : "text-gray-900"}>
                                                                         {row.innerMargin.toFixed(2)}%
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                <td className={`px-3 py-3 text-right text-sm whitespace-nowrap ${sortCell("outerMargin")}`}>
                                                                     <span className={row.outerMargin < 0 ? "text-red-500" : "text-gray-900"}>
                                                                         {row.outerMargin.toFixed(2)}%
                                                                     </span>
@@ -13270,37 +14025,65 @@ export default function AdminPage() {
                                             </span>
                                         </div>
 
-                                        <div className="flex gap-0 px-5 py-6">
-                                            {/* 左侧：收入分布饼图 + 成本分布饼图（上下排列） */}
-                                            <div className="flex w-[420px] flex-shrink-0 flex-col gap-7 border-r border-gray-100 pr-6">
+                                        {/* 结算单元数量统计卡片：有收入 / 盈利 / 亏损 / 异常（数字可点击，右侧抽屉展示对应结算单元） */}
+                                        <div className="grid grid-cols-4 gap-3 px-5 py-4">
+                                            <OverallCountCard label="有收入" value={overallUnitStats.incomeCount} prev={overallPrevUnitStats?.incomeCount} showMom valueClass="text-blue-600" tip="选中账期，归属到该结算单元的产品账单金额之和不为 0 的结算单元数量。" onClick={() => setOverallUnitCountDrawer({ title: "有收入结算单元", rows: overallUnitRows.filter((u) => u.totalRevenue !== 0) })} />
+                                            <OverallCountCard label="盈利" value={overallUnitStats.profitCount} prev={overallPrevUnitStats?.profitCount} showMom valueClass="text-green-600" tip="内结毛利率大于 0 的结算单元数量。" onClick={() => setOverallUnitCountDrawer({ title: "盈利结算单元", rows: overallUnitRows.filter((u) => u.innerMargin > 0) })} />
+                                            <OverallCountCard label="亏损" value={overallUnitStats.lossCount} prev={overallPrevUnitStats?.lossCount} showMom valueClass="text-red-500" tip="内结毛利率小于 0 的结算单元数量。" onClick={() => setOverallUnitCountDrawer({ title: "亏损结算单元", rows: overallUnitRows.filter((u) => u.innerMargin < 0) })} />
+                                            <OverallCountCard label="异常" value={overallUnitStats.abnormalCount} prev={overallPrevUnitStats?.abnormalCount} showMom valueClass="text-red-500" tip="内结毛利率小于外部毛利率的结算单元数量。" onClick={() => setOverallUnitCountDrawer({ title: "异常结算单元", rows: overallUnitRows.filter((u) => u.innerMargin < u.outerMargin) })} />
+                                        </div>
+
+                                        {/* 收入分布 / 成本分布 / 内结毛利率TOP / 外部毛利率TOP（一行四列，列间竖线分隔；与上方统计卡片之间分割线，样式同产品TOP10） */}
+                                        <div className="grid grid-cols-4 gap-0 border-t border-gray-100 px-5 py-5">
+                                            <div className="min-w-0 pr-4">
                                                 <OverallUnitPieChart
                                                     units={overallUnitRows}
+                                                    prevUnits={overallPrevUnitRows}
                                                     valueKey="totalRevenue"
                                                     title="收入分布"
                                                     color="#3b82f6"
+                                                    size={170}
                                                 />
+                                            </div>
+                                            <div className="min-w-0 border-l border-gray-100 px-4">
                                                 <OverallUnitPieChart
                                                     units={overallUnitRows}
+                                                    prevUnits={overallPrevUnitRows}
                                                     valueKey="productCost"
                                                     title="成本分布"
                                                     color="#f97316"
+                                                    size={170}
                                                 />
                                             </div>
-
-                                            {/* 右侧：横向柱状图（Y 轴为结算单元，X 轴为金额） */}
-                                            <div className="flex-1 min-w-0 pl-5">
-                                                <div className="mb-2 text-[12px] font-medium text-gray-600">各结算单元收入与成本对比</div>
-                                                <OverallUnitHorizontalBarChart units={overallUnitRows} />
+                                            <div className="flex min-w-0 flex-col border-l border-gray-100 px-4">
+                                                <OverallUnitMarginTop
+                                                    units={overallUnitRows}
+                                                    prevUnits={overallPrevUnitRows}
+                                                    marginKey="innerMargin"
+                                                    title="内结毛利率TOP"
+                                                    tip="内结算价利润 / 内结算总收入"
+                                                    color="#3b82f6"
+                                                />
+                                            </div>
+                                            <div className="flex min-w-0 flex-col border-l border-gray-100 pl-4">
+                                                <OverallUnitMarginTop
+                                                    units={overallUnitRows}
+                                                    prevUnits={overallPrevUnitRows}
+                                                    marginKey="outerMargin"
+                                                    title="外部毛利率TOP"
+                                                    tip="外部利润/外部收入"
+                                                    color="#10b981"
+                                                />
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* 模块四：部门概览 */}
+                                    {/* 模块四：部门概览（统计口径与结算单元概览一致；一个部门下有多个结算单元） */}
                                     <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
                                         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
                                             <h3 className="text-sm font-semibold text-gray-900">部门概览</h3>
                                             <span className="text-[12px] text-gray-400">
-                                                共 {overallDeptRows.length} 个部门 &nbsp;·&nbsp;
+                                                共 {overallDeptRows.length} 个部门（关联 {overallUnitRows.length} 个结算单元） &nbsp;·&nbsp;
                                                 <span className="text-green-600">盈利 {overallDeptStats.profitCount} 个</span>
                                                 <span className="mx-1.5 text-gray-300">|</span>
                                                 <span className="text-red-500">亏损 {overallDeptStats.lossCount} 个</span>
@@ -13309,29 +14092,55 @@ export default function AdminPage() {
                                             </span>
                                         </div>
 
-                                        <div className="flex gap-0 px-5 py-6">
-                                            {/* 左侧：收入分布饼图 + 成本分布饼图（上下排列） */}
-                                            <div className="flex w-[420px] flex-shrink-0 flex-col gap-7 border-r border-gray-100 pr-6">
+                                        {/* 部门数量统计卡片：有收入 / 盈利 / 亏损 / 异常（口径同结算单元，数字可点击，右侧抽屉展示对应部门及其结算单元） */}
+                                        <div className="grid grid-cols-4 gap-3 border-b border-gray-100 px-5 py-4">
+                                            <OverallCountCard label="有收入" value={overallDeptStats.incomeCount} prev={overallPrevDeptStats?.incomeCount} showMom valueClass="text-blue-600" tip="选中账期，部门收入（= 其关联所有结算单元收入之和）不为 0 的部门数量。" onClick={() => setOverallDeptCountDrawer({ title: "有收入部门", rows: overallDeptRows.filter((d) => d.totalRevenue !== 0) })} />
+                                            <OverallCountCard label="盈利" value={overallDeptStats.profitCount} prev={overallPrevDeptStats?.profitCount} showMom valueClass="text-green-600" tip="部门内结毛利率大于 0 的部门数量（按关联结算单元合计值计算）。" onClick={() => setOverallDeptCountDrawer({ title: "盈利部门", rows: overallDeptRows.filter((d) => d.innerMargin > 0) })} />
+                                            <OverallCountCard label="亏损" value={overallDeptStats.lossCount} prev={overallPrevDeptStats?.lossCount} showMom valueClass="text-red-500" tip="部门内结毛利率小于 0 的部门数量（按关联结算单元合计值计算）。" onClick={() => setOverallDeptCountDrawer({ title: "亏损部门", rows: overallDeptRows.filter((d) => d.innerMargin < 0) })} />
+                                            <OverallCountCard label="异常" value={overallDeptStats.abnormalCount} prev={overallPrevDeptStats?.abnormalCount} showMom valueClass="text-red-500" tip="部门内结毛利率小于外部毛利率的部门数量。" onClick={() => setOverallDeptCountDrawer({ title: "异常部门", rows: overallDeptRows.filter((d) => d.innerMargin < d.outerMargin) })} />
+                                        </div>
+
+                                        {/* 收入分布 / 成本分布 / 内结毛利率TOP / 外部毛利率TOP（逻辑与「结算单元概览」一致，统计对象为部门） */}
+                                        <div className="grid grid-cols-4 gap-0 px-5 py-5">
+                                            <div className="min-w-0 pr-4">
                                                 <OverallDeptPieChart
                                                     depts={overallDeptRows}
+                                                    prevDepts={overallPrevDeptRows}
                                                     valueKey="totalRevenue"
                                                     title="收入分布"
                                                     color="#3b82f6"
+                                                    size={170}
                                                 />
+                                            </div>
+                                            <div className="min-w-0 border-l border-gray-100 px-4">
                                                 <OverallDeptPieChart
                                                     depts={overallDeptRows}
+                                                    prevDepts={overallPrevDeptRows}
                                                     valueKey="productCost"
                                                     title="成本分布"
                                                     color="#f97316"
+                                                    size={170}
                                                 />
                                             </div>
-
-                                            {/* 右侧：横向柱状图（Y 轴为部门，X 轴为金额） */}
-                                            <div className="flex-1 min-w-0 pl-5">
-                                                <div className="mb-2 text-[12px] font-medium text-gray-600">
-                                                    各部门收入与成本对比（部门数据 = 其关联所有结算单元对应值之和）
-                                                </div>
-                                                <OverallDeptHorizontalBarChart depts={overallDeptRows} />
+                                            <div className="flex min-w-0 flex-col border-l border-gray-100 px-4">
+                                                <OverallDeptMarginTop
+                                                    depts={overallDeptRows}
+                                                    prevDepts={overallPrevDeptRows}
+                                                    marginKey="innerMargin"
+                                                    title="内结毛利率TOP"
+                                                    tip="内结算价利润 / 内结算总收入"
+                                                    color="#3b82f6"
+                                                />
+                                            </div>
+                                            <div className="flex min-w-0 flex-col border-l border-gray-100 pl-4">
+                                                <OverallDeptMarginTop
+                                                    depts={overallDeptRows}
+                                                    prevDepts={overallPrevDeptRows}
+                                                    marginKey="outerMargin"
+                                                    title="外部毛利率TOP"
+                                                    tip="外部利润/外部收入"
+                                                    color="#10b981"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -13365,7 +14174,7 @@ export default function AdminPage() {
                                                                <AnalysisTh label="总成本(元)" width="100px" />
                                                                <AnalysisTh label="成本占比" tip="当前产品成本占本账期所有产品总成本的百分比。" width="72px" />
                                                                <AnalysisTh label="内结毛利率" tip="内结算价利润 / 内结算总收入 × 100%。" width="72px" />
-                                                               <AnalysisTh label="外部毛利率" tip="外部利润 / 集团外收入 × 100%。" width="72px" />
+                                                               <AnalysisTh label="外部毛利率" tip="外部利润/外部收入" width="72px" />
                                                            </tr>
                                                        </thead>
                                                        <tbody className="divide-y divide-gray-200">
@@ -13421,6 +14230,188 @@ export default function AdminPage() {
                                                                </tr>
                                                            )}
                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 结算单元数量卡片点击抽屉（有收入 / 盈利 / 亏损 / 异常） */}
+                                    {overallUnitCountDrawer && (
+                                        <div className="fixed inset-0 z-[120]">
+                                            <div className="absolute inset-0 bg-black/50" onClick={() => setOverallUnitCountDrawer(null)} />
+                                            <div className="absolute right-0 top-0 bottom-0 w-[960px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                                                    <div>
+                                                        <h3 className="text-base font-semibold text-gray-900">{overallUnitCountDrawer.title}</h3>
+                                                        <p className="mt-0.5 text-[13px] text-gray-500">
+                                                            {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"} · 账期 {overallPeriodLabel} · 共 {overallUnitCountDrawer.rows.length} 个结算单元
+                                                        </p>
+                                                    </div>
+                                                    <button onClick={() => setOverallUnitCountDrawer(null)} className="text-gray-400 hover:text-gray-600">
+                                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div className="flex-1 overflow-auto">
+                                                    <table className="w-full">
+                                                        <thead className="sticky top-0 z-10 bg-gray-50">
+                                                            <tr className="border-b border-gray-200">
+                                                                <AnalysisTh label="排名" align="center" width="36px" />
+                                                                <AnalysisTh label="结算单元名称" align="left" width="200px" />
+                                                                <AnalysisTh label="收入(元)" width="100px" />
+                                                                <AnalysisTh label="收入占比" tip="当前结算单元收入占本账期所有结算单元总收入的百分比。" width="72px" />
+                                                                <AnalysisTh label="成本(元)" width="100px" />
+                                                                <AnalysisTh label="成本占比" tip="当前结算单元成本占本账期所有结算单元总成本的百分比。" width="72px" />
+                                                                <AnalysisTh label="内部毛利率" tip="内结算价利润 / 内结算总收入 × 100%。" width="80px" />
+                                                                <AnalysisTh label="外部毛利率" tip="外部利润/外部收入" width="80px" />
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-200">
+                                                            {(() => {
+                                                                const unitTotalRev = overallUnitRows.reduce((s, u) => s + u.totalRevenue, 0);
+                                                                const unitTotalCost = overallUnitRows.reduce((s, u) => s + u.productCost, 0);
+                                                                return overallUnitCountDrawer.rows.map((u, idx) => (
+                                                                    <tr key={u.unit} className="hover:bg-gray-50">
+                                                                        <td className="px-3 py-3 text-center text-[12px] text-gray-500">{idx + 1}</td>
+                                                                        <td className="px-3 py-3 text-sm text-gray-900">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <div className="min-w-0 truncate" title={u.unit}>{u.unit}</div>
+                                                                                {u.innerMargin >= 0 ? (
+                                                                                    <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-green-50 px-1 py-0.5 text-[11px] font-medium leading-none text-green-700 ring-1 ring-inset ring-green-200">盈利</span>
+                                                                                ) : (
+                                                                                    <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-red-50 px-1 py-0.5 text-[11px] font-medium leading-none text-red-600 ring-1 ring-inset ring-red-200">亏损</span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="mt-0.5 text-[12px] text-gray-400">关联产品 {u.productCount} 个</div>
+                                                                        </td>
+                                                                        <AnalysisAmountCell value={u.totalRevenue} />
+                                                                        <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                            {unitTotalRev !== 0 ? `${((u.totalRevenue / unitTotalRev) * 100).toFixed(1)}%` : "-"}
+                                                                        </td>
+                                                                        <AnalysisAmountCell value={u.productCost} />
+                                                                        <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">
+                                                                            {unitTotalCost !== 0 ? `${((u.productCost / unitTotalCost) * 100).toFixed(1)}%` : "-"}
+                                                                        </td>
+                                                                        <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                            <span className={u.innerMargin < 0 ? "text-red-500" : "text-gray-900"}>{u.innerMargin.toFixed(2)}%</span>
+                                                                        </td>
+                                                                        <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                            <span className={u.outerMargin < 0 ? "text-red-500" : "text-gray-900"}>{u.outerMargin.toFixed(2)}%</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                ));
+                                                            })()}
+                                                            {overallUnitCountDrawer.rows.length === 0 && (
+                                                                <tr>
+                                                                    <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                                        暂无符合条件的数据
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 部门数量卡片点击抽屉（有收入 / 盈利 / 亏损 / 异常；每个部门下展开其关联的多个结算单元） */}
+                                    {overallDeptCountDrawer && (
+                                        <div className="fixed inset-0 z-[120]">
+                                            <div className="absolute inset-0 bg-black/50" onClick={() => setOverallDeptCountDrawer(null)} />
+                                            <div className="absolute right-0 top-0 bottom-0 w-[960px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                                                    <div>
+                                                        <h3 className="text-base font-semibold text-gray-900">{overallDeptCountDrawer.title}</h3>
+                                                        <p className="mt-0.5 text-[13px] text-gray-500">
+                                                            {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"} · 账期 {overallPeriodLabel} · 共 {overallDeptCountDrawer.rows.length} 个部门，关联 {overallDeptCountDrawer.rows.reduce((s, d) => s + d.unitCount, 0)} 个结算单元
+                                                        </p>
+                                                    </div>
+                                                    <button onClick={() => setOverallDeptCountDrawer(null)} className="text-gray-400 hover:text-gray-600">
+                                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div className="flex-1 overflow-auto">
+                                                    <table className="w-full">
+                                                        <thead className="sticky top-0 z-10 bg-gray-50">
+                                                            <tr className="border-b border-gray-200">
+                                                                <AnalysisTh label="排名" align="center" width="36px" />
+                                                                <AnalysisTh label="部门 / 结算单元" align="left" width="220px" />
+                                                                <AnalysisTh label="收入(元)" width="100px" />
+                                                                <AnalysisTh label="收入占比" tip="部门行：占本账期所有部门总收入的百分比；结算单元行：占所属部门收入的百分比。" width="72px" />
+                                                                <AnalysisTh label="成本(元)" width="100px" />
+                                                                <AnalysisTh label="成本占比" tip="部门行：占本账期所有部门总成本的百分比；结算单元行：占所属部门成本的百分比。" width="72px" />
+                                                                <AnalysisTh label="内部毛利率" tip="内结算价利润 / 内结算总收入 × 100%（部门按关联结算单元合计值计算）。" width="80px" />
+                                                                <AnalysisTh label="外部毛利率" tip="外部利润/外部收入（部门按关联结算单元合计值计算）。" width="80px" />
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-200">
+                                                            {(() => {
+                                                                const deptTotalRev = overallDeptRows.reduce((s, d) => s + d.totalRevenue, 0);
+                                                                const deptTotalCost = overallDeptRows.reduce((s, d) => s + d.productCost, 0);
+                                                                const pct = (v: number, base: number) => (base !== 0 ? `${((v / base) * 100).toFixed(1)}%` : "-");
+                                                                return overallDeptCountDrawer.rows.map((d, idx) => (
+                                                                    <Fragment key={d.name}>
+                                                                        <tr className="bg-white hover:bg-gray-50">
+                                                                            <td className="px-3 py-3 text-center text-[12px] text-gray-500">{idx + 1}</td>
+                                                                            <td className="px-3 py-3 text-sm text-gray-900">
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <div className="min-w-0 truncate font-medium" title={d.path}>{d.name}</div>
+                                                                                    {d.innerMargin >= 0 ? (
+                                                                                        <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-green-50 px-1 py-0.5 text-[11px] font-medium leading-none text-green-700 ring-1 ring-inset ring-green-200">盈利</span>
+                                                                                    ) : (
+                                                                                        <span className="inline-flex flex-shrink-0 items-center rounded-sm bg-red-50 px-1 py-0.5 text-[11px] font-medium leading-none text-red-600 ring-1 ring-inset ring-red-200">亏损</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="mt-0.5 text-[12px] text-gray-400">关联结算单元 {d.unitCount} 个</div>
+                                                                            </td>
+                                                                            <AnalysisAmountCell value={d.totalRevenue} />
+                                                                            <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">{pct(d.totalRevenue, deptTotalRev)}</td>
+                                                                            <AnalysisAmountCell value={d.productCost} />
+                                                                            <td className="px-3 py-3 text-right text-sm whitespace-nowrap text-gray-700">{pct(d.productCost, deptTotalCost)}</td>
+                                                                            <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                                <span className={d.innerMargin < 0 ? "text-red-500" : "text-gray-900"}>{d.innerMargin.toFixed(2)}%</span>
+                                                                            </td>
+                                                                            <td className="px-3 py-3 text-right text-sm whitespace-nowrap">
+                                                                                <span className={d.outerMargin < 0 ? "text-red-500" : "text-gray-900"}>{d.outerMargin.toFixed(2)}%</span>
+                                                                            </td>
+                                                                        </tr>
+                                                                        {d.members.map((m) => (
+                                                                            <tr key={`${d.name}-${m.unit}`} className="bg-gray-50/50 hover:bg-gray-50">
+                                                                                <td className="px-3 py-2" />
+                                                                                <td className="px-3 py-2 pl-6 text-[13px] text-gray-600">
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <span className="text-gray-300">└</span>
+                                                                                        <span className="min-w-0 truncate" title={m.unit}>{m.unit}</span>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className="px-3 py-2 text-right text-[13px] whitespace-nowrap text-gray-600">{formatWan(m.totalRevenue)}</td>
+                                                                                <td className="px-3 py-2 text-right text-[13px] whitespace-nowrap text-gray-500">{pct(m.totalRevenue, d.totalRevenue)}</td>
+                                                                                <td className="px-3 py-2 text-right text-[13px] whitespace-nowrap text-gray-600">{formatWan(m.productCost)}</td>
+                                                                                <td className="px-3 py-2 text-right text-[13px] whitespace-nowrap text-gray-500">{pct(m.productCost, d.productCost)}</td>
+                                                                                <td className="px-3 py-2 text-right text-[13px] whitespace-nowrap">
+                                                                                    <span className={m.innerMargin < 0 ? "text-red-500" : "text-gray-600"}>{m.innerMargin.toFixed(2)}%</span>
+                                                                                </td>
+                                                                                <td className="px-3 py-2 text-right text-[13px] whitespace-nowrap">
+                                                                                    <span className={m.outerMargin < 0 ? "text-red-500" : "text-gray-600"}>{m.outerMargin.toFixed(2)}%</span>
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </Fragment>
+                                                                ));
+                                                            })()}
+                                                            {overallDeptCountDrawer.rows.length === 0 && (
+                                                                <tr>
+                                                                    <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                                        暂无符合条件的数据
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
                                                     </table>
                                                 </div>
                                             </div>
@@ -13602,19 +14593,19 @@ export default function AdminPage() {
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
                                                 <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" rowSpan={2} divider />
                                                 <AnalysisTh label="产品名称" align="left" width="150px" tip="每个产品在本账期内合并展示为一条产品数据，不区分内外Portal。" rowSpan={2} divider />
-                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含企业内收入与企业外收入。" width="110px" rowSpan={2} divider />
+                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含企业内收入与外部收入。" width="110px" rowSpan={2} divider />
                                                 {/* 企业内收入：横跨 4 列 */}
                                                 <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业内部结算的部门收入。" highlight="inner" divider />
                                                 {/* 企业外收入：聚合列，横跨 2 列（企业内外部结算收入 + 企业外收入） */}
-                                                <AnalysisTh label="企业外收入(元)" align="center" colSpan={2} tip="等于「企业内外部结算收入」（内部企业中结算属性为「外部结算」部门的收入）与「企业外收入」（非内部企业账号的收入）之和。" highlight="outer" divider />
+                                                <AnalysisTh label="外部收入(元)" align="center" colSpan={2} tip="等于「企业内外部结算收入」（内部企业中结算属性为「外部结算」部门的收入）与「企业外收入」（非内部企业账号的收入）之和。" highlight="outer" divider />
                                                 {/* 其余列：各跨 2 行 */}
                                                 <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算总收入(元)" width="110px" rowSpan={2} divider />
                                                 <AnalysisTh label="产品成本(元)" tip="该产品在本账期内分摊的资源成本合计。" width="110px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 产品成本。" width="110px" rowSpan={2} divider />
-                                                <AnalysisTh label="外部利润(元)" tip="企业外收入 - 外部收入对应的内结算价收入。" width="105px" rowSpan={2} divider />
+                                                <AnalysisTh label="外部利润(元)" tip="外部收入 - 外部收入对应的内结算价收入。" width="105px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。特殊说明：此处为整体对应的毛利。" width="100px" rowSpan={2} divider />
-                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 企业外收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" rowSpan={2} divider />
+                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 外部收入 × 100%。特殊说明：此处为整体对应的毛利。" width="95px" rowSpan={2} divider />
                                                 <AnalysisTh label="收支差额(元)" width="110px" rowSpan={2} divider />
                                             </tr>
                                             {/* 表头第二行：企业内 4 列明细 + 企业外收入 2 列明细 */}
@@ -14225,19 +15216,19 @@ export default function AdminPage() {
                                             <tr className="border-b border-gray-300 bg-gray-100">
                                                 <AnalysisTh label="部门名称" tip="所选经营部门下已关联结算单元的部门（含经营部门自身）。" align="left" width="260px" rowSpan={2} />
                                                 <AnalysisTh label="关联结算单元" tip="该部门在组织架构中已关联的 ops 结算单元数量，展开可查看明细。" align="left" width="140px" rowSpan={2} divider />
-                                                <AnalysisTh label="总收入(元)" tip="该部门关联的全部结算单元在本账期内的收入之和，含企业内收入与企业外收入。" align="left" width="130px" rowSpan={2} divider />
+                                                <AnalysisTh label="总收入(元)" tip="该部门关联的全部结算单元在本账期内的收入之和，含企业内收入与外部收入。" align="left" width="130px" rowSpan={2} divider />
                                                 {/* 企业内收入：横跨 4 列 */}
                                                 <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业内部结算的部门收入。" highlight="inner" divider />
                                                 {/* 企业外收入：横跨 2 列 */}
-                                                <AnalysisTh label="企业外收入(元)" align="center" colSpan={2} tip="等于「企业内外部结算收入」（内部企业中结算属性为「外部结算」部门的收入）与「企业外收入」（非内部企业账号的收入）之和。" highlight="outer" divider />
+                                                <AnalysisTh label="外部收入(元)" align="center" colSpan={2} tip="等于「企业内外部结算收入」（内部企业中结算属性为「外部结算」部门的收入）与「企业外收入」（非内部企业账号的收入）之和。" highlight="outer" divider />
                                                 {/* 其余列：各跨 2 行 */}
                                                 <AnalysisTh label="外部收入对应的内结算价收入(元)" align="left" width="130px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算总收入(元)" align="left" width="120px" rowSpan={2} divider />
                                                 <AnalysisTh label="总成本(元)" tip="该部门关联的全部结算单元在本账期内分摊资源成本之和。" align="left" width="120px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算价利润(元)" tip="内结算总收入 - 总成本。" align="left" width="120px" rowSpan={2} divider />
-                                                <AnalysisTh label="外部利润(元)" tip="企业外收入 - 外部收入对应的内结算价收入。" align="left" width="115px" rowSpan={2} divider />
+                                                <AnalysisTh label="外部利润(元)" tip="外部收入 - 外部收入对应的内结算价收入。" align="left" width="115px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算毛利率" tip="内结算价利润 / 内结算总收入 × 100%。" align="left" width="105px" rowSpan={2} divider />
-                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 企业外收入 × 100%。" align="left" width="100px" rowSpan={2} divider />
+                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 外部收入 × 100%。" align="left" width="100px" rowSpan={2} divider />
                                                 <AnalysisTh label="收支差额(元)" tip="总收入 - 总成本。" align="left" width="120px" rowSpan={2} divider />
                                             </tr>
                                             {/* 表头第二行：企业内 4 列明细 + 企业外收入 2 列明细 */}
@@ -22027,15 +23018,19 @@ export default function AdminPage() {
                                 <div className="px-6 py-5 space-y-4 text-sm text-gray-700 leading-[1.8]">
                                     <div>
                                         <span className="font-semibold text-gray-900">1、企业内收入：</span>
-                                        <span>现在是企业内内结收入。</span>
+                                        <span>企业内收入 = 企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入。</span>
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-gray-900">2、企业内非智汇云收入、智汇云内非本结算单元：</span>
+                                        <span className="font-semibold text-gray-900">2、企业内非智汇云收入、智汇云内非本结算单元收入：</span>
                                         <span>企业内非经营部门收入、经营部门内非本结算单元收入。</span>
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-gray-900">3、企业外收入：</span>
-                                        <span>现在包含，企业内外结收入、企业外收入。</span>
+                                        <span className="font-semibold text-gray-900">3、本结算单元收入：</span>
+                                        <span>内部企业账号中，本结算单元产生的账单金额和。</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-gray-900">4、企业外收入：</span>
+                                        <span>企业外收入 = 企业内外部结算收入 + 外部收入。</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
