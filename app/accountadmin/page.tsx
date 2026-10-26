@@ -244,7 +244,7 @@ interface ProductAnalysisRow {
     productName: string;            // 产品名称
     totalRevenue: number;           // 总收入(元)
     innerRevenue: number;           // 企业内收入(元)
-    innerNonZyunRevenue: number;    // 企业内非智汇云收入(元)
+    innerNonZyunRevenue: number;    // 企业内内结非智汇云收入(元)
     zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
     unitRevenue: number;            // 本结算单元收入(元)
     outerRevenue: number;           // 企业外收入(元) = 集团内外部事业部 + 外部(360.cn)
@@ -372,12 +372,23 @@ const analysisBillTypes = [
     { value: "hour", label: "小时账单" },
 ];
 
-// 整体分析 - 统计粒度选项（报表/趋势下文案不同）
-const overallBillTypeOptions = [
-    { value: "month", reportLabel: "月报表", trendLabel: "月趋势" },
-    { value: "day", reportLabel: "日报表", trendLabel: "日趋势" },
-    { value: "hour", reportLabel: "小时报表", trendLabel: "小时趋势" },
+// 整体分析 - 报表类型下拉
+const overallReportTypeOptions = [
+    { value: "hour", label: "小时报表" },
+    { value: "day", label: "日报表" },
+    { value: "month", label: "月报表" },
 ];
+
+// 整体分析 - 趋势类型下拉
+const overallTrendTypeOptions = [
+    { value: "hour", label: "小时趋势" },
+    { value: "day", label: "日趋势" },
+    { value: "month", label: "月趋势" },
+];
+
+// 整体分析 - 粒度名称（标题 / 环比文案）
+const overallGranularityName = (billType: string) =>
+    billType === "month" ? "月" : billType === "week" ? "周" : billType === "day" ? "日" : "小时";
 
 // 产品分析 - 所属产线选项
 const analysisProductLines = ["弹性计算", "存储服务", "网络服务", "数据库", "大模型", "安全服务"];
@@ -936,12 +947,12 @@ const DeptAmountCell = ({
 // ===== 部门分析 - 收入/成本拆分指标（列结构与「产品分析」总收入之后的列保持一致） =====
 // 由结算单元的总收入、总成本按稳定比例推导，保证：
 //   总收入 = 企业内收入 + 企业外收入（企业内外部结算收入 + 企业外收入）
-//   企业内收入 = 企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入
+//   企业内收入 = 企业内内结非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入
 //   内结算总收入 = 企业内收入 + 外部收入对应的内结算价收入
 interface DeptAnalysisMetrics {
     totalRevenue: number;           // 总收入(元)
     innerRevenue: number;           // 企业内收入(元)
-    innerNonZyunRevenue: number;    // 企业内非智汇云收入(元)
+    innerNonZyunRevenue: number;    // 企业内内结非智汇云收入(元)
     zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
     unitRevenue: number;            // 本结算单元收入(元)
     outerGroupRevenue: number;      // 企业内外部结算收入(元)
@@ -1943,7 +1954,7 @@ interface OverallAnalysisRow {
     innerRevenue: number;           // 企业内收入(元)
     innerSettleRevenue: number;     // 内结收入(元)：标记为内部企业的账号中，经营属性为「内结」的结算单元账单金额
     innerBizRevenue: number;        // 经营收入(元)：标记为内部企业的账号中，经营属性为「经营」的结算单元账单金额
-    innerNonZyunRevenue: number;    // 企业内非智汇云收入(元)
+    innerNonZyunRevenue: number;    // 企业内内结非智汇云收入(元)
     zyunNonUnitRevenue: number;     // 智汇云内非本结算单元收入(元)
     unitRevenue: number;            // 本结算单元收入(元)
     outerRevenue: number;           // 企业外收入(元)
@@ -2011,7 +2022,7 @@ const buildOverallRow = (id: number, period: string, scale: number, seed: number
     const f = (k: number) => scale * (0.88 + overallWave(seed + k * 37) * 0.26);
     const costFactor = scale * (0.9 + overallWave(seed + 77) * 0.22);  // 成本波动
 
-    // 企业内收入 = 企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入
+    // 企业内收入 = 企业内内结非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入
     const innerNonZyunRevenue = b.innerNonZyunRevenue * f(7);
     const zyunNonUnitRevenue = b.zyunNonUnitRevenue * f(8);
     const unitRevenue = b.unitRevenue * f(9);
@@ -2106,8 +2117,30 @@ const buildOverallHourlySeries = (anchorDate: string, anchorHour = 23): OverallA
     return rows;
 };
 
+// 整体分析 - 周账单：周一为一周起点
+const overallWeekStartOf = (s: string) => {
+    const d = parseDay(s);
+    if (!d) return s;
+    return addDays(s, -((d.getDay() + 6) % 7));
+};
+// 整体分析 - 周账单行（账期格式：YYYYMMDD~YYYYMMDD，按 7/31 个月均摊）
+const buildOverallWeekRow = (id: number, weekStart: string): OverallAnalysisRow => {
+    const s = parseDay(weekStart)!;
+    const e = parseDay(addDays(weekStart, 6))!;
+    const ymd = (d: Date) => `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+    const seed = s.getFullYear() * 372 + (s.getMonth() + 1) * 31 + s.getDate() + 900000;
+    return buildOverallRow(id, `${ymd(s)}~${ymd(e)}`, 7 / 31, seed);
+};
+// 整体分析 - 周账单序列：选中周及其前 7 周（共 8 周，按时间正序）
+const buildOverallWeeklySeries = (anchorDate: string): OverallAnalysisRow[] => {
+    if (!parseDay(anchorDate)) return [];
+    const start = overallWeekStartOf(anchorDate);
+    return Array.from({ length: 8 }, (_, idx) => buildOverallWeekRow(idx + 1, addDays(start, -(7 - idx) * 7)));
+};
+
 // 整体分析 - 报表：根据账单类型与账期取数据源（末条为选中账期，倒数第二条用于环比）
 const getOverallDataset = (billType: string, period: string, hour = 23) => {
+    if (billType === "week") return buildOverallWeeklySeries(period);
     if (billType === "day") return buildOverallDailySeries(period);
     if (billType === "hour") return buildOverallHourlySeries(period, hour);
     return buildOverallMonthlySeries(period);
@@ -2115,8 +2148,8 @@ const getOverallDataset = (billType: string, period: string, hour = 23) => {
 
 // ===== 整体分析 - 趋势：时间区间数据源 =====
 
-// 趋势区间上限：月趋势最多 6 个月、日趋势最多 31 天、小时趋势最多 7 天（按天计）
-const OVERALL_TREND_LIMIT = { month: 6, day: 31, hour: 7 } as const;
+// 趋势区间上限：月趋势最多 12 个月、周趋势最多 24 周、日趋势最多 31 天、小时趋势最多 7 天（按天计）
+const OVERALL_TREND_LIMIT = { month: 12, week: 24, day: 31, hour: 7 } as const;
 
 // 日期字符串（YYYY-MM-DD）与 Date 互转
 const parseDay = (s: string) => {
@@ -2179,40 +2212,218 @@ const buildOverallDayRange = (start: string, end: string): OverallAnalysisRow[] 
     });
 };
 
-// 趋势 - 小时区间序列（区间内每天 24 个点，按时间正序）
-const buildOverallHourRange = (start: string, end: string): OverallAnalysisRow[] => {
-    const total = diffDays(start, end);
+// 日期 + 小时 偏移 n 小时，返回新的日期与小时
+const shiftOverallHour = (date: string, hour: number, n: number) => {
+    const d = parseDay(date);
+    if (!d) return { date, hour };
+    const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour + n);
+    return { date: formatDay(cur), hour: cur.getHours() };
+};
+// 含首尾的小时数差
+const diffOverallHours = (start: string, startHour: number, end: string, endHour: number) => {
+    const a = parseDay(start);
+    const b = parseDay(end);
+    if (!a || !b) return 0;
+    return Math.round((b.getTime() - a.getTime()) / 3600000) + endHour - startHour + 1;
+};
+
+// 趋势 - 小时区间序列（起止日期 + 起止小时，按时间正序）
+const buildOverallHourRange = (start: string, end: string, startHour = 0, endHour = 23): OverallAnalysisRow[] => {
+    const total = diffOverallHours(start, startHour, end, endHour);
     if (total <= 0) return [];
-    const days = Math.min(total, OVERALL_TREND_LIMIT.hour);
+    const s = parseDay(start)!;
     const rows: OverallAnalysisRow[] = [];
-    for (let i = 0; i < days; i++) {
-        const cur = parseDay(addDays(start, i))!;
+    for (let i = 0; i < Math.min(total, OVERALL_TREND_LIMIT.hour * 24); i++) {
+        const cur = new Date(s.getFullYear(), s.getMonth(), s.getDate(), startHour + i);
         const yy = cur.getFullYear();
         const mm = cur.getMonth() + 1;
         const dd = cur.getDate();
-        for (let h = 0; h < 24; h++) {
-            rows.push(
-                buildOverallRow(
-                    rows.length + 1,
-                    `${yy}${pad2(mm)}${pad2(dd)} ${pad2(h)}:00`,
-                    1 / (31 * 24),
-                    yy * 8928 + mm * 744 + dd * 24 + h
-                )
-            );
-        }
+        const h = cur.getHours();
+        rows.push(
+            buildOverallRow(
+                rows.length + 1,
+                `${yy}${pad2(mm)}${pad2(dd)} ${pad2(h)}:00`,
+                1 / (31 * 24),
+                yy * 8928 + mm * 744 + dd * 24 + h
+            )
+        );
     }
     return rows;
 };
 
+// 趋势 - 周区间序列（起点所在周 ~ 终点所在周，按时间正序）
+const buildOverallWeekRange = (start: string, end: string): OverallAnalysisRow[] => {
+    const s = overallWeekStartOf(start);
+    const e = overallWeekStartOf(end);
+    const total = Math.floor((diffDays(s, e) - 1) / 7) + 1;
+    if (diffDays(s, e) <= 0 || total <= 0) return [];
+    return Array.from({ length: Math.min(total, OVERALL_TREND_LIMIT.week) }, (_, idx) =>
+        buildOverallWeekRow(idx + 1, addDays(s, idx * 7))
+    );
+};
+
 // 趋势 - 根据账单类型与区间取数据源
-const getOverallTrendDataset = (billType: string, start: string, end: string) => {
+const getOverallTrendDataset = (billType: string, start: string, end: string, startHour = 0, endHour = 23) => {
+    if (!start || !end) return [];
+    if (billType === "week") return buildOverallWeekRange(start, end);
     if (billType === "day") return buildOverallDayRange(start, end);
-    if (billType === "hour") return buildOverallHourRange(start, end);
+    if (billType === "hour") return buildOverallHourRange(start, end, startHour, endHour);
     return buildOverallMonthRange(start, end);
+};
+
+// ===== 整体分析 - 报表 / 趋势快捷区间 =====
+
+// 报表快捷选项（随报表类型切换）：前一小时/前两个小时（小时）、今天/昨天（日）、本月/上月（月）
+const OVERALL_REPORT_PRESETS: Record<string, { key: string; label: string }[]> = {
+    hour: [
+        { key: "1h", label: "前一小时" },
+        { key: "2h", label: "前两个小时" },
+    ],
+    day: [
+        { key: "today", label: "今天" },
+        { key: "yesterday", label: "昨天" },
+    ],
+    month: [
+        { key: "thisMonth", label: "本月" },
+        { key: "lastMonth", label: "上月" },
+    ],
+};
+
+// 趋势快捷选项（随趋势类型切换）：近24小时（小时）、近7天/近30天（日）、近6个月/近12个月（月）
+const OVERALL_TREND_PRESETS: Record<string, { key: string; label: string }[]> = {
+    hour: [{ key: "24h", label: "近24小时" }],
+    day: [
+        { key: "7d", label: "近7天" },
+        { key: "30d", label: "近30天" },
+    ],
+    month: [
+        { key: "6m", label: "近6个月" },
+        { key: "12m", label: "近12个月" },
+    ],
+};
+
+// 各类型切换后的默认快捷选项
+const OVERALL_REPORT_DEFAULT_PRESET: Record<string, string> = { hour: "1h", day: "today", month: "thisMonth" };
+const OVERALL_TREND_DEFAULT_PRESET: Record<string, string> = { hour: "24h", day: "30d", month: "6m" };
+
+// 筛选输入框统一样式
+const overallFilterInputCls = "h-8 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none";
+
+// 指定月份（YYYY-MM）的首日 / 末日
+const overallMonthFirstDay = (ym: string) => `${ym}-01`;
+const overallMonthLastDay = (ym: string) => {
+    const [y, m] = ym.split("-").map(Number);
+    return formatDay(new Date(y, m, 0));
+};
+
+// 报表快捷选项 → 粒度 + 选中日期（月报表取所在月）+ 选中小时（仅小时报表有效）
+const resolveOverallReportPreset = (key: string, now: Date) => {
+    const today = formatDay(now);
+    const ym = today.slice(0, 7);
+    switch (key) {
+        case "1h":
+        case "2h": {
+            const r = shiftOverallHour(today, now.getHours(), key === "1h" ? -1 : -2);
+            return { billType: "hour", date: r.date, hour: r.hour };
+        }
+        case "yesterday":
+            return { billType: "day", date: addDays(today, -1), hour: -1 };
+        case "thisMonth":
+            return { billType: "month", date: today, hour: -1 };
+        case "lastMonth":
+            return { billType: "month", date: overallMonthLastDay(addMonths(ym, -1)), hour: -1 };
+        default:
+            return { billType: "day", date: today, hour: -1 };
+    }
+};
+
+// 趋势快捷选项 → 粒度 + 起止日期 + 起止小时（小时仅小时趋势有效）
+const resolveOverallTrendPreset = (key: string, now: Date) => {
+    const today = formatDay(now);
+    const ym = today.slice(0, 7);
+    switch (key) {
+        case "24h": {
+            // 近24小时：截止到上一个整点，共 24 个小时
+            const e = shiftOverallHour(today, now.getHours(), -1);
+            const s = shiftOverallHour(e.date, e.hour, -23);
+            return { billType: "hour", start: s.date, end: e.date, startHour: s.hour, endHour: e.hour };
+        }
+        case "7d":
+            return { billType: "day", start: addDays(today, -6), end: today, startHour: 0, endHour: 23 };
+        case "6m":
+            return { billType: "month", start: overallMonthFirstDay(addMonths(ym, -5)), end: today, startHour: 0, endHour: 23 };
+        case "12m":
+            return { billType: "month", start: overallMonthFirstDay(addMonths(ym, -11)), end: today, startHour: 0, endHour: 23 };
+        default:
+            return { billType: "day", start: addDays(today, -29), end: today, startHour: 0, endHour: 23 };
+    }
+};
+
+// 趋势区间校验：起止倒置自动纠正，超出粒度上限自动裁剪并返回提示文案
+const clipOverallTrendRange = (
+    billType: string,
+    startIn: string,
+    endIn: string,
+    which: "start" | "end",
+    startHourIn = 0,
+    endHourIn = 23,
+) => {
+    let start = startIn;
+    let end = endIn;
+    let startHour = startHourIn;
+    let endHour = endHourIn;
+    let error = "";
+    // 小时趋势：按「日期 + 小时」整体比较与裁剪
+    if (billType === "hour") {
+        if (diffOverallHours(start, startHour, end, endHour) <= 0) {
+            if (which === "start") { end = start; endHour = startHour; } else { start = end; startHour = endHour; }
+        }
+        const L = OVERALL_TREND_LIMIT.hour * 24;
+        if (diffOverallHours(start, startHour, end, endHour) > L) {
+            error = `小时趋势最多可选择 ${L} 个小时，已自动调整区间`;
+            if (which === "start") {
+                const e = shiftOverallHour(start, startHour, L - 1);
+                end = e.date; endHour = e.hour;
+            } else {
+                const s = shiftOverallHour(end, endHour, -(L - 1));
+                start = s.date; startHour = s.hour;
+            }
+        }
+        return { start, end, startHour, endHour, error };
+    }
+    if (start > end) {
+        if (which === "start") end = start; else start = end;
+    }
+    if (billType === "month") {
+        const L = OVERALL_TREND_LIMIT.month;
+        if (diffMonths(start.slice(0, 7), end.slice(0, 7)) > L) {
+            error = `月趋势最多可选择 ${L} 个月，已自动调整区间`;
+            if (which === "start") end = overallMonthLastDay(addMonths(start.slice(0, 7), L - 1));
+            else start = overallMonthFirstDay(addMonths(end.slice(0, 7), -(L - 1)));
+        }
+    } else if (billType === "week") {
+        const L = OVERALL_TREND_LIMIT.week;
+        const ws = overallWeekStartOf(start);
+        const we = overallWeekStartOf(end);
+        if ((diffDays(ws, we) - 1) / 7 + 1 > L) {
+            error = `周趋势最多可选择 ${L} 周，已自动调整区间`;
+            if (which === "start") end = addDays(ws, L * 7 - 1);
+            else start = addDays(we, -(L - 1) * 7);
+        }
+    } else {
+        const L = billType === "day" ? OVERALL_TREND_LIMIT.day : OVERALL_TREND_LIMIT.hour;
+        if (diffDays(start, end) > L) {
+            error = `${billType === "day" ? "日" : "小时"}趋势最多可选择 ${L} 天，已自动调整区间`;
+            if (which === "start") end = addDays(start, L - 1);
+            else start = addDays(end, -(L - 1));
+        }
+    }
+    return { start, end, startHour, endHour, error };
 };
 
 // 整体分析 - 账期短标签（图表 X 轴展示）
 const overallShortLabel = (period: string, billType: string) => {
+    if (billType === "week") return `${Number(period.slice(4, 6))}/${Number(period.slice(6, 8))}周`;
     if (billType === "hour") {
         const [datePart, timePart] = period.split(" ");
         return `${Number(datePart.slice(6, 8))}日${(timePart ?? "").slice(0, 2)}时`;
@@ -2407,6 +2618,7 @@ const ProductColumnTrendChart = ({
 const overallPeriodSeed = (period: string, billType: string) => {
     const y = Number(period.slice(0, 4));
     const m = Number(period.slice(4, 6));
+    if (billType === "week") return y * 372 + m * 31 + Number(period.slice(6, 8)) + 900000;
     if (billType === "hour") {
         const [datePart, timePart] = period.split(" ");
         const dd = Number(datePart.slice(6, 8));
@@ -2422,7 +2634,7 @@ const overallPeriodSeed = (period: string, billType: string) => {
 
 // 整体分析 - 账期缩放比例（天/小时账单在月基准值上均摊）
 const overallPeriodScale = (billType: string) =>
-    billType === "day" ? 1 / 31 : billType === "hour" ? 1 / (31 * 24) : 1;
+    billType === "week" ? 7 / 31 : billType === "day" ? 1 / 31 : billType === "hour" ? 1 / (31 * 24) : 1;
 
 // 整体分析 - 产品维度行（单个产品在选中账期的经营数据）
 interface OverallProductRow {
@@ -4326,6 +4538,200 @@ const OverallTrendChart = ({
     );
 };
 
+// 整体分析 - 趋势模块通用多曲线图（纯 SVG，单坐标轴；unit=amount 以「万」为刻度，unit=pct 以「%」为刻度）
+// 图例支持点击显隐对应曲线，悬停展示当期各曲线数值
+type OverallTrendSeries = { key: string; label: string; color: string; values: number[]; dashed?: boolean };
+const OverallMultiLineChart = ({
+    periods,
+    billType,
+    series,
+    unit,
+}: {
+    periods: string[];
+    billType: string;
+    series: OverallTrendSeries[];
+    unit: "amount" | "pct";
+}) => {
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+    const [hidden, setHidden] = useState<Record<string, boolean>>({});
+
+    const W = 620;
+    const H = 260;
+    const padL = 70;
+    const padR = 20;
+    const padT = 16;
+    const padB = 34;
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+
+    if (periods.length === 0) {
+        return <div className="flex h-[260px] items-center justify-center text-sm text-gray-400">暂无数据</div>;
+    }
+
+    // 坐标范围按当前显示的曲线计算（全部隐藏时按全部曲线）；向外取整到「整齐」刻度
+    const shown = series.filter((s) => !hidden[s.key]);
+    const basis = (shown.length ? shown : series).flatMap((s) => s.values);
+    const rawMin = Math.min(...basis, 0);
+    let rawMax = Math.max(...basis, 0);
+    if (rawMax === rawMin) rawMax = rawMin + 1;
+    const rawStep = (rawMax - rawMin) / 5;
+    const mag = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+    const norm = rawStep / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+    const yMin = Math.floor(rawMin / step) * step;
+    const yMax = Math.max(Math.ceil(rawMax / step) * step, yMin + step);
+    const tickCount = Math.max(1, Math.round((yMax - yMin) / step));
+
+    const xAt = (i: number) => (periods.length === 1 ? padL + innerW / 2 : padL + (innerW * i) / (periods.length - 1));
+    const yAt = (v: number) => padT + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
+    const fmtAxis = (v: number) =>
+        unit === "pct" ? `${Number(v.toFixed(1))}%` : `${Number((v / 10000).toFixed(2))} 万`;
+    const fmtValue = (v: number) => (unit === "pct" ? `${v.toFixed(2)}%` : formatExactAmount(v));
+
+    const labelStride = Math.max(1, Math.ceil(periods.length / 8));
+    const showDots = periods.length <= 40;
+
+    return (
+        <div className="relative">
+            {/* 图例：点击显隐曲线 */}
+            <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 px-1">
+                {series.map((s) => {
+                    const on = !hidden[s.key];
+                    return (
+                        <button
+                            key={s.key}
+                            type="button"
+                            onClick={() => setHidden((prev) => ({ ...prev, [s.key]: !prev[s.key] }))}
+                            className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${on ? "text-gray-600" : "text-gray-300"}`}
+                        >
+                            {s.dashed ? (
+                                <span
+                                    className={`inline-block h-0 w-4 border-t-2 border-dashed ${on ? "" : "opacity-30"}`}
+                                    style={{ borderColor: s.color }}
+                                />
+                            ) : (
+                                <span
+                                    className={`inline-block h-[3px] w-4 rounded-full ${on ? "" : "opacity-30"}`}
+                                    style={{ backgroundColor: s.color }}
+                                />
+                            )}
+                            {s.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} preserveAspectRatio="none">
+                {/* 网格线 + 左侧刻度 */}
+                {Array.from({ length: tickCount + 1 }, (_, t) => {
+                    const v = yMin + step * t;
+                    const y = yAt(v);
+                    return (
+                        <g key={`tick-${t}`}>
+                            <line
+                                x1={padL}
+                                y1={y}
+                                x2={W - padR}
+                                y2={y}
+                                stroke={Math.abs(v) < 1e-9 && yMin < 0 ? "#d1d5db" : "#eef0f3"}
+                                strokeWidth={1}
+                            />
+                            <text x={padL - 8} y={y + 4} textAnchor="end" className="fill-gray-400" style={{ fontSize: 11 }}>
+                                {fmtAxis(v)}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* 曲线 */}
+                {shown.map((s) => (
+                    <polyline
+                        key={`line-${s.key}`}
+                        points={s.values.map((v, i) => `${xAt(i)},${yAt(v)}`).join(" ")}
+                        fill="none"
+                        stroke={s.color}
+                        strokeWidth={2}
+                        strokeDasharray={s.dashed ? "5 4" : undefined}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                    />
+                ))}
+
+                {/* 数据点 */}
+                {periods.map((_, i) =>
+                    showDots || activeIndex === i ? (
+                        <g key={`pt-${i}`}>
+                            {shown.map((s) => (
+                                <circle
+                                    key={s.key}
+                                    cx={xAt(i)}
+                                    cy={yAt(s.values[i])}
+                                    r={activeIndex === i ? 4.5 : 2.5}
+                                    fill="#fff"
+                                    stroke={s.color}
+                                    strokeWidth={2}
+                                />
+                            ))}
+                        </g>
+                    ) : null
+                )}
+
+                {/* X 轴标签 */}
+                {periods.map((p, i) =>
+                    i % labelStride === 0 ? (
+                        <text key={`lb-${i}`} x={xAt(i)} y={H - padB + 20} textAnchor="middle" className="fill-gray-400" style={{ fontSize: 11 }}>
+                            {overallShortLabel(p, billType)}
+                        </text>
+                    ) : null
+                )}
+
+                {/* 悬停竖线 */}
+                {activeIndex !== null && (
+                    <line x1={xAt(activeIndex)} y1={padT} x2={xAt(activeIndex)} y2={padT + innerH} stroke="#c9d3e0" strokeWidth={1} strokeDasharray="4 3" />
+                )}
+
+                {/* 悬停热区 */}
+                {periods.map((_, i) => {
+                    const bandW = innerW / Math.max(periods.length - 1, 1);
+                    return (
+                        <rect
+                            key={`hit-${i}`}
+                            x={xAt(i) - bandW / 2}
+                            y={padT}
+                            width={bandW}
+                            height={innerH}
+                            fill="transparent"
+                            onMouseEnter={() => setActiveIndex(i)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        />
+                    );
+                })}
+            </svg>
+
+            {/* 悬停浮层 */}
+            {activeIndex !== null && shown.length > 0 && (
+                <div
+                    className={`pointer-events-none absolute top-10 z-20 min-w-[200px] rounded-md bg-gray-700/95 px-3 py-2 text-[12px] leading-[1.8] text-white shadow-lg ${
+                        xAt(activeIndex) / W > 0.6 ? "-translate-x-full" : ""
+                    }`}
+                    style={{ left: `calc(${(xAt(activeIndex) / W) * 100}% ${xAt(activeIndex) / W > 0.6 ? "-" : "+"} 12px)` }}
+                >
+                    <div className="mb-0.5 font-medium">{periods[activeIndex]}</div>
+                    {shown.map((s) => (
+                        <div key={s.key} className="flex items-center justify-between gap-4">
+                            <span className="inline-flex items-center gap-1.5 text-white/70">
+                                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                {s.label}
+                            </span>
+                            <span>{fmtValue(s.values[activeIndex])}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // 兼容旧代码的别名
 const productsData = zhihuiProductsData;
 
@@ -5651,9 +6057,53 @@ const OverallRevenueSubRow = ({
     </div>
 );
 
+// 整体分析 - 总收入卡片中的分组头部（名称 + 提示 + 金额 + 环比 + 占比条）
+const OverallRevenueGroupHeader = ({
+    name,
+    tip,
+    value,
+    mom,
+    maxVal,
+    trackClass,
+    barClass,
+    withChildren = false,
+}: {
+    name: string;
+    tip: string;
+    value: number;
+    mom: OverallMomValue;
+    maxVal: number;
+    trackClass: string;
+    barClass: string;
+    withChildren?: boolean;
+}) => (
+    <>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[12px] text-gray-600">
+            <span className="inline-flex items-center gap-1 whitespace-nowrap font-medium">
+                <span>{name}</span>
+                <OverallTipIcon tip={tip} />
+            </span>
+            <span className="ml-auto flex items-center gap-2 whitespace-nowrap">
+                <span className="group/amt relative inline-block font-medium text-gray-800">
+                    {formatWan(value)}
+                    <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
+                        {formatExactAmount(value)}
+                        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+                    </span>
+                </span>
+                <OverallMomBadge mom={mom} />
+            </span>
+        </div>
+        <div className={`${withChildren ? "mb-3" : ""} h-2.5 w-full overflow-hidden rounded-full ${trackClass}`}>
+            <div className={`h-2.5 rounded-full ${barClass}`} style={{ width: `${Math.max(0, (value / maxVal) * 100)}%` }} />
+        </div>
+    </>
+);
+
 // 整体分析 - 总收入层级结构卡片（月/日/小时报表通用）
-//   企业内收入 = 企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入
-//   外部收入 = 企业内外部结算收入 + 企业外收入（仅多企业开启时展示；展示文案已按需求与「企业外收入」互换）
+//   企业内内结收入 = 企业内内结非智汇云收入 + 智汇云收入
+//   智汇云收入 = 智汇云内非本结算单元收入 + 本结算单元收入
+//   企业内外部结算收入、企业外收入：两个独立模块（仅多企业开启时展示）
 const OverallHierarchicalRevenueCard = ({
     label,
     tip,
@@ -5663,16 +6113,12 @@ const OverallHierarchicalRevenueCard = ({
     allowMultiEnterprise,
     innerRevenue,
     innerNonZyunRevenue,
-    zyunNonUnitRevenue,
-    unitRevenue,
-    outerRevenue,
+    zyunRevenue,
     outerGroupRevenue,
     outerPortalRevenue,
     innerMom,
     innerNonZyunMom,
-    zyunNonUnitMom,
-    unitMom,
-    outerMom,
+    zyunMom,
     outerGroupMom,
     outerPortalMom,
 }: {
@@ -5684,20 +6130,16 @@ const OverallHierarchicalRevenueCard = ({
     allowMultiEnterprise: boolean;
     innerRevenue: number;
     innerNonZyunRevenue: number;
-    zyunNonUnitRevenue: number;
-    unitRevenue: number;
-    outerRevenue: number;
+    zyunRevenue: number;
     outerGroupRevenue: number;
     outerPortalRevenue: number;
     innerMom: OverallMomValue;
     innerNonZyunMom: OverallMomValue;
-    zyunNonUnitMom: OverallMomValue;
-    unitMom: OverallMomValue;
-    outerMom: OverallMomValue;
+    zyunMom: OverallMomValue;
     outerGroupMom: OverallMomValue;
     outerPortalMom: OverallMomValue;
 }) => {
-    const maxVal = Math.max(innerRevenue, ...(allowMultiEnterprise ? [outerRevenue] : []), 1);
+    const maxVal = Math.max(innerRevenue, ...(allowMultiEnterprise ? [outerGroupRevenue, outerPortalRevenue] : []), 1);
     return (
         <div className="rounded-lg border border-gray-200 bg-white p-5">
             {/* 卡片头部：总收入 + 环比 */}
@@ -5716,32 +6158,23 @@ const OverallHierarchicalRevenueCard = ({
                 <OverallMomBadge mom={mom} />
             </div>
 
-            {/* 企业内收入分组（始终展示） */}
+            {/* 企业内内结收入分组（始终展示） */}
             <div className="mt-4 rounded-md border border-blue-100 bg-blue-50/40 p-3">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[12px] text-gray-600">
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap font-medium">
-                        <span>企业内收入(元)</span>
-                        <OverallTipIcon tip="企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入" />
-                    </span>
-                    <span className="ml-auto flex items-center gap-2 whitespace-nowrap">
-                        <span className="group/amt relative inline-block font-medium text-gray-800">
-                            {formatWan(innerRevenue)}
-                            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                                {formatExactAmount(innerRevenue)}
-                                <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                            </span>
-                        </span>
-                        <OverallMomBadge mom={innerMom} />
-                    </span>
-                </div>
-                <div className="mb-3 h-2.5 w-full overflow-hidden rounded-full bg-blue-100">
-                    <div className="h-2.5 rounded-full bg-blue-500" style={{ width: `${(innerRevenue / maxVal) * 100}%` }} />
-                </div>
+                <OverallRevenueGroupHeader
+                    name="企业内内结收入(元)"
+                    tip="企业内内结非智汇云收入 + 智汇云收入"
+                    value={innerRevenue}
+                    mom={innerMom}
+                    maxVal={maxVal}
+                    trackClass="bg-blue-100"
+                    barClass="bg-blue-500"
+                    withChildren
+                />
 
-                {/* 企业内收入子项：企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入 */}
+                {/* 企业内内结收入子项：企业内内结非智汇云收入 + 智汇云收入 */}
                 <div className="space-y-2 border-l-2 border-blue-200 pl-3">
                     <OverallRevenueSubRow
-                        name="企业内非智汇云收入(元)"
+                        name="企业内内结非智汇云收入(元)"
                         tip="内部企业账号中，非智汇云产品的账单金额和"
                         value={innerNonZyunRevenue}
                         mom={innerNonZyunMom}
@@ -5749,66 +6182,43 @@ const OverallHierarchicalRevenueCard = ({
                         color="#1d4ed8"
                     />
                     <OverallRevenueSubRow
-                        name="智汇云内非本结算单元收入(元)"
-                        tip="内部企业账号中，智汇云产品但不属于本结算单元的账单金额和"
-                        value={zyunNonUnitRevenue}
-                        mom={zyunNonUnitMom}
-                        maxVal={maxVal}
-                        color="#3b82f6"
-                    />
-                    <OverallRevenueSubRow
-                        name="本结算单元收入(元)"
-                        tip="内部企业账号中，本结算单元产生的账单金额和"
-                        value={unitRevenue}
-                        mom={unitMom}
+                        name="智汇云收入(元)"
+                        tip="智汇云内非本结算单元收入 + 本结算单元收入"
+                        value={zyunRevenue}
+                        mom={zyunMom}
                         maxVal={maxVal}
                         color="#60a5fa"
                     />
                 </div>
             </div>
 
-            {/* 外部收入分组（仅多企业开启时展示） */}
+            {/* 企业内外部结算收入（独立模块，仅多企业开启时展示） */}
             {allowMultiEnterprise && (
                 <div className="mt-3 rounded-md border border-sky-100 bg-sky-50/40 p-3">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[12px] text-gray-600">
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap font-medium">
-                            <span>外部收入(元)</span>
-                            <OverallTipIcon tip="企业内外部结算收入 + 企业外收入" />
-                        </span>
-                        <span className="ml-auto flex items-center gap-2 whitespace-nowrap">
-                            <span className="group/amt relative inline-block font-medium text-gray-800">
-                                {formatWan(outerRevenue)}
-                                <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-700 px-2.5 py-1 text-[12px] font-normal text-white shadow-lg group-hover/amt:block">
-                                    {formatExactAmount(outerRevenue)}
-                                    <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
-                                </span>
-                            </span>
-                            <OverallMomBadge mom={outerMom} />
-                        </span>
-                    </div>
-                    <div className="mb-3 h-2.5 w-full overflow-hidden rounded-full bg-sky-100">
-                        <div className="h-2.5 rounded-full bg-sky-500" style={{ width: `${(outerRevenue / maxVal) * 100}%` }} />
-                    </div>
+                    <OverallRevenueGroupHeader
+                        name="企业内外部结算收入(元)"
+                        tip="内部企业账号中，按外部价格结算的账单金额和"
+                        value={outerGroupRevenue}
+                        mom={outerGroupMom}
+                        maxVal={maxVal}
+                        trackClass="bg-sky-100"
+                        barClass="bg-sky-600"
+                    />
+                </div>
+            )}
 
-                    {/* 外部收入子项：企业内外部结算收入 + 企业外收入 */}
-                    <div className="space-y-2 border-l-2 border-sky-200 pl-3">
-                        <OverallRevenueSubRow
-                            name="企业内外部结算收入(元)"
-                            tip="内部企业账号中，按外部价格结算的账单金额和"
-                            value={outerGroupRevenue}
-                            mom={outerGroupMom}
-                            maxVal={maxVal}
-                            color="#0284c7"
-                        />
-                        <OverallRevenueSubRow
-                            name="企业外收入(元)"
-                            tip="非内部企业账号（外部Portal 360.cn）的账单金额和"
-                            value={outerPortalRevenue}
-                            mom={outerPortalMom}
-                            maxVal={maxVal}
-                            color="#38bdf8"
-                        />
-                    </div>
+            {/* 企业外收入（独立模块，仅多企业开启时展示） */}
+            {allowMultiEnterprise && (
+                <div className="mt-3 rounded-md border border-cyan-100 bg-cyan-50/40 p-3">
+                    <OverallRevenueGroupHeader
+                        name="企业外收入(元)"
+                        tip="非内部企业账号（外部Portal 360.cn）的账单金额和"
+                        value={outerPortalRevenue}
+                        mom={outerPortalMom}
+                        maxVal={maxVal}
+                        trackClass="bg-cyan-100"
+                        barClass="bg-cyan-500"
+                    />
                 </div>
             )}
         </div>
@@ -5952,11 +6362,11 @@ export default function AdminPage() {
     }, [allowMultiEnterprise, customerBillTab]);
 
     // ===== 经营分析 - 整体分析 =====
-    const [overallBillType, setOverallBillType] = useState("month");     // 账单类型：month / day / hour
-    const [overallMonth, setOverallMonth] = useState("2026-08");         // 报表 - 选中月（月报表）
-    const [overallDate, setOverallDate] = useState("2026-08-31");        // 报表 - 选中天（日报表 / 小时报表）
-    const [overallHour, setOverallHour] = useState(10);                  // 报表 - 选中小时（小时报表，0~23）
-    const [overallTab, setOverallTab] = useState<"report" | "trend">("report"); // 报表 / 趋势 tab
+    // 报表：类型（小时/日/月报表）+ 快捷选项 + 自定义选择（日期 / 日期+小时 / 月份）
+    const [overallReportPreset, setOverallReportPreset] = useState<string>("thisMonth");
+    const [overallBillType, setOverallBillType] = useState("month");     // 报表类型：hour / day / month（默认月报表）
+    const [overallReportDate, setOverallReportDate] = useState(() => formatDay(new Date())); // 选中日期（月报表取所在月）
+    const [overallHour, setOverallHour] = useState(() => new Date().getHours()); // 报表 - 选中小时（小时报表，0~23）
     const [overallTopType, setOverallTopType] = useState<"revenue" | "cost" | "innerMargin" | "outerMargin">("revenue"); // 产品TOP维度：收入TOP / 成本TOP / 内结毛利率TOP / 外部毛利率TOP
     // 整体分析 - 产品数量卡片点击抽屉（按筛选维度展示产品列表）
     const [overallCountDrawer, setOverallCountDrawer] = useState<{ title: string; rows: OverallProductRow[] } | null>(null);
@@ -5965,17 +6375,19 @@ export default function AdminPage() {
     // 整体分析 - 部门数量卡片点击抽屉（口径同结算单元数量卡片）
     const [overallDeptCountDrawer, setOverallDeptCountDrawer] = useState<{ title: string; rows: OverallDeptRow[] } | null>(null);
 
-    // 趋势 - 时间区间（月趋势最多 6 个月 / 日趋势最多 31 天 / 小时趋势最多 7 天）
-    const [overallTrendMonthStart, setOverallTrendMonthStart] = useState("2026-03");
-    const [overallTrendMonthEnd, setOverallTrendMonthEnd] = useState("2026-08");
-    const [overallTrendDayStart, setOverallTrendDayStart] = useState("2026-08-01");
-    const [overallTrendDayEnd, setOverallTrendDayEnd] = useState("2026-08-31");
-    const [overallTrendHourStart, setOverallTrendHourStart] = useState("2026-08-25");
-    const [overallTrendHourEnd, setOverallTrendHourEnd] = useState("2026-08-31");
+    // 趋势：类型（小时/日/月趋势）+ 快捷选项 + 自定义区间（默认月趋势 / 近6个月）
+    const [overallTrendPreset, setOverallTrendPreset] = useState<string>("6m");
+    const [overallTrendBillType, setOverallTrendBillType] = useState("month"); // 趋势类型：hour / day / month
+    // 整体分析 - 当前视图：报表 / 趋势（点击筛选卡片中「报表」「趋势」切换，仅展示对应内容）
+    const [overallView, setOverallView] = useState<"report" | "trend">("report");
+    const [overallTrendStart, setOverallTrendStart] = useState(() => overallMonthFirstDay(addMonths(formatDay(new Date()).slice(0, 7), -5)));
+    const [overallTrendEnd, setOverallTrendEnd] = useState(() => formatDay(new Date()));
+    const [overallTrendStartHour, setOverallTrendStartHour] = useState(0);  // 小时趋势 - 起始小时
+    const [overallTrendEndHour, setOverallTrendEndHour] = useState(23);     // 小时趋势 - 结束小时
     const [overallTrendError, setOverallTrendError] = useState("");      // 区间超限提示文案
 
-    // 整体分析 - 当前账期（月报表取选中月，日/小时报表取选中天）
-    const overallPeriodValue = overallBillType === "month" ? overallMonth : overallDate;
+    // 整体分析 - 当前账期（月报表取所在月，其余取所在天）
+    const overallPeriodValue = overallBillType === "month" ? overallReportDate.slice(0, 7) : overallReportDate;
 
     // 整体分析 - 报表数据源（末条为选中账期，倒数第二条用于环比）
     const overallChartRows = useMemo(
@@ -5983,72 +6395,95 @@ export default function AdminPage() {
         [overallBillType, overallPeriodValue, overallHour]
     );
 
-    // 趋势 - 当前账单类型对应的区间
-    const overallTrendRange = useMemo(() => {
-        if (overallBillType === "day") return { start: overallTrendDayStart, end: overallTrendDayEnd };
-        if (overallBillType === "hour") return { start: overallTrendHourStart, end: overallTrendHourEnd };
-        return { start: overallTrendMonthStart, end: overallTrendMonthEnd };
-    }, [
-        overallBillType,
-        overallTrendMonthStart, overallTrendMonthEnd,
-        overallTrendDayStart, overallTrendDayEnd,
-        overallTrendHourStart, overallTrendHourEnd,
-    ]);
+    // 报表 - 点击快捷选项：同步报表类型，并把对应时间回填到自定义筛选框
+    const applyOverallReportPreset = (key: string) => {
+        const r = resolveOverallReportPreset(key, new Date());
+        setOverallReportPreset(key);
+        setOverallBillType(r.billType);
+        setOverallReportDate(r.date);
+        if (r.billType === "hour" && r.hour >= 0) setOverallHour(r.hour);
+    };
+
+    // 报表 - 切换报表类型：默认选中该类型的第一个快捷选项
+    const handleOverallReportTypeChange = (billType: string) => {
+        applyOverallReportPreset(OVERALL_REPORT_DEFAULT_PRESET[billType] ?? "today");
+    };
+
+    // 报表 - 自定义选择日期 / 小时 / 月份：取消快捷选项高亮
+    const handleOverallReportDateChange = (value: string) => {
+        if (!value) return;
+        setOverallReportPreset("");
+        // 月份输入为 YYYY-MM，补齐为当月 1 日
+        setOverallReportDate(value.length === 7 ? `${value}-01` : value);
+    };
+    const handleOverallReportHourChange = (hour: number) => {
+        setOverallReportPreset("");
+        setOverallHour(hour);
+    };
 
     // 趋势 - 区间数据源（按时间正序）
-    const overallTrendRows = useMemo(
-        () => getOverallTrendDataset(overallBillType, overallTrendRange.start, overallTrendRange.end),
-        [overallBillType, overallTrendRange]
-    );
+    const overallTrendRows = useMemo(() => {
+        if (!overallTrendBillType) return [];
+        if (overallTrendBillType === "month") {
+            return getOverallTrendDataset("month", overallTrendStart.slice(0, 7), overallTrendEnd.slice(0, 7));
+        }
+        return getOverallTrendDataset(overallTrendBillType, overallTrendStart, overallTrendEnd, overallTrendStartHour, overallTrendEndHour);
+    }, [overallTrendBillType, overallTrendStart, overallTrendEnd, overallTrendStartHour, overallTrendEndHour]);
 
-    // 趋势 - 区间变更：自动纠正起止倒置，并按上限裁剪结束时间
-    const handleOverallTrendRangeChange = (which: "start" | "end", value: string) => {
-        if (!value) return;
+    // 趋势 - 点击快捷选项：同步趋势类型，并把对应区间回填到自定义筛选框
+    const applyOverallTrendPreset = (key: string) => {
+        const r = resolveOverallTrendPreset(key, new Date());
+        setOverallTrendPreset(key);
+        setOverallTrendBillType(r.billType);
+        setOverallTrendStart(r.start);
+        setOverallTrendEnd(r.end);
+        setOverallTrendStartHour(r.startHour);
+        setOverallTrendEndHour(r.endHour);
         setOverallTrendError("");
-        const range = overallTrendRange;
-        let start = which === "start" ? value : range.start;
-        let end = which === "end" ? value : range.end;
+    };
 
-        if (overallBillType === "month") {
-            if (diffMonths(start, end) <= 0) {
-                if (which === "start") end = start; else start = end;
-            }
-            if (diffMonths(start, end) > OVERALL_TREND_LIMIT.month) {
-                setOverallTrendError(`月趋势最多可选择 ${OVERALL_TREND_LIMIT.month} 个月，已自动调整区间`);
-                if (which === "start") end = addMonths(start, OVERALL_TREND_LIMIT.month - 1);
-                else start = addMonths(end, -(OVERALL_TREND_LIMIT.month - 1));
-            }
-            setOverallTrendMonthStart(start);
-            setOverallTrendMonthEnd(end);
-            return;
-        }
+    // 趋势 - 切换趋势类型：默认选中该类型的第一个快捷选项
+    const handleOverallTrendTypeChange = (billType: string) => {
+        applyOverallTrendPreset(OVERALL_TREND_DEFAULT_PRESET[billType] ?? "30d");
+    };
 
-        const limit = overallBillType === "day" ? OVERALL_TREND_LIMIT.day : OVERALL_TREND_LIMIT.hour;
-        const unitName = overallBillType === "day" ? "日趋势最多可选择 31 天" : "小时趋势最多可选择 7 天";
-        if (diffDays(start, end) <= 0) {
-            if (which === "start") end = start; else start = end;
-        }
-        if (diffDays(start, end) > limit) {
-            setOverallTrendError(`${unitName}，已自动调整区间`);
-            if (which === "start") end = addDays(start, limit - 1);
-            else start = addDays(end, -(limit - 1));
-        }
-        if (overallBillType === "day") {
-            setOverallTrendDayStart(start);
-            setOverallTrendDayEnd(end);
-        } else {
-            setOverallTrendHourStart(start);
-            setOverallTrendHourEnd(end);
-        }
+    // 趋势 - 自定义修改区间：自动纠正起止倒置，并按类型上限裁剪，取消快捷选项高亮
+    const updateOverallTrendRange = (
+        billType: string,
+        start: string,
+        end: string,
+        which: "start" | "end",
+        startHour = overallTrendStartHour,
+        endHour = overallTrendEndHour,
+    ) => {
+        if (!start || !end) return;
+        // 月份输入为 YYYY-MM：起始补齐为月初，结束补齐为月末
+        const s = start.length === 7 ? overallMonthFirstDay(start) : start;
+        const e = end.length === 7 ? overallMonthLastDay(end) : end;
+        const r = clipOverallTrendRange(billType, s, e, which, startHour, endHour);
+        setOverallTrendPreset("");
+        setOverallTrendBillType(billType);
+        setOverallTrendStart(r.start);
+        setOverallTrendEnd(r.end);
+        setOverallTrendStartHour(r.startHour);
+        setOverallTrendEndHour(r.endHour);
+        setOverallTrendError(r.error);
     };
 
     // 趋势 - 区间说明
     const overallChartRangeTip = useMemo(() => {
-        const { start, end } = overallTrendRange;
-        if (overallBillType === "month") return `${start} ~ ${end}，共 ${diffMonths(start, end)} 个月（最多 6 个月）`;
-        if (overallBillType === "day") return `${start} ~ ${end}，共 ${diffDays(start, end)} 天（最多 31 天）`;
-        return `${start} ~ ${end}，共 ${diffDays(start, end)} 天 × 24 小时 = ${diffDays(start, end) * 24} 个点（最多 7 天）`;
-    }, [overallBillType, overallTrendRange]);
+        const start = overallTrendStart;
+        const end = overallTrendEnd;
+        if (!overallTrendBillType || !start || !end) return "";
+        if (overallTrendBillType === "month") {
+            return `${start.slice(0, 7)} ~ ${end.slice(0, 7)}，共 ${diffMonths(start.slice(0, 7), end.slice(0, 7))} 个月（最多 ${OVERALL_TREND_LIMIT.month} 个月）`;
+        }
+        if (overallTrendBillType === "week") {
+            return `${start} ~ ${end}，共 ${overallTrendRows.length} 周（最多 ${OVERALL_TREND_LIMIT.week} 周）`;
+        }
+        if (overallTrendBillType === "day") return `${start} ~ ${end}，共 ${diffDays(start, end)} 天（最多 ${OVERALL_TREND_LIMIT.day} 天）`;
+        return `${start} ${pad2(overallTrendStartHour)}:00 ~ ${end} ${pad2(overallTrendEndHour)}:00，共 ${overallTrendRows.length} 个小时（最多 ${OVERALL_TREND_LIMIT.hour * 24} 个小时）`;
+    }, [overallTrendBillType, overallTrendStart, overallTrendEnd, overallTrendStartHour, overallTrendEndHour, overallTrendRows.length]);
 
     // 整体分析 - 报表汇总（仅统计选中账期，并计算环比）
     const overallReportSummary = useMemo(() => {
@@ -6071,6 +6506,8 @@ export default function AdminPage() {
             innerNonZyunRevenue: cur.innerNonZyunRevenue,
             zyunNonUnitRevenue: cur.zyunNonUnitRevenue,
             unitRevenue: cur.unitRevenue,
+            // 智汇云收入 = 智汇云内非本结算单元收入 + 本结算单元收入
+            zyunRevenue: cur.zyunNonUnitRevenue + cur.unitRevenue,
             outerRevenue: cur.outerRevenue,
             outerGroupRevenue: cur.outerGroupRevenue,
             outerPortalRevenue: cur.outerPortalRevenue,
@@ -6092,6 +6529,7 @@ export default function AdminPage() {
                 innerNonZyunRevenue: mom(cur.innerNonZyunRevenue, prev?.innerNonZyunRevenue),
                 zyunNonUnitRevenue: mom(cur.zyunNonUnitRevenue, prev?.zyunNonUnitRevenue),
                 unitRevenue: mom(cur.unitRevenue, prev?.unitRevenue),
+                zyunRevenue: mom(cur.zyunNonUnitRevenue + cur.unitRevenue, prev ? prev.zyunNonUnitRevenue + prev.unitRevenue : undefined),
                 outerRevenue: mom(cur.outerRevenue, prev?.outerRevenue),
                 outerGroupRevenue: mom(cur.outerGroupRevenue, prev?.outerGroupRevenue),
                 outerPortalRevenue: mom(cur.outerPortalRevenue, prev?.outerPortalRevenue),
@@ -6220,7 +6658,7 @@ export default function AdminPage() {
     // 产品分析 - 「企业外收入」明细抽屉（集团内外部客户 + 外部Portal 合并展示）
     const [outerRevenueDetailRow, setOuterRevenueDetailRow] = useState<ProductAnalysisRow | null>(null);
     const [outerRevenueDetailTab, setOuterRevenueDetailTab] = useState<"trend" | "revenue">("revenue");
-    // 产品分析 - 结算单元账单金额明细抽屉（企业内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
+    // 产品分析 - 结算单元账单金额明细抽屉（企业内内结非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入 通用）
     const [unitBillDetail, setUnitBillDetail] = useState<{ row: ProductAnalysisRow; title: string; amount: number } | null>(null);
     const [unitBillDetailTab, setUnitBillDetailTab] = useState<"trend" | "revenue">("revenue");
     // 产品分析 - 说明弹框
@@ -13527,152 +13965,241 @@ export default function AdminPage() {
                                 </p>
                             </div>
 
-                            {/* 报表 / 趋势 Tab 切换（分段控件样式） */}
-                            <div className="mb-4 flex items-center justify-between">
-                                <div className="inline-flex h-9 items-center rounded-lg bg-gray-100 p-1">
-                                    {[
-                                        { key: "report" as const, label: "报表" },
-                                        { key: "trend" as const, label: "趋势" },
-                                    ].map((t) => (
-                                        <button
-                                            key={t.key}
-                                            onClick={() => {
-                                                setOverallTab(t.key);
-                                                setOverallTrendError("");
-                                            }}
-                                            className={`h-7 rounded-md px-6 text-sm transition-all ${
-                                                overallTab === t.key
-                                                    ? "bg-white font-medium text-blue-600 shadow-sm"
-                                                    : "text-gray-500 hover:text-gray-700"
-                                            }`}
-                                        >
-                                            {t.label}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* 导出数据 */}
+                            {/* 导出数据 */}
+                            <div className="mb-4 flex items-center justify-end">
                                 <button className="h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
                                     导出数据
                                 </button>
                             </div>
 
-                            {/* 筛选工具栏：报表为单账期选择，趋势为时间区间选择 */}
-                            <div className="mb-4 flex flex-wrap items-center gap-3">
-                                {/* 统计粒度：月 / 日 / 小时（文案随 Tab 变化） */}
-                                <div className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white p-0.5">
-                                    {overallBillTypeOptions.map((t) => (
-                                        <button
-                                            key={t.value}
-                                            onClick={() => {
-                                                setOverallBillType(t.value);
-                                                setOverallTrendError("");
-                                            }}
-                                            className={`h-8 rounded-md px-4 text-sm transition-colors ${
-                                                overallBillType === t.value
-                                                    ? "bg-blue-600 text-white"
-                                                    : "text-gray-600 hover:bg-gray-50"
-                                            }`}
-                                        >
-                                            {overallTab === "report" ? t.reportLabel : t.trendLabel}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {overallTab === "report" ? (
-                                    /* 报表：月报表选某月、日报表选某天、小时报表选某天 + 某小时 */
-                                    <>
-                                        {overallBillType === "month" ? (
-                                            <input
-                                                type="month"
-                                                value={overallMonth}
-                                                onChange={(e) => setOverallMonth(e.target.value)}
-                                                className="h-9 w-[200px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
-                                            />
-                                        ) : (
+                            {/* 筛选栏：左「报表」/ 右「趋势」，各自为 类型下拉 + 快捷选项 + 自定义时间筛选 */}
+                            {/* 三列网格：左右两组等宽，分割线固定居中 */}
+                            <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-6 rounded-lg border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                                {/* ===== 报表 ===== */}
+                                <div
+                                    onClickCapture={() => setOverallView("report")}
+                                    className="flex min-w-0 flex-wrap items-center gap-3"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setOverallView("report")}
+                                        className={`h-7 flex-shrink-0 rounded-md px-3 text-sm font-medium transition-colors ${
+                                            overallView === "report" ? "border border-blue-600 bg-blue-600 text-white shadow-sm" : "border border-blue-600 bg-white text-blue-600 hover:bg-blue-50"
+                                        }`}
+                                    >
+                                        报表
+                                    </button>
+                                    <select
+                                        value={overallBillType}
+                                        onChange={(e) => handleOverallReportTypeChange(e.target.value)}
+                                        className="h-8 w-[104px] rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                                    >
+                                        {overallReportTypeOptions.map((t) => (
+                                            <option key={t.value} value={t.value}>{t.label}</option>
+                                        ))}
+                                    </select>
+                                    {/* 快捷选项（随报表类型切换） */}
+                                    <div className="inline-flex h-8 items-center rounded-md bg-gray-100 p-0.5">
+                                        {(OVERALL_REPORT_PRESETS[overallBillType] ?? []).map((p) => (
+                                            <button
+                                                key={p.key}
+                                                type="button"
+                                                onClick={() => applyOverallReportPreset(p.key)}
+                                                className={`h-7 min-w-[76px] rounded px-3 text-sm transition-all ${
+                                                    overallReportPreset === p.key
+                                                        ? "bg-white text-gray-900 shadow-sm"
+                                                        : "text-gray-600 hover:text-gray-900"
+                                                }`}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {/* 自定义时间筛选：小时报表=日期+小时；日报表=日期；月报表=月份 */}
+                                    {overallBillType === "hour" ? (
+                                        <div className="flex h-8 items-center rounded-md border border-gray-300 bg-white pl-3 pr-1 focus-within:border-blue-500">
                                             <input
                                                 type="date"
-                                                value={overallDate}
-                                                onChange={(e) => setOverallDate(e.target.value)}
-                                                className="h-9 w-[200px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                                value={overallReportDate}
+                                                onChange={(e) => handleOverallReportDateChange(e.target.value)}
+                                                className="w-[122px] bg-transparent text-sm text-gray-900 focus:outline-none"
                                             />
-                                        )}
-                                        {overallBillType === "hour" && (
+                                            <span className="mx-1.5 h-4 w-px bg-gray-200" />
                                             <select
                                                 value={overallHour}
-                                                onChange={(e) => setOverallHour(Number(e.target.value))}
-                                                className="h-9 w-[130px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                                onChange={(e) => handleOverallReportHourChange(Number(e.target.value))}
+                                                className="h-6 w-[74px] rounded bg-transparent px-1 text-sm text-gray-900 focus:outline-none"
                                             >
                                                 {Array.from({ length: 24 }, (_, h) => (
                                                     <option key={h} value={h}>{`${pad2(h)}:00`}</option>
                                                 ))}
                                             </select>
-                                        )}
-                                    </>
-                                ) : (
-                                    /* 趋势：时间区间选择，超出上限自动裁剪并提示 */
-                                    <div className="flex items-center gap-2">
+                                        </div>
+                                    ) : overallBillType === "month" ? (
                                         <input
-                                            type={overallBillType === "month" ? "month" : "date"}
-                                            value={overallTrendRange.start}
-                                            onChange={(e) => handleOverallTrendRangeChange("start", e.target.value)}
-                                            className="h-9 w-[180px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                            type="month"
+                                            value={overallReportDate.slice(0, 7)}
+                                            onChange={(e) => handleOverallReportDateChange(e.target.value)}
+                                            className={`${overallFilterInputCls} w-[150px]`}
                                         />
-                                        <span className="text-sm text-gray-400">至</span>
+                                    ) : (
                                         <input
-                                            type={overallBillType === "month" ? "month" : "date"}
-                                            value={overallTrendRange.end}
-                                            onChange={(e) => handleOverallTrendRangeChange("end", e.target.value)}
-                                            className="h-9 w-[180px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none"
+                                            type="date"
+                                            value={overallReportDate}
+                                            onChange={(e) => handleOverallReportDateChange(e.target.value)}
+                                            className={`${overallFilterInputCls} w-[150px]`}
                                         />
-                                        <span className="text-[12px] text-gray-400">
-                                            {overallBillType === "month"
-                                                ? "最多 6 个月"
-                                                : overallBillType === "day"
-                                                ? "最多 31 天"
-                                                : "最多 7 天（按小时统计）"}
-                                        </span>
+                                    )}
+                                </div>
+
+                                {/* 报表 / 趋势 分割线（居中，高度撑满整行） */}
+                                <div className="min-h-[32px] w-px self-stretch bg-gray-200" aria-hidden="true" />
+
+                                {/* ===== 趋势 ===== */}
+                                <div
+                                    onClickCapture={() => setOverallView("trend")}
+                                    className="flex min-w-0 flex-wrap items-center gap-3"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setOverallView("trend")}
+                                        className={`h-7 flex-shrink-0 rounded-md px-3 text-sm font-medium transition-colors ${
+                                            overallView === "trend" ? "border border-blue-600 bg-blue-600 text-white shadow-sm" : "border border-blue-600 bg-white text-blue-600 hover:bg-blue-50"
+                                        }`}
+                                    >
+                                        趋势
+                                    </button>
+                                    <select
+                                        value={overallTrendBillType}
+                                        onChange={(e) => handleOverallTrendTypeChange(e.target.value)}
+                                        className="h-8 w-[104px] rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+                                    >
+                                        {overallTrendTypeOptions.map((t) => (
+                                            <option key={t.value} value={t.value}>{t.label}</option>
+                                        ))}
+                                    </select>
+                                    {/* 快捷选项（随趋势类型切换） */}
+                                    <div className="inline-flex h-8 items-center rounded-md bg-gray-100 p-0.5">
+                                        {(OVERALL_TREND_PRESETS[overallTrendBillType] ?? []).map((p) => (
+                                            <button
+                                                key={p.key}
+                                                type="button"
+                                                onClick={() => applyOverallTrendPreset(p.key)}
+                                                className={`h-7 min-w-[76px] rounded px-3 text-sm transition-all ${
+                                                    overallTrendPreset === p.key
+                                                        ? "bg-white text-gray-900 shadow-sm"
+                                                        : "text-gray-600 hover:text-gray-900"
+                                                }`}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        ))}
                                     </div>
-                                )}
+                                    {/* 自定义区间：小时趋势=起止日期+小时；日趋势=起止日期；月趋势=起止月份 */}
+                                    {overallTrendBillType === "hour" ? (
+                                        <div className="flex h-8 items-center rounded-md border border-gray-300 bg-white px-3 focus-within:border-blue-500">
+                                            <input
+                                                type="date"
+                                                value={overallTrendStart}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, e.target.value, overallTrendEnd, "start", overallTrendStartHour, overallTrendEndHour)}
+                                                className="w-[118px] bg-transparent text-sm text-gray-900 focus:outline-none"
+                                            />
+                                            <select
+                                                value={overallTrendStartHour}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, overallTrendStart, overallTrendEnd, "start", Number(e.target.value), overallTrendEndHour)}
+                                                className="mx-1 h-6 w-[68px] rounded bg-transparent px-0.5 text-sm text-gray-900 focus:outline-none"
+                                            >
+                                                {Array.from({ length: 24 }, (_, h) => (
+                                                    <option key={h} value={h}>{`${pad2(h)}:00`}</option>
+                                                ))}
+                                            </select>
+                                            <span className="mx-2 text-gray-400">→</span>
+                                            <input
+                                                type="date"
+                                                value={overallTrendEnd}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, overallTrendStart, e.target.value, "end", overallTrendStartHour, overallTrendEndHour)}
+                                                className="w-[118px] bg-transparent text-sm text-gray-900 focus:outline-none"
+                                            />
+                                            <select
+                                                value={overallTrendEndHour}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, overallTrendStart, overallTrendEnd, "end", overallTrendStartHour, Number(e.target.value))}
+                                                className="ml-1 h-6 w-[68px] rounded bg-transparent px-0.5 text-sm text-gray-900 focus:outline-none"
+                                            >
+                                                {Array.from({ length: 24 }, (_, h) => (
+                                                    <option key={h} value={h}>{`${pad2(h)}:00`}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ) : overallTrendBillType === "month" ? (
+                                        <div className="flex h-8 items-center rounded-md border border-gray-300 bg-white px-3 focus-within:border-blue-500">
+                                            <input
+                                                type="month"
+                                                value={overallTrendStart.slice(0, 7)}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, e.target.value, overallTrendEnd, "start")}
+                                                className="w-[118px] bg-transparent text-sm text-gray-900 focus:outline-none"
+                                            />
+                                            <span className="mx-2 text-gray-400">→</span>
+                                            <input
+                                                type="month"
+                                                value={overallTrendEnd.slice(0, 7)}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, overallTrendStart, e.target.value, "end")}
+                                                className="w-[118px] bg-transparent text-sm text-gray-900 focus:outline-none"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="flex h-8 items-center rounded-md border border-gray-300 bg-white px-3 focus-within:border-blue-500">
+                                            <input
+                                                type="date"
+                                                value={overallTrendStart}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, e.target.value, overallTrendEnd, "start")}
+                                                className="w-[118px] bg-transparent text-sm text-gray-900 focus:outline-none"
+                                            />
+                                            <span className="mx-2 text-gray-400">→</span>
+                                            <input
+                                                type="date"
+                                                value={overallTrendEnd}
+                                                onChange={(e) => updateOverallTrendRange(overallTrendBillType, overallTrendStart, e.target.value, "end")}
+                                                className="w-[118px] bg-transparent text-sm text-gray-900 focus:outline-none"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* 趋势区间超限提示 */}
-                            {overallTab === "trend" && overallTrendError && (
+                            {overallView === "trend" && overallTrendError && (
                                 <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-[13px] text-orange-600">
                                     {overallTrendError}
                                 </div>
                             )}
 
-                            {overallTab === "report" ? (
+                            {/* 报表：仅「报表」视图展示（月/日/小时报表、产品TOP10、结算单元概览、部门概览） */}
+                            {overallView === "report" && (
                                 <>
                                     {/* 模块一：整体分析（选中账期的核心指标 + 环比） */}
                                     <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
                                         <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3.5">
                                             <h3 className="text-sm font-semibold text-gray-900">
-                                                {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"}
+                                                {overallGranularityName(overallBillType)}报表
                                             </h3>
-                                            <span className="text-[12px] text-gray-400">账期 {overallPeriodLabel}，环比对比上一{overallBillType === "month" ? "月" : overallBillType === "day" ? "日" : "小时"}</span>
+                                            <span className="text-[12px] text-gray-400">账期 {overallPeriodLabel}，环比对比上一{overallGranularityName(overallBillType)}</span>
                                         </div>
                                         <div className="grid grid-cols-3 gap-4 p-5">
                                             <OverallHierarchicalRevenueCard
                                                 label="总收入(元)"
-                                                tip="选中时间，所有产品的账单金额总和。企业内收入=标记为内部企业的账号的账单金额总和，拆分为内结收入（经营属性为「内结」的结算单元账单金额和）和外结收入（经营属性为「经营」的结算单元账单金额和）。多企业开启时，额外展示企业外收入（非内部企业账号账单金额）。"
+                                                tip="选中时间，所有产品的账单金额总和。企业内内结收入 = 企业内内结非智汇云收入 + 智汇云收入（智汇云内非本结算单元收入 + 本结算单元收入）。多企业开启时，额外展示企业内外部结算收入与企业外收入（非内部企业账号账单金额）。"
                                                 totalValue={overallReportSummary?.totalRevenue ?? 0}
                                                 mom={overallReportSummary?.mom.totalRevenue ?? { pct: 0, up: false, valid: false }}
                                                 valueClass="text-blue-600"
                                                 allowMultiEnterprise={allowMultiEnterprise}
                                                 innerRevenue={overallReportSummary?.innerRevenue ?? 0}
                                                 innerNonZyunRevenue={overallReportSummary?.innerNonZyunRevenue ?? 0}
-                                                zyunNonUnitRevenue={overallReportSummary?.zyunNonUnitRevenue ?? 0}
-                                                unitRevenue={overallReportSummary?.unitRevenue ?? 0}
-                                                outerRevenue={overallReportSummary?.outerRevenue ?? 0}
+                                                zyunRevenue={overallReportSummary?.zyunRevenue ?? 0}
                                                 outerGroupRevenue={overallReportSummary?.outerGroupRevenue ?? 0}
                                                 outerPortalRevenue={overallReportSummary?.outerPortalRevenue ?? 0}
                                                 innerMom={overallReportSummary?.mom.innerRevenue ?? { pct: 0, up: false, valid: false }}
                                                 innerNonZyunMom={overallReportSummary?.mom.innerNonZyunRevenue ?? { pct: 0, up: false, valid: false }}
-                                                zyunNonUnitMom={overallReportSummary?.mom.zyunNonUnitRevenue ?? { pct: 0, up: false, valid: false }}
-                                                unitMom={overallReportSummary?.mom.unitRevenue ?? { pct: 0, up: false, valid: false }}
-                                                outerMom={overallReportSummary?.mom.outerRevenue ?? { pct: 0, up: false, valid: false }}
+                                                zyunMom={overallReportSummary?.mom.zyunRevenue ?? { pct: 0, up: false, valid: false }}
                                                 outerGroupMom={overallReportSummary?.mom.outerGroupRevenue ?? { pct: 0, up: false, valid: false }}
                                                 outerPortalMom={overallReportSummary?.mom.outerPortalRevenue ?? { pct: 0, up: false, valid: false }}
                                             />
@@ -13754,7 +14281,7 @@ export default function AdminPage() {
                                                             mom={overallReportSummary.mom.innerRevenue}
                                                         />
                                                         <OverallStatFieldCard
-                                                            label="企业内非智汇云收入(元)"
+                                                            label="企业内内结非智汇云收入(元)"
                                                             value={overallReportSummary.innerNonZyunRevenue}
                                                             mom={overallReportSummary.mom.innerNonZyunRevenue}
                                                             highlight="inner"
@@ -14154,7 +14681,7 @@ export default function AdminPage() {
                                                     <div>
                                                         <h3 className="text-base font-semibold text-gray-900">{overallCountDrawer.title}</h3>
                                                         <p className="mt-0.5 text-[13px] text-gray-500">
-                                                            {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"} · 账期 {overallPeriodLabel} · 共 {overallCountDrawer.rows.length} 个产品
+                                                            {overallGranularityName(overallBillType)}报表 · 账期 {overallPeriodLabel} · 共 {overallCountDrawer.rows.length} 个产品
                                                         </p>
                                                     </div>
                                                     <button onClick={() => setOverallCountDrawer(null)} className="text-gray-400 hover:text-gray-600">
@@ -14245,7 +14772,7 @@ export default function AdminPage() {
                                                     <div>
                                                         <h3 className="text-base font-semibold text-gray-900">{overallUnitCountDrawer.title}</h3>
                                                         <p className="mt-0.5 text-[13px] text-gray-500">
-                                                            {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"} · 账期 {overallPeriodLabel} · 共 {overallUnitCountDrawer.rows.length} 个结算单元
+                                                            {overallGranularityName(overallBillType)}报表 · 账期 {overallPeriodLabel} · 共 {overallUnitCountDrawer.rows.length} 个结算单元
                                                         </p>
                                                     </div>
                                                     <button onClick={() => setOverallUnitCountDrawer(null)} className="text-gray-400 hover:text-gray-600">
@@ -14326,7 +14853,7 @@ export default function AdminPage() {
                                                     <div>
                                                         <h3 className="text-base font-semibold text-gray-900">{overallDeptCountDrawer.title}</h3>
                                                         <p className="mt-0.5 text-[13px] text-gray-500">
-                                                            {overallBillType === "month" ? "月报表" : overallBillType === "day" ? "日报表" : "小时报表"} · 账期 {overallPeriodLabel} · 共 {overallDeptCountDrawer.rows.length} 个部门，关联 {overallDeptCountDrawer.rows.reduce((s, d) => s + d.unitCount, 0)} 个结算单元
+                                                            {overallGranularityName(overallBillType)}报表 · 账期 {overallPeriodLabel} · 共 {overallDeptCountDrawer.rows.length} 个部门，关联 {overallDeptCountDrawer.rows.reduce((s, d) => s + d.unitCount, 0)} 个结算单元
                                                         </p>
                                                     </div>
                                                     <button onClick={() => setOverallDeptCountDrawer(null)} className="text-gray-400 hover:text-gray-600">
@@ -14418,24 +14945,83 @@ export default function AdminPage() {
                                         </div>
                                     )}
                                 </>
-                            ) : (
-                                /* 趋势：所选时间区间的变化曲线图（双坐标：金额 + 毛利率） */
-                                <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                    <div className="mb-3 flex items-center justify-between">
-                                        <div className="text-sm font-medium text-gray-900">
-                                            {overallBillType === "month" ? "月趋势" : overallBillType === "day" ? "日趋势" : "小时趋势"}
-                                            <span className="ml-2 text-gray-500">收入 / 成本 / 毛利率变化趋势</span>
-                                        </div>
-                                        <div className="text-[12px] text-gray-400">{overallChartRangeTip}</div>
+                            )}
+
+                            {/* 趋势：仅「趋势」视图展示，分 4 个模块 */}
+                            {overallView === "trend" && (
+                                <>
+                                    <div className="mb-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-5 py-3.5">
+                                        <h3 className="text-sm font-semibold text-gray-900">
+                                            {overallTrendBillType ? `${overallGranularityName(overallTrendBillType)}趋势` : "趋势"}
+                                        </h3>
+                                        <span className="text-[12px] text-gray-400">{overallChartRangeTip}</span>
                                     </div>
                                     {overallTrendRows.length > 0 ? (
-                                        <OverallTrendChart rows={overallTrendRows} billType={overallBillType} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {([
+                                                {
+                                                    key: "revenue-cost",
+                                                    title: "总收入和总成本变化趋势",
+                                                    unit: "amount" as const,
+                                                    series: [
+                                                        { key: "totalRevenue", label: "总收入", color: "#0f73f6", values: overallTrendRows.map((r) => r.totalRevenue) },
+                                                        { key: "productCost", label: "总成本", color: "#f5a623", values: overallTrendRows.map((r) => r.productCost) },
+                                                    ],
+                                                },
+                                                {
+                                                    key: "margin",
+                                                    title: "毛利率变化趋势",
+                                                    unit: "pct" as const,
+                                                    series: [
+                                                        { key: "innerMargin", label: "内结毛利率", color: "#22b07d", values: overallTrendRows.map((r) => r.innerMargin) },
+                                                        { key: "outerMargin", label: "外部毛利率", color: "#9254de", values: overallTrendRows.map((r) => r.outerMargin) },
+                                                    ],
+                                                },
+                                                {
+                                                    key: "revenue-items",
+                                                    title: "各项收入变化趋势",
+                                                    unit: "amount" as const,
+                                                    series: [
+                                                        { key: "innerRevenue", label: "企业内内结收入", color: "#0f73f6", values: overallTrendRows.map((r) => r.innerRevenue) },
+                                                        { key: "innerNonZyunRevenue", label: "企业内内结非智慧云收入", color: "#1d4ed8", values: overallTrendRows.map((r) => r.innerNonZyunRevenue) },
+                                                        { key: "zyunRevenue", label: "智汇云收入", color: "#60a5fa", values: overallTrendRows.map((r) => r.zyunNonUnitRevenue + r.unitRevenue) },
+                                                        { key: "outerGroupRevenue", label: "企业内外部结算收入", color: "#0284c7", values: overallTrendRows.map((r) => r.outerGroupRevenue) },
+                                                        { key: "outerPortalRevenue", label: "外部收入", color: "#06b6d4", values: overallTrendRows.map((r) => r.outerPortalRevenue) },
+                                                    ],
+                                                },
+                                                {
+                                                    key: "cost-items",
+                                                    title: "各项成本变化趋势",
+                                                    unit: "amount" as const,
+                                                    series: [
+                                                        { key: "innerCost", label: "内部成本", color: "#f97316", values: overallTrendRows.map((r) => r.innerCost) },
+                                                        { key: "outerCost", label: "外部成本", color: "#fdba74", values: overallTrendRows.map((r) => r.outerCost) },
+                                                    ],
+                                                },
+                                            ]).map((m) => (
+                                                <div key={m.key} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                                    <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3.5">
+                                                        <h3 className="text-sm font-semibold text-gray-900">{m.title}</h3>
+                                                        <span className="text-[12px] text-gray-400">{m.unit === "pct" ? "单位：%" : "单位：元"}</span>
+                                                    </div>
+                                                    <div className="p-5">
+                                                        <OverallMultiLineChart
+                                                            key={`${m.key}-${overallTrendBillType}`}
+                                                            periods={overallTrendRows.map((r) => r.period)}
+                                                            billType={overallTrendBillType}
+                                                            series={m.series}
+                                                            unit={m.unit}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     ) : (
-                                        <div className="flex h-64 items-center justify-center text-sm text-gray-400">
+                                        <div className="flex h-64 items-center justify-center rounded-lg border border-gray-200 bg-white text-sm text-gray-400">
                                             请选择有效的时间区间
                                         </div>
                                     )}
-                                </div>
+                                </>
                             )}
                         </div>
                     )}
@@ -14596,8 +15182,9 @@ export default function AdminPage() {
                                                 <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含企业内收入与外部收入。" width="110px" rowSpan={2} divider />
                                                 {/* 企业内收入：横跨 4 列 */}
                                                 <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业内部结算的部门收入。" highlight="inner" divider />
-                                                {/* 企业外收入：聚合列，横跨 2 列（企业内外部结算收入 + 企业外收入） */}
-                                                <AnalysisTh label="外部收入(元)" align="center" colSpan={2} tip="等于「企业内外部结算收入」（内部企业中结算属性为「外部结算」部门的收入）与「企业外收入」（非内部企业账号的收入）之和。" highlight="outer" divider />
+                                                {/* 原「外部收入」合并列拆分为两列：企业内收入（下含企业内外部结算收入）+ 企业外收入 */}
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={1} tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" highlight="inner" divider />
+                                                <AnalysisTh label="企业外收入(元)" tip="非内部企业账号（外部Portal 客户）产生的收入。" width="110px" rowSpan={2} highlight="outer" divider />
                                                 {/* 其余列：各跨 2 行 */}
                                                 <AnalysisTh label="外部收入对应的内结算价收入(元)" width="120px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算总收入(元)" width="110px" rowSpan={2} divider />
@@ -14610,12 +15197,11 @@ export default function AdminPage() {
                                             </tr>
                                             {/* 表头第二行：企业内 4 列明细 + 企业外收入 2 列明细 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
-                                                <AnalysisTh label="企业内收入(元)" tip="来自企业内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="110px" divider />
-                                                <AnalysisTh label="企业内非智汇云收入(元)" width="110px" highlight="inner" divider />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" highlight="inner" divider />
+                                                <AnalysisTh label="企业内内结收入(元)" tip="来自企业内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="120px" divider />
+                                                <AnalysisTh label="企业内内结非智汇云收入(元)" width="110px" divider />
+                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" divider />
                                                 <AnalysisTh label="本结算单元收入(元)" width="110px" divider />
-                                                <AnalysisTh label="企业内外部结算收入(元)" tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" width="125px" highlight="outer" divider />
-                                                <AnalysisTh label="企业外收入(元)" tip="非内部企业账号（外部Portal 客户）产生的收入。" width="110px" highlight="outer" divider />
+                                                <AnalysisTh label="企业内外部结算收入(元)" tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" width="125px" divider />
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-300">
@@ -14629,11 +15215,11 @@ export default function AdminPage() {
                                                     </td>
                                                     <AnalysisAmountCell value={row.totalRevenue} link onClick={() => { setRevenueDetailRow(row); setRevenueDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.innerRevenue} link onClick={() => { setInnerRevenueDetailRow(row); setInnerRevenueDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.innerNonZyunRevenue} link highlight="inner" onClick={() => { setUnitBillDetail({ row, title: "企业内非智汇云收入", amount: row.innerNonZyunRevenue }); setUnitBillDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link highlight="inner" onClick={() => { setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.innerNonZyunRevenue} link onClick={() => { setUnitBillDetail({ row, title: "企业内内结非智汇云收入", amount: row.innerNonZyunRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue }); setUnitBillDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.unitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "本结算单元收入", amount: row.unitRevenue }); setUnitBillDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.outerGroupRevenue} link highlight="outer" onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.outerPortalRevenue} link highlight="outer" onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.outerGroupRevenue} link onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.outerPortalRevenue} link onClick={() => { setOuterRevenueDetailRow(row); setOuterRevenueDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.outerInnerPriceRevenue} />
                                                     <AnalysisAmountCell value={row.innerTotalRevenue} />
                                                     <AnalysisAmountCell value={row.productCost} link />
@@ -14655,8 +15241,8 @@ export default function AdminPage() {
                                                     <td className="px-3 py-3 text-sm text-gray-900" colSpan={3}>合计</td>
                                                     <AnalysisAmountCell value={analysisTotals.totalRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.innerRevenue} />
-                                                    <AnalysisAmountCell value={analysisTotals.innerNonZyunRevenue} highlight="inner" />
-                                                    <AnalysisAmountCell value={analysisTotals.zyunNonUnitRevenue} highlight="inner" />
+                                                    <AnalysisAmountCell value={analysisTotals.innerNonZyunRevenue} />
+                                                    <AnalysisAmountCell value={analysisTotals.zyunNonUnitRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.unitRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.outerGroupRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.outerPortalRevenue} />
@@ -14980,7 +15566,7 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                            {/* 结算单元账单金额明细抽屉（企业内非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入） */}
+                            {/* 结算单元账单金额明细抽屉（企业内内结非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入） */}
                             {unitBillDetail && (
                                 <div className="fixed inset-0 z-[100]">
                                     <div className="absolute inset-0 bg-black/50" onClick={() => setUnitBillDetail(null)} />
@@ -15219,8 +15805,9 @@ export default function AdminPage() {
                                                 <AnalysisTh label="总收入(元)" tip="该部门关联的全部结算单元在本账期内的收入之和，含企业内收入与外部收入。" align="left" width="130px" rowSpan={2} divider />
                                                 {/* 企业内收入：横跨 4 列 */}
                                                 <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业内部结算的部门收入。" highlight="inner" divider />
-                                                {/* 企业外收入：横跨 2 列 */}
-                                                <AnalysisTh label="外部收入(元)" align="center" colSpan={2} tip="等于「企业内外部结算收入」（内部企业中结算属性为「外部结算」部门的收入）与「企业外收入」（非内部企业账号的收入）之和。" highlight="outer" divider />
+                                                {/* 原「外部收入」合并列拆分为两列：企业内收入（下含企业内外部结算收入）+ 企业外收入 */}
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={1} tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" highlight="inner" divider />
+                                                <AnalysisTh label="企业外收入(元)" tip="非内部企业账号（外部Portal 客户）产生的收入。" align="left" width="120px" rowSpan={2} highlight="outer" divider />
                                                 {/* 其余列：各跨 2 行 */}
                                                 <AnalysisTh label="外部收入对应的内结算价收入(元)" align="left" width="130px" rowSpan={2} divider />
                                                 <AnalysisTh label="内结算总收入(元)" align="left" width="120px" rowSpan={2} divider />
@@ -15233,12 +15820,11 @@ export default function AdminPage() {
                                             </tr>
                                             {/* 表头第二行：企业内 4 列明细 + 企业外收入 2 列明细 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
-                                                <AnalysisTh label="企业内收入(元)" tip="来自企业内部各部门与中台的收入合计。" align="left" width="120px" divider />
-                                                <AnalysisTh label="企业内非智汇云收入(元)" align="left" width="120px" highlight="inner" divider />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" align="left" width="130px" highlight="inner" divider />
+                                                <AnalysisTh label="企业内内结收入(元)" tip="来自企业内部各部门与中台的收入合计。" align="left" width="130px" divider />
+                                                <AnalysisTh label="企业内内结非智汇云收入(元)" align="left" width="120px" divider />
+                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" align="left" width="130px" divider />
                                                 <AnalysisTh label="本结算单元收入(元)" align="left" width="120px" divider />
-                                                <AnalysisTh label="企业内外部结算收入(元)" tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" align="left" width="130px" highlight="outer" divider />
-                                                <AnalysisTh label="企业外收入(元)" tip="非内部企业账号（外部Portal 客户）产生的收入。" align="left" width="120px" highlight="outer" divider />
+                                                <AnalysisTh label="企业内外部结算收入(元)" tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" align="left" width="130px" divider />
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
@@ -15267,11 +15853,11 @@ export default function AdminPage() {
                                                             <td className="px-4 py-4 text-sm text-gray-600">{row.members.length} 个</td>
                                                             <DeptAmountCell value={dm.totalRevenue} />
                                                             <DeptAmountCell value={dm.innerRevenue} />
-                                                            <DeptAmountCell value={dm.innerNonZyunRevenue} highlight="inner" />
-                                                            <DeptAmountCell value={dm.zyunNonUnitRevenue} highlight="inner" />
+                                                            <DeptAmountCell value={dm.innerNonZyunRevenue} />
+                                                            <DeptAmountCell value={dm.zyunNonUnitRevenue} />
                                                             <DeptAmountCell value={dm.unitRevenue} />
-                                                            <DeptAmountCell value={dm.outerGroupRevenue} highlight="outer" />
-                                                            <DeptAmountCell value={dm.outerPortalRevenue} highlight="outer" />
+                                                            <DeptAmountCell value={dm.outerGroupRevenue} />
+                                                            <DeptAmountCell value={dm.outerPortalRevenue} />
                                                             <DeptAmountCell value={dm.outerInnerPriceRevenue} />
                                                             <DeptAmountCell value={dm.innerTotalRevenue} />
                                                             <DeptAmountCell value={dm.totalCost} />
@@ -15299,11 +15885,11 @@ export default function AdminPage() {
                                                                     }
                                                                 }} />
                                                                 <DeptAmountCell value={um.innerRevenue} compact />
-                                                                <DeptAmountCell value={um.innerNonZyunRevenue} compact highlight="inner" />
-                                                                <DeptAmountCell value={um.zyunNonUnitRevenue} compact highlight="inner" />
+                                                                <DeptAmountCell value={um.innerNonZyunRevenue} compact />
+                                                                <DeptAmountCell value={um.zyunNonUnitRevenue} compact />
                                                                 <DeptAmountCell value={um.unitRevenue} compact />
-                                                                <DeptAmountCell value={um.outerGroupRevenue} compact highlight="outer" />
-                                                                <DeptAmountCell value={um.outerPortalRevenue} compact highlight="outer" />
+                                                                <DeptAmountCell value={um.outerGroupRevenue} compact />
+                                                                <DeptAmountCell value={um.outerPortalRevenue} compact />
                                                                 <DeptAmountCell value={um.outerInnerPriceRevenue} compact />
                                                                 <DeptAmountCell value={um.innerTotalRevenue} compact />
                                                                 <DeptAmountCell value={um.totalCost} compact link onClick={() => openDeptDetail(m, "cost")} />
@@ -23018,10 +23604,10 @@ export default function AdminPage() {
                                 <div className="px-6 py-5 space-y-4 text-sm text-gray-700 leading-[1.8]">
                                     <div>
                                         <span className="font-semibold text-gray-900">1、企业内收入：</span>
-                                        <span>企业内收入 = 企业内非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入。</span>
+                                        <span>企业内收入 = 企业内内结非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入。</span>
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-gray-900">2、企业内非智汇云收入、智汇云内非本结算单元收入：</span>
+                                        <span className="font-semibold text-gray-900">2、企业内内结非智汇云收入、智汇云内非本结算单元收入：</span>
                                         <span>企业内非经营部门收入、经营部门内非本结算单元收入。</span>
                                     </div>
                                     <div>
