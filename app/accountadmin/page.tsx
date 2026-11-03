@@ -1157,6 +1157,36 @@ const sumDeptMetrics = (rows: DepartmentAnalysisRow[]): DeptAnalysisMetrics =>
 // 毛利率：分母为 0 时展示 0.00%
 const deptMarginOf = (profit: number, base: number) => (base === 0 ? 0 : (profit / base) * 100);
 
+// 部门分析 → 结算单元分析列口径：外部收入对应的内部结算价收入按「企业内外部结算收入 : 企业外收入」比例拆分，
+// 以便部门分析与「结算单元分析」使用同一套列头展示
+const deptToUnitMetrics = (dm: DeptAnalysisMetrics): UnitAnalysisMetrics => {
+    const outerBase = dm.outerGroupRevenue + dm.outerPortalRevenue;
+    const groupInnerPriceRevenue = outerBase === 0 ? 0 : roundAmount2(dm.outerInnerPriceRevenue * (dm.outerGroupRevenue / outerBase));
+    const portalInnerPriceRevenue = roundAmount2(dm.outerInnerPriceRevenue - groupInnerPriceRevenue);
+    const groupProfit = roundAmount2(dm.outerGroupRevenue - groupInnerPriceRevenue);
+    const portalProfit = roundAmount2(dm.outerPortalRevenue - portalInnerPriceRevenue);
+    return {
+        totalRevenue: dm.totalRevenue,
+        innerRevenue: dm.innerRevenue,
+        innerNonZyunRevenue: dm.innerNonZyunRevenue,
+        zyunNonUnitRevenue: dm.zyunNonUnitRevenue,
+        unitRevenue: dm.unitRevenue,
+        outerGroupRevenue: dm.outerGroupRevenue,
+        outerPortalRevenue: dm.outerPortalRevenue,
+        groupInnerPriceRevenue,
+        portalInnerPriceRevenue,
+        innerTotalRevenue: dm.innerTotalRevenue,
+        productCost: dm.totalCost,
+        innerProfit: dm.innerProfit,
+        groupProfit,
+        portalProfit,
+        innerMargin: deptMarginOf(dm.innerProfit, dm.innerTotalRevenue),
+        groupMargin: deptMarginOf(groupProfit, dm.outerGroupRevenue),
+        portalMargin: deptMarginOf(portalProfit, dm.outerPortalRevenue),
+        balance: dm.balance,
+    };
+};
+
 // 部门分析 - 结算单元收支明细弹窗数据（按收入/成本类型拆分为若干条明细，金额之和等于汇总值）
 const deptRevenueTypesByUnit: Record<string, string[]> = {
     default: ["对内部结算收入", "对外销售收入", "服务分成收入"],
@@ -6295,7 +6325,7 @@ const OverallHierarchicalRevenueCard = ({
             <div className="mt-4 rounded-md border border-blue-100 bg-blue-50/40 p-3">
                 <OverallRevenueGroupHeader
                     name="企业内内结收入(元)"
-                    tip="企业内内结非智汇云收入 + 智汇云收入"
+                    tip="企业内内结非经营部门收入 + 经营部门收入"
                     value={innerRevenue}
                     mom={innerMom}
                     maxVal={maxVal}
@@ -6307,16 +6337,16 @@ const OverallHierarchicalRevenueCard = ({
                 {/* 企业内内结收入子项：企业内内结非智汇云收入 + 智汇云收入 */}
                 <div className="space-y-2 border-l-2 border-blue-200 pl-3">
                     <OverallRevenueSubRow
-                        name="企业内内结非智汇云收入(元)"
-                        tip="内部企业账号中，非智汇云产品的账单金额和"
+                        name="企业内内结非经营部门收入(元)"
+                        tip="内部企业账号中，非经营部门产品的账单金额和"
                         value={innerNonZyunRevenue}
                         mom={innerNonZyunMom}
                         maxVal={maxVal}
                         color="#1d4ed8"
                     />
                     <OverallRevenueSubRow
-                        name="智汇云收入(元)"
-                        tip="智汇云内非本结算单元收入 + 本结算单元收入"
+                        name="经营部门收入(元)"
+                        tip="经营部门内非本结算单元收入 + 本结算单元收入"
                         value={zyunRevenue}
                         mom={zyunMom}
                         maxVal={maxVal}
@@ -6796,9 +6826,6 @@ export default function AdminPage() {
     const [unitBillDetailTab, setUnitBillDetailTab] = useState<"trend" | "revenue">("revenue");
     // 产品分析 - 说明弹框
     const [analysisExplainOpen, setAnalysisExplainOpen] = useState(false);
-    // 产品分析 - 列顺序方式：1 = 默认顺序；2 = 按「企业内外部结算」「企业外」分组连续展示
-    const [analysisColumnMode, setAnalysisColumnMode] = useState<1 | 2>(1);
-
     // 产品分析 - 单列趋势数据源（各列抽屉「趋势」Tab 共用）
     const productColumnTrendPoints = useMemo(() => {
         if (!innerRevenueDetailRow && !outerRevenueDetailRow && !unitBillDetail) return [];
@@ -6964,27 +6991,42 @@ export default function AdminPage() {
             cell: (_row, split) => analysisPercentCell(split.portalMargin, "outer"),
             total: () => analysisEmptyTotalCell("outer"),
         },
-        balance: {
-            key: "balance", label: "收支差额(元)", width: "110px",
-            cell: (row) => <AnalysisAmountCell value={row.balance} />,
-            total: () => <AnalysisAmountCell value={analysisTotals.balance} />,
-        },
     };
-    // 方式1：页面原有列顺序；方式2：内部结算相关列在前，随后「企业内外部结算」4 列、「企业外」4 列分组连续展示
-    const analysisColumnOrders: Record<1 | 2, string[]> = {
-        1: [
-            "outerGroupRevenue", "outerPortalRevenue", "groupInnerPriceRevenue", "portalInnerPriceRevenue",
-            "innerTotalRevenue", "productCost", "innerProfit", "groupProfit", "portalProfit",
-            "innerMargin", "groupMargin", "portalMargin", "balance",
-        ],
-        2: [
-            "innerTotalRevenue", "productCost", "innerProfit", "innerMargin",
-            "outerGroupRevenue", "groupInnerPriceRevenue", "groupProfit", "groupMargin",
-            "outerPortalRevenue", "portalInnerPriceRevenue", "portalProfit", "portalMargin",
-            "balance",
-        ],
+    // 产品分析表格：「企业内外部结算收入」已并入「企业内收入」合并列；
+    // 新增合并列「内结价收入」（内结价总收入 / 企业内外部结算对应的内结价收入 / 企业外对应的内结价收入）
+    // 合并列「利润」（内结价总利润 / 企业内外部结算对应的内结价利润 / 企业外对应的内结价利润）
+    // 与合并列「毛利率」（内结毛利率 / 企业内外部结算内结毛利率 / 企业外内结毛利率）
+    type ProductAnalysisLayoutItem =
+        | { type: "single"; key: string }
+        | { type: "group"; label: string; tip?: string; keys: string[] };
+    const productAnalysisLayout: ProductAnalysisLayoutItem[] = [
+        { type: "single", key: "outerPortalRevenue" },
+        { type: "group", label: "内结价收入(元)", tip: "按内部结算价计算的收入，含内结价总收入及企业内外部结算、企业外对应的内结价收入。", keys: ["innerTotalRevenue", "groupInnerPriceRevenue", "portalInnerPriceRevenue"] },
+        { type: "single", key: "productCost" },
+        { type: "group", label: "利润(元)", tip: "含内结价总利润、企业内外部结算对应的内结价利润、企业外对应的内结价利润。", keys: ["innerProfit", "groupProfit", "portalProfit"] },
+        { type: "group", label: "毛利率", tip: "含内结毛利率、企业内外部结算内结毛利率、企业外内结毛利率。", keys: ["innerMargin", "groupMargin", "portalMargin"] },
+    ];
+    // 产品分析表格内的列名覆盖（仅影响产品分析表格）
+    const productAnalysisLabelOverrides: Record<string, string> = {
+        innerTotalRevenue: "内结价总收入(元)",
+        innerProfit: "内结价总利润(元)",
+        groupProfit: "企业内外部结算对应的内结价利润(元)",
+        portalProfit: "企业外对应的内结价利润(元)",
+        innerMargin: "内结毛利率",
+        groupMargin: "企业内外部结算内结毛利率",
+        portalMargin: "企业外内结毛利率",
     };
-    const orderedAnalysisColumns = analysisColumnOrders[analysisColumnMode].map((k) => analysisColumnMap[k]);
+    // 产品分析表格内的列提示覆盖（仅影响产品分析表格）
+    const productAnalysisTipOverrides: Record<string, string> = {
+        innerProfit: "内结价总利润 = 内结价总收入 - 产品成本。",
+        groupProfit: "企业内外部结算对应的内结价利润 = 企业内外部结算收入 - 企业内外部结算对应的内结价收入。",
+        portalProfit: "企业外对应的内结价利润 = 企业外收入 - 企业外对应的内结价收入。",
+        groupMargin: "企业内外部结算毛利率 = 企业内外部结算对应的内结价利润 / 企业内外部结算收入。",
+        portalMargin: "企业外毛利率 = 企业外对应的内结价利润 / 企业外收入。",
+    };
+    const productAnalysisColumns = productAnalysisLayout
+        .flatMap((item) => (item.type === "single" ? [item.key] : item.keys))
+        .map((k) => analysisColumnMap[k]);
 
     // ===== 经营分析 - 结算单元分析 =====
     // 列结构与「产品分析」一致（共用列顺序方式），各列为归属该结算单元下全部产品的求和
@@ -7002,19 +7044,22 @@ export default function AdminPage() {
         () => sumUnitAnalysisMetrics(unitAnalysisRows.map((r) => r.metrics)),
         [unitAnalysisRows]
     );
-    // 结算单元分析 - 指标列（总收入(不包含本结算单元收入) + 总收入 + 企业内内结收入 4 列 + 按列顺序方式渲染的其余列）
-    //   总收入(不包含本结算单元收入) = 总收入 - 本结算单元收入
-    //   结算单元成本 = 产品成本 - 本结算单元收入（位于「产品成本」列之前）
-    //   内部结算总收入 = 现在内部结算总收入 - 本结算单元收入（本期改动，琥珀色背景高亮）
-    //   隐藏列：总收入、企业内内结收入、本结算单元收入、产品成本（结算单元成本仍保留在原「产品成本」位置）
-    const renderUnitAnalysisCells = (m: UnitAnalysisMetrics) => (
+    // 结算单元分析 - 指标列：列结构与「产品分析」一致，各列为归属该结算单元下全部产品的求和，以下 3 列例外：
+    //   总收入(不包含本结算单元收入) = 总收入 - 本结算单元收入（位于产品分析「总收入」位置）
+    //   内部结算总收入 = 现在内部结算总收入 - 本结算单元收入（琥珀色背景高亮）
+    //   结算单元成本 = 产品成本 - 本结算单元收入（位于产品分析「产品成本」位置）
+    // links：可选的下钻入口（部门分析的结算单元明细行复用，保留收入 / 成本明细点击）
+    // mode：unit = 结算单元分析（不展示「本结算单元收入」列）；dept = 部门分析（不展示「经营部门内非本结算单元收入」「本结算单元收入」「企业内外部结算收入」列）
+    // 背景高亮：仅「结算单元成本/部门成本」「内部结算总收入」保留，其余列不高亮
+    const renderUnitAnalysisCells = (m: UnitAnalysisMetrics, links?: { revenue?: () => void; cost?: () => void }, mode: "unit" | "dept" = "unit") => (
         <>
-            <AnalysisAmountCell value={m.totalRevenue - m.unitRevenue} />
+            <AnalysisAmountCell value={m.totalRevenue - m.unitRevenue} link={!!links?.revenue} onClick={links?.revenue} />
             <AnalysisAmountCell value={m.innerNonZyunRevenue} />
-            <AnalysisAmountCell value={m.zyunNonUnitRevenue} />
-            {orderedAnalysisColumns.map((c) => {
+            {mode === "unit" && <AnalysisAmountCell value={m.zyunNonUnitRevenue} />}
+            {mode === "unit" && <AnalysisAmountCell value={m.outerGroupRevenue} />}
+            {productAnalysisColumns.map((c) => {
                 if (c.key === "productCost") {
-                    return <AnalysisAmountCell key={c.key} value={m.productCost - m.unitRevenue} highlight="cost" />;
+                    return <AnalysisAmountCell key={c.key} value={m.productCost - m.unitRevenue} highlight="cost" link={!!links?.cost} onClick={links?.cost} />;
                 }
                 if (c.key === "innerTotalRevenue") {
                     return <AnalysisAmountCell key={c.key} value={m.innerTotalRevenue - m.unitRevenue} highlight="change" />;
@@ -7022,7 +7067,7 @@ export default function AdminPage() {
                 const v = m[c.key as keyof UnitAnalysisMetrics];
                 return (
                     <Fragment key={c.key}>
-                        {c.key.endsWith("Margin") ? analysisPercentCell(v, c.highlight) : <AnalysisAmountCell value={v} highlight={c.highlight} />}
+                        {c.key.endsWith("Margin") ? analysisPercentCell(v) : <AnalysisAmountCell value={v} />}
                     </Fragment>
                 );
             })}
@@ -10617,7 +10662,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>整体分析</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-product')}
@@ -10628,6 +10672,7 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>产品分析</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-unit')}
@@ -14492,7 +14537,7 @@ export default function AdminPage() {
                                         <div className="grid grid-cols-3 gap-4 p-5">
                                             <OverallHierarchicalRevenueCard
                                                 label="总收入(元)"
-                                                tip="选中时间，所有产品的账单金额总和。企业内内结收入 = 企业内内结非智汇云收入 + 智汇云收入（智汇云内非本结算单元收入 + 本结算单元收入）。多企业开启时，额外展示企业内外部结算收入与企业外收入（非内部企业账号账单金额）。"
+                                                tip="选中时间，所有产品的账单金额总和。企业内内结收入 = 企业内内结非经营部门收入 + 经营部门收入（经营部门内非本结算单元收入 + 本结算单元收入）。多企业开启时，额外展示企业内外部结算收入与企业外收入（非内部企业账号账单金额）。"
                                                 totalValue={overallReportSummary?.totalRevenue ?? 0}
                                                 mom={overallReportSummary?.mom.totalRevenue ?? { pct: 0, up: false, valid: false }}
                                                 valueClass="text-blue-600"
@@ -14586,13 +14631,13 @@ export default function AdminPage() {
                                                             mom={overallReportSummary.mom.innerRevenue}
                                                         />
                                                         <OverallStatFieldCard
-                                                            label="企业内内结非智汇云收入(元)"
+                                                            label="企业内内结非经营部门收入(元)"
                                                             value={overallReportSummary.innerNonZyunRevenue}
                                                             mom={overallReportSummary.mom.innerNonZyunRevenue}
                                                             highlight="inner"
                                                         />
                                                         <OverallStatFieldCard
-                                                            label="智汇云内非本结算单元收入(元)"
+                                                            label="经营部门内非本结算单元收入(元)"
                                                             value={overallReportSummary.zyunNonUnitRevenue}
                                                             mom={overallReportSummary.mom.zyunNonUnitRevenue}
                                                             highlight="inner"
@@ -15288,8 +15333,8 @@ export default function AdminPage() {
                                                     unit: "amount" as const,
                                                     series: [
                                                         { key: "innerRevenue", label: "企业内内结收入", color: "#0f73f6", values: overallTrendRows.map((r) => r.innerRevenue) },
-                                                        { key: "innerNonZyunRevenue", label: "企业内内结非智慧云收入", color: "#1d4ed8", values: overallTrendRows.map((r) => r.innerNonZyunRevenue) },
-                                                        { key: "zyunRevenue", label: "智汇云收入", color: "#60a5fa", values: overallTrendRows.map((r) => r.zyunNonUnitRevenue + r.unitRevenue) },
+                                                        { key: "innerNonZyunRevenue", label: "企业内内结非经营部门收入", color: "#1d4ed8", values: overallTrendRows.map((r) => r.innerNonZyunRevenue) },
+                                                        { key: "zyunRevenue", label: "经营部门收入", color: "#60a5fa", values: overallTrendRows.map((r) => r.zyunNonUnitRevenue + r.unitRevenue) },
                                                         { key: "outerGroupRevenue", label: "企业内外部结算收入", color: "#0284c7", values: overallTrendRows.map((r) => r.outerGroupRevenue) },
                                                         { key: "outerPortalRevenue", label: "外部收入", color: "#06b6d4", values: overallTrendRows.map((r) => r.outerPortalRevenue) },
                                                     ],
@@ -15467,33 +15512,8 @@ export default function AdminPage() {
                                     说明
                                 </button>
 
-                                {/* 列顺序切换 */}
-                                <div className="ml-auto flex items-center gap-2">
-                                    <span className="text-sm text-gray-600">列顺序</span>
-                                    <div className="inline-flex h-9 rounded-lg border border-gray-300 bg-white p-0.5">
-                                        {([
-                                            { mode: 1 as const, label: "方式1" },
-                                            { mode: 2 as const, label: "方式2" },
-                                        ]).map((m) => (
-                                            <button
-                                                key={m.mode}
-                                                type="button"
-                                                onClick={() => setAnalysisColumnMode(m.mode)}
-                                                title={m.mode === 1 ? "默认列顺序" : "企业内外部结算、企业外相关列分组连续展示"}
-                                                className={`rounded-md px-3 text-sm transition-colors ${
-                                                    analysisColumnMode === m.mode
-                                                        ? "bg-blue-600 text-white"
-                                                        : "text-gray-600 hover:bg-gray-100"
-                                                }`}
-                                            >
-                                                {m.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
                                 {/* 导出数据 */}
-                                <button className="h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
+                                <button className="ml-auto h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
                                     导出数据
                                 </button>
                             </div>
@@ -15501,28 +15521,40 @@ export default function AdminPage() {
                             {/* 数据表格 */}
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[2520px]">
+                                        <table className="w-full min-w-[2410px]">
                                         <thead>
-                                            {/* 表头第一行：「企业内内结收入」合并列标题 */}
+                                            {/* 表头第一行：「企业内收入」合并列标题 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
                                                 {/* 账期、结算单元、产品名称、总收入：各跨 2 行 */}
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
                                                 <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" rowSpan={2} divider />
                                                 <AnalysisTh label="产品名称" align="left" width="150px" tip="每个产品在本账期内合并展示为一条产品数据，不区分内外Portal。" rowSpan={2} divider />
                                                 <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含企业内收入与外部收入。" width="110px" rowSpan={2} divider />
-                                                {/* 企业内内结收入：横跨 4 列 */}
-                                                <AnalysisTh label="企业内内结收入(元)" align="center" colSpan={4} tip="展示内部企业内部结算的部门收入。" highlight="inner" divider />
-                                                {/* 其余列：各跨 2 行，按列顺序方式渲染 */}
-                                                {orderedAnalysisColumns.map((c) => (
-                                                    <AnalysisTh key={c.key} label={c.label} tip={c.tip} width={c.width} highlight={c.highlight} rowSpan={2} divider />
-                                                ))}
+                                                {/* 企业内收入：横跨 4 列 */}
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" highlight="inner" divider />
+                                                {/* 其余列：单列跨 2 行；「内结价收入」「利润」「毛利率」为合并列标题 */}
+                                                {productAnalysisLayout.map((item) =>
+                                                    item.type === "single" ? (
+                                                        <AnalysisTh key={item.key} label={analysisColumnMap[item.key].label} tip={analysisColumnMap[item.key].tip} width={analysisColumnMap[item.key].width} highlight={analysisColumnMap[item.key].highlight} rowSpan={2} divider />
+                                                    ) : (
+                                                        <AnalysisTh key={item.label} label={item.label} tip={item.tip} align="center" colSpan={item.keys.length} divider />
+                                                    )
+                                                )}
                                             </tr>
-                                            {/* 表头第二行：企业内内结收入 4 列明细 */}
+                                            {/* 表头第二行：企业内收入 4 列明细 + 「内结价收入」「利润」「毛利率」合并列明细 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
-                                                <AnalysisTh label="企业内内结收入(元)" tip="来自企业内部各部门与中台的收入合计，拆分为「集团内部结算单元账单」与「内部结算单元账号在外部portal使用费用」两部分来源。" width="120px" divider />
-                                                <AnalysisTh label="企业内内结非智汇云收入(元)" width="110px" divider />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" divider />
+                                                <AnalysisTh label="企业内内结非经营部门收入(元)" width="110px" divider />
+                                                <AnalysisTh label="经营部门内非本结算单元收入(元)" width="120px" divider />
                                                 <AnalysisTh label="本结算单元收入(元)" width="110px" divider />
+                                                <AnalysisTh label={analysisColumnMap.outerGroupRevenue.label} tip={analysisColumnMap.outerGroupRevenue.tip} width={analysisColumnMap.outerGroupRevenue.width} highlight="group" divider />
+                                                {productAnalysisLayout.flatMap((item) =>
+                                                    item.type === "group"
+                                                        ? item.keys.map((k) => {
+                                                            const c = analysisColumnMap[k];
+                                                            return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={productAnalysisTipOverrides[k] ?? c.tip} width={c.width} highlight={c.highlight} divider />;
+                                                        })
+                                                        : []
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-300">
@@ -15536,11 +15568,11 @@ export default function AdminPage() {
                                                         <span className="text-blue-600 hover:text-blue-700 cursor-pointer">{cleanProductName(row.productName)}</span>
                                                     </td>
                                                     <AnalysisAmountCell value={row.totalRevenue} link onClick={() => { setRevenueDetailRow(row); setRevenueDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.innerRevenue} link onClick={() => { setInnerRevenueDetailRow(row); setInnerRevenueDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.innerNonZyunRevenue} link onClick={() => { setUnitBillDetail({ row, title: "企业内内结非智汇云收入", amount: row.innerNonZyunRevenue }); setUnitBillDetailTab("revenue"); }} />
-                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "智汇云内非本结算单元收入", amount: row.zyunNonUnitRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.innerNonZyunRevenue} link onClick={() => { setUnitBillDetail({ row, title: "企业内内结非经营部门收入", amount: row.innerNonZyunRevenue }); setUnitBillDetailTab("revenue"); }} />
+                                                    <AnalysisAmountCell value={row.zyunNonUnitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "经营部门内非本结算单元收入", amount: row.zyunNonUnitRevenue }); setUnitBillDetailTab("revenue"); }} />
                                                     <AnalysisAmountCell value={row.unitRevenue} link onClick={() => { setUnitBillDetail({ row, title: "本结算单元收入", amount: row.unitRevenue }); setUnitBillDetailTab("revenue"); }} />
-                                                    {orderedAnalysisColumns.map((c) => <Fragment key={c.key}>{c.cell(row, split)}</Fragment>)}
+                                                    {analysisColumnMap.outerGroupRevenue.cell(row, split)}
+                                                    {productAnalysisColumns.map((c) => <Fragment key={c.key}>{c.cell(row, split)}</Fragment>)}
                                                 </tr>
                                                 );
                                             })}
@@ -15549,16 +15581,16 @@ export default function AdminPage() {
                                                 <tr className="bg-gray-50 font-medium">
                                                     <td className="px-3 py-3 text-sm text-gray-900" colSpan={3}>合计</td>
                                                     <AnalysisAmountCell value={analysisTotals.totalRevenue} />
-                                                    <AnalysisAmountCell value={analysisTotals.innerRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.innerNonZyunRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.zyunNonUnitRevenue} />
                                                     <AnalysisAmountCell value={analysisTotals.unitRevenue} />
-                                                    {orderedAnalysisColumns.map((c) => <Fragment key={c.key}>{c.total()}</Fragment>)}
+                                                    {analysisColumnMap.outerGroupRevenue.total()}
+                                                    {productAnalysisColumns.map((c) => <Fragment key={c.key}>{c.total()}</Fragment>)}
                                                 </tr>
                                             )}
                                             {pagedAnalysisRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={21} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={8 + productAnalysisColumns.length} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -15866,7 +15898,7 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                            {/* 结算单元账单金额明细抽屉（企业内内结非智汇云收入 / 智汇云内非本结算单元收入 / 本结算单元收入） */}
+                            {/* 结算单元账单金额明细抽屉（企业内内结非经营部门收入 / 经营部门内非本结算单元收入 / 本结算单元收入） */}
                             {unitBillDetail && (
                                 <div className="fixed inset-0 z-[100]">
                                     <div className="absolute inset-0 bg-black/50" onClick={() => setUnitBillDetail(null)} />
@@ -16028,33 +16060,8 @@ export default function AdminPage() {
                                     搜索
                                 </button>
 
-                                {/* 列顺序切换（与产品分析共用） */}
-                                <div className="ml-auto flex items-center gap-2">
-                                    <span className="text-sm text-gray-600">列顺序</span>
-                                    <div className="inline-flex h-9 rounded-lg border border-gray-300 bg-white p-0.5">
-                                        {([
-                                            { mode: 1 as const, label: "方式1" },
-                                            { mode: 2 as const, label: "方式2" },
-                                        ]).map((m) => (
-                                            <button
-                                                key={m.mode}
-                                                type="button"
-                                                onClick={() => setAnalysisColumnMode(m.mode)}
-                                                title={m.mode === 1 ? "默认列顺序" : "企业内外部结算、企业外相关列分组连续展示"}
-                                                className={`rounded-md px-3 text-sm transition-colors ${
-                                                    analysisColumnMode === m.mode
-                                                        ? "bg-blue-600 text-white"
-                                                        : "text-gray-600 hover:bg-gray-100"
-                                                }`}
-                                            >
-                                                {m.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
                                 {/* 导出数据 */}
-                                <button className="h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
+                                <button className="ml-auto h-9 rounded-lg bg-blue-600 px-4 text-sm text-white transition-colors hover:bg-blue-700">
                                     导出数据
                                 </button>
                             </div>
@@ -16064,26 +16071,41 @@ export default function AdminPage() {
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[2600px]">
                                         <thead>
+                                            {/* 表头第一行：列结构与「产品分析」一致，「企业内收入」「内结价收入」「利润」「毛利率」为合并列标题 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
                                                 <AnalysisTh label="结算单元(ops)" align="left" width="200px" rowSpan={2} divider />
                                                 <AnalysisTh label="总收入(不包含本结算单元收入)(元)" tip="总收入(不包含本结算单元收入) = 总收入 - 本结算单元收入。" width="170px" rowSpan={2} divider badge />
-                                                <AnalysisTh label="企业内内结收入(元)" align="center" colSpan={2} tip="展示内部企业内部结算的部门收入。" highlight="inner" divider />
-                                                {orderedAnalysisColumns.map((c) => (
-                                                    <Fragment key={c.key}>
-                                                        {c.key === "productCost" ? (
-                                                            <AnalysisTh label="结算单元成本(元)" tip="结算单元成本 = 产品成本 - 本结算单元收入。" width="150px" highlight="cost" rowSpan={2} divider badge />
-                                                        ) : c.key === "innerTotalRevenue" ? (
-                                                            <AnalysisTh label={c.label} tip="内部结算总收入 = 现在内部结算总收入 - 本结算单元收入。" width="160px" highlight="change" rowSpan={2} divider badge />
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={3} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" divider />
+                                                {productAnalysisLayout.map((item) =>
+                                                    item.type === "single" ? (
+                                                        item.key === "productCost" ? (
+                                                            <AnalysisTh key={item.key} label="结算单元成本(元)" tip="结算单元成本 = 产品成本 - 本结算单元收入。" width="150px" highlight="cost" rowSpan={2} divider badge />
                                                         ) : (
-                                                            <AnalysisTh label={c.label} tip={c.key.endsWith("Margin") ? `${c.tip ?? ""}结算单元按合计值计算。` : c.tip} width={c.width} highlight={c.highlight} rowSpan={2} divider />
-                                                        )}
-                                                    </Fragment>
-                                                ))}
+                                                            <AnalysisTh key={item.key} label={analysisColumnMap[item.key].label} tip={analysisColumnMap[item.key].tip} width={analysisColumnMap[item.key].width} rowSpan={2} divider />
+                                                        )
+                                                    ) : (
+                                                        <AnalysisTh key={item.label} label={item.label} tip={item.tip} align="center" colSpan={item.keys.length} divider />
+                                                    )
+                                                )}
                                             </tr>
+                                            {/* 表头第二行：企业内收入 3 列明细 + 合并列明细 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
-                                                <AnalysisTh label="企业内内结非智汇云收入(元)" width="110px" divider />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" width="120px" divider />
+                                                <AnalysisTh label="企业内内结非经营部门收入(元)" width="110px" divider />
+                                                <AnalysisTh label="经营部门内非本结算单元收入(元)" width="120px" divider />
+                                                <AnalysisTh label={analysisColumnMap.outerGroupRevenue.label} tip={analysisColumnMap.outerGroupRevenue.tip} width={analysisColumnMap.outerGroupRevenue.width} divider />
+                                                {productAnalysisLayout.flatMap((item) =>
+                                                    item.type === "group"
+                                                        ? item.keys.map((k) => {
+                                                            const c = analysisColumnMap[k];
+                                                            if (k === "innerTotalRevenue") {
+                                                                return <AnalysisTh key={k} label="内部结算总收入(元)" tip="内部结算总收入 = 现在内部结算总收入 - 本结算单元收入。" width="160px" highlight="change" divider badge />;
+                                                            }
+                                                            const tip = productAnalysisTipOverrides[k] ?? c.tip;
+                                                            return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={k.endsWith("Margin") ? `${tip ?? ""}结算单元按合计值计算。` : tip} width={c.width} divider />;
+                                                        })
+                                                        : []
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-300">
@@ -16103,7 +16125,7 @@ export default function AdminPage() {
                                             )}
                                             {unitAnalysisRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={5 + orderedAnalysisColumns.length} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={6 + productAnalysisColumns.length} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -16256,35 +16278,41 @@ export default function AdminPage() {
                             {/* 数据表格 */}
                             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[2400px]">
+                                    <table className="w-full min-w-[2800px]">
                                         <thead>
-                                            {/* 表头第一行：与「产品分析」一致，「企业内收入」「企业外收入」为合并列标题 */}
+                                            {/* 表头：指标列与「结算单元分析」完全一致，部门值 = 其关联结算单元对应值之和 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
                                                 <AnalysisTh label="部门名称" tip="所选经营部门下已关联结算单元的部门（含经营部门自身）。" align="left" width="260px" rowSpan={2} />
-                                                <AnalysisTh label="关联结算单元" tip="该部门在组织架构中已关联的 ops 结算单元数量，展开可查看明细。" align="left" width="140px" rowSpan={2} divider />
-                                                <AnalysisTh label="总收入(元)" tip="该部门关联的全部结算单元在本账期内的收入之和，含企业内收入与外部收入。" align="left" width="130px" rowSpan={2} divider />
-                                                {/* 企业内收入：横跨 4 列 */}
-                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业内部结算的部门收入。" highlight="inner" divider />
-                                                {/* 原「外部收入」合并列拆分为两列：企业内收入（下含企业内外部结算收入）+ 企业外收入 */}
-                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={1} tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" highlight="inner" divider />
-                                                <AnalysisTh label="企业外收入(元)" tip="非内部企业账号（外部Portal 客户）产生的收入。" align="left" width="120px" rowSpan={2} highlight="outer" divider />
-                                                {/* 其余列：各跨 2 行 */}
-                                                <AnalysisTh label="外部收入对应的内部结算价收入(元)" align="left" width="130px" rowSpan={2} divider />
-                                                <AnalysisTh label="内部结算总收入(元)" align="left" width="120px" rowSpan={2} divider />
-                                                <AnalysisTh label="总成本(元)" tip="该部门关联的全部结算单元在本账期内分摊资源成本之和。" align="left" width="120px" rowSpan={2} divider />
-                                                <AnalysisTh label="内部结算价利润(元)" tip="内部结算总收入 - 总成本。" align="left" width="120px" rowSpan={2} divider />
-                                                <AnalysisTh label="外部利润(元)" tip="外部收入 - 外部收入对应的内部结算价收入。" align="left" width="115px" rowSpan={2} divider />
-                                                <AnalysisTh label="内部结算毛利率" tip="内部结算价利润 / 内部结算总收入 × 100%。" align="left" width="105px" rowSpan={2} divider />
-                                                <AnalysisTh label="外部毛利率" tip="外部利润 / 外部收入 × 100%。" align="left" width="100px" rowSpan={2} divider />
-                                                <AnalysisTh label="收支差额(元)" tip="总收入 - 总成本。" align="left" width="120px" rowSpan={2} divider />
+                                                <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} divider />
+                                                <AnalysisTh label="结算单元(ops)" tip="部门行展示关联的 ops 结算单元数量，展开可查看各结算单元明细。" align="left" width="200px" rowSpan={2} divider />
+                                                <AnalysisTh label="总收入(不包含本部门收入)(元)" tip="总收入(不包含本部门收入) = 总收入 - 本部门收入。" width="170px" rowSpan={2} divider badge />
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={1} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" divider />
+                                                {productAnalysisLayout.map((item) =>
+                                                    item.type === "single" ? (
+                                                        item.key === "productCost" ? (
+                                                            <AnalysisTh key={item.key} label="部门成本(元)" tip="部门成本 = 产品成本 - 本部门收入。" width="150px" highlight="cost" rowSpan={2} divider badge />
+                                                        ) : (
+                                                            <AnalysisTh key={item.key} label={analysisColumnMap[item.key].label} tip={analysisColumnMap[item.key].tip} width={analysisColumnMap[item.key].width} rowSpan={2} divider />
+                                                        )
+                                                    ) : (
+                                                        <AnalysisTh key={item.label} label={item.label} tip={item.tip} align="center" colSpan={item.keys.length} divider />
+                                                    )
+                                                )}
                                             </tr>
-                                            {/* 表头第二行：企业内 4 列明细 + 企业外收入 2 列明细 */}
                                             <tr className="border-b border-gray-300 bg-gray-100">
-                                                <AnalysisTh label="企业内内结收入(元)" tip="来自企业内部各部门与中台的收入合计。" align="left" width="130px" divider />
-                                                <AnalysisTh label="企业内内结非智汇云收入(元)" align="left" width="120px" divider />
-                                                <AnalysisTh label="智汇云内非本结算单元收入(元)" align="left" width="130px" divider />
-                                                <AnalysisTh label="本结算单元收入(元)" align="left" width="120px" divider />
-                                                <AnalysisTh label="企业内外部结算收入(元)" tip="内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入。" align="left" width="130px" divider />
+                                                <AnalysisTh label="企业内内结非经营部门收入(元)" width="110px" divider />
+                                                {productAnalysisLayout.flatMap((item) =>
+                                                    item.type === "group"
+                                                        ? item.keys.map((k) => {
+                                                            const c = analysisColumnMap[k];
+                                                            if (k === "innerTotalRevenue") {
+                                                                return <AnalysisTh key={k} label="内部结算总收入(元)" tip="内部结算总收入 = 现在内部结算总收入 - 本结算单元收入。" width="160px" highlight="change" divider badge />;
+                                                            }
+                                                            const tip = productAnalysisTipOverrides[k] ?? c.tip;
+                                                            return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={k.endsWith("Margin") ? `${tip ?? ""}部门按关联结算单元合计值计算。` : tip} width={c.width} divider />;
+                                                        })
+                                                        : []
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
@@ -16310,67 +16338,33 @@ export default function AdminPage() {
                                                                     <span className="truncate text-[12px] text-gray-400" title={row.path}>{row.path}</span>
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-4 text-sm text-gray-600">{row.members.length} 个</td>
-                                                            <DeptAmountCell value={dm.totalRevenue} />
-                                                            <DeptAmountCell value={dm.innerRevenue} />
-                                                            <DeptAmountCell value={dm.innerNonZyunRevenue} />
-                                                            <DeptAmountCell value={dm.zyunNonUnitRevenue} />
-                                                            <DeptAmountCell value={dm.unitRevenue} />
-                                                            <DeptAmountCell value={dm.outerGroupRevenue} />
-                                                            <DeptAmountCell value={dm.outerPortalRevenue} />
-                                                            <DeptAmountCell value={dm.outerInnerPriceRevenue} />
-                                                            <DeptAmountCell value={dm.innerTotalRevenue} />
-                                                            <DeptAmountCell value={dm.totalCost} />
-                                                            <DeptAmountCell value={dm.innerProfit} />
-                                                            <DeptAmountCell value={dm.outerProfit} />
-                                                            <td className="px-4 py-4 text-left text-sm text-gray-900 whitespace-nowrap">
-                                                                {deptMarginOf(dm.innerProfit, dm.innerTotalRevenue).toFixed(2)}%
-                                                            </td>
-                                                            <td className="px-4 py-4 text-left text-sm text-gray-900 whitespace-nowrap">
-                                                                {deptMarginOf(dm.outerProfit, dm.outerRevenue).toFixed(2)}%
-                                                            </td>
-                                                            <DeptAmountCell value={dm.balance} />
+                                                            <td className="px-3 py-3 text-sm text-gray-900">{deptPeriod}</td>
+                                                            <td className="px-3 py-3 text-sm text-gray-600">关联 {row.members.length} 个</td>
+                                                            {renderUnitAnalysisCells(deptToUnitMetrics(dm), undefined, "dept")}
                                                         </tr>
-                                                        {expanded && row.members.map((m) => {
-                                                            const um = getDeptMetrics(m);
-                                                            return (
+                                                        {expanded && row.members.map((m) => (
                                                             <tr key={`${row.key}-${m.id}`} className="bg-gray-50/60">
                                                                 <td className="px-4 py-3 pl-11 text-[13px] text-gray-400">结算单元</td>
-                                                                <td className="px-4 py-3 text-[13px] text-gray-600">{m.opsUnit}</td>
-                                                                <DeptAmountCell value={um.totalRevenue} compact link onClick={() => {
-                                                                    if (m.totalRevenue > 0 && deptProductRevenueMap[m.opsUnit]) {
-                                                                        openDeptRevenueDrawer(m);
-                                                                    } else {
-                                                                        openDeptDetail(m, "revenue");
-                                                                    }
-                                                                }} />
-                                                                <DeptAmountCell value={um.innerRevenue} compact />
-                                                                <DeptAmountCell value={um.innerNonZyunRevenue} compact />
-                                                                <DeptAmountCell value={um.zyunNonUnitRevenue} compact />
-                                                                <DeptAmountCell value={um.unitRevenue} compact />
-                                                                <DeptAmountCell value={um.outerGroupRevenue} compact />
-                                                                <DeptAmountCell value={um.outerPortalRevenue} compact />
-                                                                <DeptAmountCell value={um.outerInnerPriceRevenue} compact />
-                                                                <DeptAmountCell value={um.innerTotalRevenue} compact />
-                                                                <DeptAmountCell value={um.totalCost} compact link onClick={() => openDeptDetail(m, "cost")} />
-                                                                <DeptAmountCell value={um.innerProfit} compact />
-                                                                <DeptAmountCell value={um.outerProfit} compact />
-                                                                <td className="px-3 py-3 text-left text-[13px] text-gray-900 whitespace-nowrap">
-                                                                    {deptMarginOf(um.innerProfit, um.innerTotalRevenue).toFixed(2)}%
-                                                                </td>
-                                                                <td className="px-3 py-3 text-left text-[13px] text-gray-900 whitespace-nowrap">
-                                                                    {deptMarginOf(um.outerProfit, um.outerRevenue).toFixed(2)}%
-                                                                </td>
-                                                                <DeptAmountCell value={um.balance} compact />
+                                                                <td className="px-3 py-3 text-[13px] text-gray-600">{deptPeriod}</td>
+                                                                <td className="px-3 py-3 text-[13px] text-gray-600">{m.opsUnit}</td>
+                                                                {renderUnitAnalysisCells(deptToUnitMetrics(getDeptMetrics(m)), {
+                                                                    revenue: () => {
+                                                                        if (m.totalRevenue > 0 && deptProductRevenueMap[m.opsUnit]) {
+                                                                            openDeptRevenueDrawer(m);
+                                                                        } else {
+                                                                            openDeptDetail(m, "revenue");
+                                                                        }
+                                                                    },
+                                                                    cost: () => openDeptDetail(m, "cost"),
+                                                                }, "dept")}
                                                             </tr>
-                                                            );
-                                                        })}
+                                                        ))}
                                                     </Fragment>
                                                 );
                                             })}
                                             {pagedDeptRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={17} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={5 + productAnalysisColumns.length} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -24100,10 +24094,10 @@ export default function AdminPage() {
                                 <div className="px-6 py-5 space-y-4 text-sm text-gray-700 leading-[1.8]">
                                     <div>
                                         <span className="font-semibold text-gray-900">1、企业内收入：</span>
-                                        <span>企业内收入 = 企业内内结非智汇云收入 + 智汇云内非本结算单元收入 + 本结算单元收入。</span>
+                                        <span>企业内收入 = 企业内内结非经营部门收入 + 经营部门内非本结算单元收入 + 本结算单元收入 + 企业内外部结算收入。</span>
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-gray-900">2、企业内内结非智汇云收入、智汇云内非本结算单元收入：</span>
+                                        <span className="font-semibold text-gray-900">2、企业内内结非经营部门收入、经营部门内非本结算单元收入：</span>
                                         <span>企业内非经营部门收入、经营部门内非本结算单元收入。</span>
                                     </div>
                                     <div>
@@ -24111,8 +24105,12 @@ export default function AdminPage() {
                                         <span>内部企业账号中，本结算单元产生的账单金额和。</span>
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-gray-900">4、企业外收入：</span>
-                                        <span>企业外收入 = 企业内外部结算收入 + 外部收入。</span>
+                                        <span className="font-semibold text-gray-900">4、企业内外部结算收入：</span>
+                                        <span>内部企业中，结算属性为「外部结算」的部门（单独定价部门）产生的收入，计入企业内收入。</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-gray-900">5、企业外收入：</span>
+                                        <span>非内部企业账号（外部Portal 客户）产生的收入。</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
