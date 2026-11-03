@@ -16075,7 +16075,7 @@ export default function AdminPage() {
                                             <tr className="border-b border-gray-300 bg-gray-100">
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
                                                 <AnalysisTh label="结算单元(ops)" align="left" width="200px" rowSpan={2} divider />
-                                                <AnalysisTh label="总收入(不包含本结算单元收入)(元)" tip="总收入(不包含本结算单元收入) = 总收入 - 本结算单元收入。" width="170px" rowSpan={2} divider badge />
+                                                <AnalysisTh label="总收入(不包含本结算单元收入)(元)" tip="总收入(不包含本结算单元收入) = 总收入 - 本结算单元收入。" width="170px" rowSpan={2} highlight="change" divider badge />
                                                 <AnalysisTh label="企业内收入(元)" align="center" colSpan={3} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" divider />
                                                 {productAnalysisLayout.map((item) =>
                                                     item.type === "single" ? (
@@ -16285,7 +16285,7 @@ export default function AdminPage() {
                                                 <AnalysisTh label="部门名称" tip="所选经营部门下已关联结算单元的部门（含经营部门自身）。" align="left" width="260px" rowSpan={2} />
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} divider />
                                                 <AnalysisTh label="结算单元(ops)" tip="部门行展示关联的 ops 结算单元数量，展开可查看各结算单元明细。" align="left" width="200px" rowSpan={2} divider />
-                                                <AnalysisTh label="总收入(不包含本部门收入)(元)" tip="总收入(不包含本部门收入) = 总收入 - 本部门收入。" width="170px" rowSpan={2} divider badge />
+                                                <AnalysisTh label="总收入(不包含经营部门收入)(元)" tip="总收入(不包含经营部门收入) = 总收入 - 经营部门收入。" width="170px" rowSpan={2} highlight="change" divider badge />
                                                 <AnalysisTh label="企业内收入(元)" align="center" colSpan={1} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" divider />
                                                 {productAnalysisLayout.map((item) =>
                                                     item.type === "single" ? (
