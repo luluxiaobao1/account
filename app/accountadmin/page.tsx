@@ -9244,6 +9244,7 @@ export default function AdminPage() {
         shortName: string;  // 工作台简称
         iconUrl: string;    // 工作台 icon（dataURL）
         dirName: string;    // 目录名称
+        relatedWorkbenchIds?: number[]; // 相关工作台（非必填，仅可选择已上线的工作台，存储对应产品分类 id）
     };
     // 工作台可上架的 Portal：internal=内部 Portal / external=外部 Portal
     type WorkbenchPortal = 'internal' | 'external';
@@ -9360,21 +9361,66 @@ export default function AdminPage() {
     };
 
     // ===== 工作台配置弹框 =====
-    const emptyWorkbenchForm: WorkbenchConfig = { name: '', shortName: '', iconUrl: '', dirName: '' };
+    const emptyWorkbenchForm: WorkbenchConfig = { name: '', shortName: '', iconUrl: '', dirName: '', relatedWorkbenchIds: [] };
+    // 相关工作台下拉面板展开状态
+    const [relatedWorkbenchDropdownOpen, setRelatedWorkbenchDropdownOpen] = useState(false);
+    const relatedWorkbenchRef = useRef<HTMLDivElement | null>(null);
+    // 点击下拉区域外部时收起（不使用全屏遮罩，避免遮罩拦截滚轮导致弹框无法滚动）
+    useEffect(() => {
+        if (!relatedWorkbenchDropdownOpen) return;
+        const onDown = (e: MouseEvent) => {
+            if (relatedWorkbenchRef.current && !relatedWorkbenchRef.current.contains(e.target as Node)) {
+                setRelatedWorkbenchDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onDown);
+        return () => document.removeEventListener('mousedown', onDown);
+    }, [relatedWorkbenchDropdownOpen]);
+    // 已上线的工作台：已开启 + 已配置 + 至少上架一个 Portal（排除当前正在配置的分类）
+    const getOnlineWorkbenchOptions = (excludeId: number | null) =>
+        productCategoryData.filter(r =>
+            r.id !== excludeId && r.workbenchEnabled && !!r.workbench && r.workbenchPortals.length > 0
+        );
     const [workbenchDialogOpen, setWorkbenchDialogOpen] = useState(false);
     const [workbenchDialogCategoryId, setWorkbenchDialogCategoryId] = useState<number | null>(null);
     // 由「工作台状态开关」触发的配置，保存成功后自动开启工作台
     const [workbenchDialogFromToggle, setWorkbenchDialogFromToggle] = useState(false);
     const [workbenchForm, setWorkbenchForm] = useState<WorkbenchConfig>(emptyWorkbenchForm);
     const [workbenchErrors, setWorkbenchErrors] = useState<{ name?: string; shortName?: string; iconUrl?: string; dirName?: string }>({});
+    // 弹框打开时锁定背景页面滚动，避免滚轮事件被背景页面吞掉
+    useEffect(() => {
+        if (!workbenchDialogOpen) return;
+        const html = document.documentElement;
+        const prevBody = document.body.style.overflow;
+        const prevHtml = html.style.overflow;
+        document.body.style.overflow = 'hidden';
+        html.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevBody;
+            html.style.overflow = prevHtml;
+        };
+    }, [workbenchDialogOpen]);
 
     // 打开工作台配置弹框（fromToggle=true 表示由开关触发）
     const openWorkbenchDialog = (row: ProductCategoryRow, fromToggle = false) => {
         setWorkbenchDialogCategoryId(row.id);
         setWorkbenchDialogFromToggle(fromToggle);
-        setWorkbenchForm(row.workbench ? { ...row.workbench } : { ...emptyWorkbenchForm });
+        // 回显相关工作台时，仅保留当前仍处于上线状态的工作台
+        const onlineIds = getOnlineWorkbenchOptions(row.id).map(r => r.id);
+        setWorkbenchForm(row.workbench
+            ? { ...row.workbench, relatedWorkbenchIds: (row.workbench.relatedWorkbenchIds || []).filter(id => onlineIds.includes(id)) }
+            : { ...emptyWorkbenchForm });
         setWorkbenchErrors({});
+        setRelatedWorkbenchDropdownOpen(false);
         setWorkbenchDialogOpen(true);
+    };
+
+    // 勾选/取消相关工作台
+    const toggleRelatedWorkbench = (id: number) => {
+        setWorkbenchForm(prev => {
+            const ids = prev.relatedWorkbenchIds || [];
+            return { ...prev, relatedWorkbenchIds: ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id] };
+        });
     };
 
     const closeWorkbenchDialog = () => {
@@ -9383,6 +9429,7 @@ export default function AdminPage() {
         setWorkbenchDialogFromToggle(false);
         setWorkbenchForm({ ...emptyWorkbenchForm });
         setWorkbenchErrors({});
+        setRelatedWorkbenchDropdownOpen(false);
     };
 
     // 上传 icon（本地预览）
@@ -9413,7 +9460,7 @@ export default function AdminPage() {
 
         setProductCategoryData(prev => prev.map(row =>
             row.id === workbenchDialogCategoryId
-                ? { ...row, workbench: { name, shortName, iconUrl: workbenchForm.iconUrl, dirName } }
+                ? { ...row, workbench: { name, shortName, iconUrl: workbenchForm.iconUrl, dirName, relatedWorkbenchIds: [...(workbenchForm.relatedWorkbenchIds || [])] } }
                 : row
         ));
         const fromToggle = workbenchDialogFromToggle;
@@ -13080,10 +13127,11 @@ export default function AdminPage() {
                             
                             {/* 工作台配置弹框 */}
                             {workbenchDialogOpen && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                                    <div className="w-[720px] max-w-[92vw] max-h-[88vh] bg-white rounded-lg shadow-xl flex flex-col">
+                                <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/40">
+                                  <div className="min-h-full flex items-center justify-center py-10">
+                                    <div className="w-[720px] max-w-[92vw] bg-white rounded-lg shadow-xl flex flex-col">
                                         {/* 弹框标题 */}
-                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
                                             <h3 className="text-base font-semibold text-gray-900">
                                                 {productCategoryData.find(r => r.id === workbenchDialogCategoryId)?.workbench ? '工作台配置' : '新建工作台'}
                                             </h3>
@@ -13095,7 +13143,7 @@ export default function AdminPage() {
                                         </div>
 
                                         {/* 表单区 */}
-                                        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+                                        <div className={`px-6 py-6 space-y-5 ${relatedWorkbenchDropdownOpen ? 'pb-64' : ''}`}>
                                             {/* 工作台名称 */}
                                             <div className="flex items-start">
                                                 <label className="w-[120px] flex-shrink-0 pt-2 text-right text-sm text-gray-700">
@@ -13185,10 +13233,79 @@ export default function AdminPage() {
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {/* 相关工作台（非必填，仅可选择已上线的工作台） */}
+                                            {(() => {
+                                                const options = getOnlineWorkbenchOptions(workbenchDialogCategoryId);
+                                                const selectedIds = workbenchForm.relatedWorkbenchIds || [];
+                                                const selected = options.filter(o => selectedIds.includes(o.id));
+                                                return (
+                                                    <div className="flex items-start">
+                                                        <label className="w-[120px] flex-shrink-0 pt-2 text-right text-sm text-gray-700">
+                                                            相关工作台：
+                                                        </label>
+                                                        <div ref={relatedWorkbenchRef} className="flex-1 ml-3 relative">
+                                                            <div
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                onClick={() => setRelatedWorkbenchDropdownOpen(o => !o)}
+                                                                className={`w-full min-h-[36px] px-3 py-1 flex items-center gap-1.5 flex-wrap text-sm border rounded-lg cursor-pointer bg-white ${
+                                                                    relatedWorkbenchDropdownOpen ? 'border-blue-500' : 'border-gray-300 hover:border-blue-400'
+                                                                }`}
+                                                            >
+                                                                {selected.length === 0 ? (
+                                                                    <span className="text-gray-400 leading-7">请选择已上线的工作台（可多选）</span>
+                                                                ) : selected.map(o => (
+                                                                    <span key={o.id} className="inline-flex items-center gap-1 h-6 px-2 rounded bg-blue-50 text-blue-600 text-xs">
+                                                                        {o.workbench?.name}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.stopPropagation(); toggleRelatedWorkbench(o.id); }}
+                                                                            className="text-blue-400 hover:text-blue-600"
+                                                                            title="移除"
+                                                                        >
+                                                                            ×
+                                                                        </button>
+                                                                    </span>
+                                                                ))}
+                                                                <svg className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${relatedWorkbenchDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </div>
+                                                            {relatedWorkbenchDropdownOpen && (
+                                                                <>
+                                                                    <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-56 overflow-y-auto overscroll-contain bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                                                                        {options.length === 0 ? (
+                                                                            <div className="px-3 py-3 text-sm text-gray-400 text-center">暂无已上线的工作台</div>
+                                                                        ) : options.map(o => {
+                                                                            const checked = selectedIds.includes(o.id);
+                                                                            return (
+                                                                                <label key={o.id} className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 ${checked ? 'text-blue-600' : 'text-gray-700'}`}>
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        checked={checked}
+                                                                                        onChange={() => toggleRelatedWorkbench(o.id)}
+                                                                                        className="w-4 h-4 accent-blue-600"
+                                                                                    />
+                                                                                    <span className="flex-1">{o.workbench?.name}</span>
+                                                                                    <span className="text-xs text-gray-400">
+                                                                                        {o.workbenchPortals.map(p => PORTAL_LABEL[p]).join(' / ')}
+                                                                                    </span>
+                                                                                </label>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                            <p className="mt-2 text-sm text-gray-500">非必填，仅可选择已上线的工作台</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* 底部按钮 */}
-                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                                        <div className="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
                                             <button
                                                 onClick={closeWorkbenchDialog}
                                                 className="px-5 h-9 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -13203,6 +13320,7 @@ export default function AdminPage() {
                                             </button>
                                         </div>
                                     </div>
+                                  </div>
                                 </div>
                             )}
 
