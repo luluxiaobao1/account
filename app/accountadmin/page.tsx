@@ -1270,6 +1270,36 @@ const deptProductRevenueMap: Record<string, { productName: string; amount: numbe
     ],
 };
 
+// ===== 经营分析 - 账单核对 =====
+// 按大产品对比本月与上月收入，列结构与核对表一致；变化量、比例、日均等由原始收入推算
+interface BillCheckRow {
+    statMonth: string;        // 统计月
+    compareMonth: string;     // 对比月
+    productKey: string;       // 大产品标识
+    productName: string;      // 大产品名称
+    feeType: string;          // 账单费用类型
+    lastMonthRevenue: number; // 上月完整收入
+    curActualRevenue: number; // 本月实际收入
+    curEstSupplement: number; // 本月预计补齐收入
+    lastMonthDays: number;    // 上月天数（用于计算上月日均）
+    actualDays: number;       // 实际天数
+    remainDays: number;       // 剩余天数
+    reason: string;           // 异常原因
+    isMonthly: boolean;       // 是否包月
+}
+
+const billCheckRawRows: BillCheckRow[] = [
+    { statMonth: "202610", compareMonth: "202609", productKey: "sandbox", productName: "AI沙箱 Sandbox", feeType: "normal", lastMonthRevenue: 29147.17, curActualRevenue: 121544.9, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "9月1-22号由于推账异常，没有收费", isMonthly: false },
+    { statMonth: "202610", compareMonth: "202609", productKey: "cdw_qilin", productName: "云数仓 DLW", feeType: "normal", lastMonthRevenue: 155205.31, curActualRevenue: 198412.27, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "正常，10 月接入商业化业务，净增 4W+", isMonthly: false },
+    { statMonth: "202610", compareMonth: "202609", productKey: "starrocks", productName: "MPP数据库 StarRocks", feeType: "normal", lastMonthRevenue: 160207.09, curActualRevenue: 192281.48, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "正常，第一大业务AI 搜索用量有暴涨，确认为业务正常增长", isMonthly: false },
+    { statMonth: "202610", compareMonth: "202609", productKey: "pgsql_hulk", productName: "云数据库 PGSQL", feeType: "normal", lastMonthRevenue: 49207.67, curActualRevenue: 54389.26, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "业务正常波动", isMonthly: false },
+    { statMonth: "202610", compareMonth: "202609", productKey: "firehawk", productName: "云舟观测 GC", feeType: "normal", lastMonthRevenue: 26866.43, curActualRevenue: 29383.55, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "正常，日志存储正常增量", isMonthly: false },
+];
+
+// 账单核对 - 数值展示：最多保留 2 位小数，去掉末尾 0（与核对表一致，如 121544.9）
+const fmtBillCheckNum = (n: number) => String(Number(n.toFixed(2)));
+const fmtBillCheckPct = (n: number) => `${(n * 100).toFixed(2)}%`;
+
 // ===== 经营分析 - 监控看板 =====
 // 计费节点定义：计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单聚合 → 成本（成本聚合、成本生产） → 账单核验（按字段逐项核验）
 const monitorNodeDefs = [
@@ -7024,6 +7054,18 @@ export default function AdminPage() {
         groupMargin: "企业内外部结算毛利率 = 企业内外部结算对应的内结价利润 / 企业内外部结算收入。",
         portalMargin: "企业外毛利率 = 企业外对应的内结价利润 / 企业外收入。",
     };
+    // 仅「产品分析」页面生效的列提示覆盖（不影响结算单元分析 / 部门分析）
+    const productAnalysisPageTipOverrides: Record<string, string> = {
+        productCost: "该产品在本账期内分摊的资源成本和外部成本合计。",
+        innerMargin: "内结价总利润 / 内结价总收入。",
+    };
+    // 仅「结算单元分析」页面生效的列提示覆盖（完整替换，不再追加「结算单元按合计值计算」）
+    const unitAnalysisTipOverrides: Record<string, string> = {
+        innerProfit: "内结价总利润 = 内结价总收入 - 结算单元成本。",
+        innerMargin: "内结毛利率 = 内结价利润 / 内结价总收入。",
+        groupMargin: "企业内外部结算毛利率 = 企业内外部结算对应的内结价利润 / 企业内外部结算收入。",
+        portalMargin: "企业外毛利率 = 企业外对应的内结价利润 / 企业外收入。",
+    };
     const productAnalysisColumns = productAnalysisLayout
         .flatMap((item) => (item.type === "single" ? [item.key] : item.keys))
         .map((k) => analysisColumnMap[k]);
@@ -7049,14 +7091,14 @@ export default function AdminPage() {
     //   内部结算总收入 = 现在内部结算总收入 - 本结算单元收入（琥珀色背景高亮）
     //   结算单元成本 = 产品成本 - 本结算单元收入（位于产品分析「产品成本」位置）
     // links：可选的下钻入口（部门分析的结算单元明细行复用，保留收入 / 成本明细点击）
-    // mode：unit = 结算单元分析（不展示「本结算单元收入」列）；dept = 部门分析（不展示「经营部门内非本结算单元收入」「本结算单元收入」「企业内外部结算收入」列）
+    // mode：unit = 结算单元分析（不展示「本结算单元收入」列）；dept = 部门分析（不展示「经营部门内非本结算单元收入」「本结算单元收入」列）
     // 背景高亮：仅「结算单元成本/部门成本」「内部结算总收入」保留，其余列不高亮
     const renderUnitAnalysisCells = (m: UnitAnalysisMetrics, links?: { revenue?: () => void; cost?: () => void }, mode: "unit" | "dept" = "unit") => (
         <>
             <AnalysisAmountCell value={m.totalRevenue - m.unitRevenue} link={!!links?.revenue} onClick={links?.revenue} />
             <AnalysisAmountCell value={m.innerNonZyunRevenue} />
             {mode === "unit" && <AnalysisAmountCell value={m.zyunNonUnitRevenue} />}
-            {mode === "unit" && <AnalysisAmountCell value={m.outerGroupRevenue} />}
+            <AnalysisAmountCell value={m.outerGroupRevenue} />
             {productAnalysisColumns.map((c) => {
                 if (c.key === "productCost") {
                     return <AnalysisAmountCell key={c.key} value={m.productCost - m.unitRevenue} highlight="cost" link={!!links?.cost} onClick={links?.cost} />;
@@ -10681,7 +10723,7 @@ export default function AdminPage() {
                     <div className="mt-0.5">
                         <div
                             className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors duration-[160ms] ${
-                                ['analysis-overall', 'analysis-product', 'analysis-department', 'analysis-monitor'].includes(currentMenu)
+                                ['analysis-overall', 'analysis-product', 'analysis-department', 'analysis-monitor', 'analysis-bill-check'].includes(currentMenu)
                                 ? 'bg-[#0f73f6] text-white'
                                     : 'text-[#d0d0d0] hover:bg-[#3a3a3a] hover:text-white'
                             }`}
@@ -10752,6 +10794,16 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>监控看板</span>
+                                </div>
+                                <div
+                                    onClick={() => setCurrentMenu('analysis-bill-check')}
+                                    className={`pl-[30px] pr-3 py-2 rounded-md cursor-pointer transition-colors duration-[140ms] text-[13px] flex items-center justify-between ${
+                                        currentMenu === 'analysis-bill-check'
+                                            ? 'bg-[#3d3d3d] text-white'
+                                            : 'text-[#cecece] hover:text-white hover:bg-[#3a3a3a]'
+                                    }`}
+                                >
+                                    <span>账单核对</span>
                                 </div>
                             </div>
                         )}
@@ -15646,14 +15698,14 @@ export default function AdminPage() {
                                                 {/* 账期、结算单元、产品名称、总收入：各跨 2 行 */}
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
                                                 <AnalysisTh label="归属结算单元(ops)" align="left" width="120px" rowSpan={2} divider />
-                                                <AnalysisTh label="产品名称" align="left" width="150px" tip="每个产品在本账期内合并展示为一条产品数据，不区分内外Portal。" rowSpan={2} divider />
-                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含企业内收入与外部收入。" width="110px" rowSpan={2} divider />
+                                                <AnalysisTh label="产品名称" align="left" width="150px" tip="所有开启计费的产品。" rowSpan={2} divider />
+                                                <AnalysisTh label="总收入(元)" tip="该产品在本账期内的全部收入合计，含企业内收入与企业外收入。" width="110px" rowSpan={2} divider />
                                                 {/* 企业内收入：横跨 4 列 */}
-                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" highlight="inner" divider />
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={4} tip="内部企业收入，含内部结算与外部结算两部分。" highlight="inner" divider />
                                                 {/* 其余列：单列跨 2 行；「内结价收入」「利润」「毛利率」为合并列标题 */}
                                                 {productAnalysisLayout.map((item) =>
                                                     item.type === "single" ? (
-                                                        <AnalysisTh key={item.key} label={analysisColumnMap[item.key].label} tip={analysisColumnMap[item.key].tip} width={analysisColumnMap[item.key].width} highlight={analysisColumnMap[item.key].highlight} rowSpan={2} divider />
+                                                        <AnalysisTh key={item.key} label={analysisColumnMap[item.key].label} tip={productAnalysisPageTipOverrides[item.key] ?? analysisColumnMap[item.key].tip} width={analysisColumnMap[item.key].width} highlight={analysisColumnMap[item.key].highlight} rowSpan={2} divider />
                                                     ) : (
                                                         <AnalysisTh key={item.label} label={item.label} tip={item.tip} align="center" colSpan={item.keys.length} divider />
                                                     )
@@ -15669,7 +15721,7 @@ export default function AdminPage() {
                                                     item.type === "group"
                                                         ? item.keys.map((k) => {
                                                             const c = analysisColumnMap[k];
-                                                            return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={productAnalysisTipOverrides[k] ?? c.tip} width={c.width} highlight={c.highlight} divider />;
+                                                            return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={productAnalysisPageTipOverrides[k] ?? productAnalysisTipOverrides[k] ?? c.tip} width={c.width} highlight={c.highlight} divider />;
                                                         })
                                                         : []
                                                 )}
@@ -16194,11 +16246,11 @@ export default function AdminPage() {
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} />
                                                 <AnalysisTh label="结算单元(ops)" align="left" width="200px" rowSpan={2} divider />
                                                 <AnalysisTh label="总收入(不包含本结算单元收入)(元)" tip="总收入(不包含本结算单元收入) = 总收入 - 本结算单元收入。" width="170px" rowSpan={2} highlight="change" divider badge />
-                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={3} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" divider />
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={3} tip="内部企业收入，含内部结算与外部结算两部分。" divider />
                                                 {productAnalysisLayout.map((item) =>
                                                     item.type === "single" ? (
                                                         item.key === "productCost" ? (
-                                                            <AnalysisTh key={item.key} label="结算单元成本(元)" tip="结算单元成本 = 产品成本 - 本结算单元收入。" width="150px" highlight="cost" rowSpan={2} divider badge />
+                                                            <AnalysisTh key={item.key} label="结算单元成本(元)" tip="结算单元成本 = 归属到结算单元下的产品成本和 - 本结算单元内结算部分。本结算单元内结算部分 = 本结算单元收入。" width="150px" highlight="cost" rowSpan={2} divider badge />
                                                         ) : (
                                                             <AnalysisTh key={item.key} label={analysisColumnMap[item.key].label} tip={analysisColumnMap[item.key].tip} width={analysisColumnMap[item.key].width} rowSpan={2} divider />
                                                         )
@@ -16217,7 +16269,10 @@ export default function AdminPage() {
                                                         ? item.keys.map((k) => {
                                                             const c = analysisColumnMap[k];
                                                             if (k === "innerTotalRevenue") {
-                                                                return <AnalysisTh key={k} label="内部结算总收入(元)" tip="内部结算总收入 = 现在内部结算总收入 - 本结算单元收入。" width="160px" highlight="change" divider badge />;
+                                                                return <AnalysisTh key={k} label="内部结算总收入(元)" tip="内部结算总收入 = 归属到结算单元下的产品的内结价收入总和 - 本结算单元的自己收自己的内结价和。本结算单元的自己收自己的内结价 = 本结算单元收入，因为本结算单元是内结价。" width="160px" highlight="change" divider badge />;
+                                                            }
+                                                            if (unitAnalysisTipOverrides[k]) {
+                                                                return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={unitAnalysisTipOverrides[k]} width={c.width} divider />;
                                                             }
                                                             const tip = productAnalysisTipOverrides[k] ?? c.tip;
                                                             return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={k.endsWith("Margin") ? `${tip ?? ""}结算单元按合计值计算。` : tip} width={c.width} divider />;
@@ -16403,12 +16458,12 @@ export default function AdminPage() {
                                                 <AnalysisTh label="部门名称" tip="所选经营部门下已关联结算单元的部门（含经营部门自身）。" align="left" width="260px" rowSpan={2} />
                                                 <AnalysisTh label="账期" align="left" width="80px" rowSpan={2} divider />
                                                 <AnalysisTh label="结算单元(ops)" tip="部门行展示关联的 ops 结算单元数量，展开可查看各结算单元明细。" align="left" width="200px" rowSpan={2} divider />
-                                                <AnalysisTh label="总收入(不包含经营部门收入)(元)" tip="总收入(不包含经营部门收入) = 总收入 - 经营部门收入。" width="170px" rowSpan={2} highlight="change" divider badge />
-                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={1} tip="展示内部企业的部门收入，含内部结算与外部结算两部分。" divider />
+                                                <AnalysisTh label="总收入(不包含经营部门收入)(元)" tip="总收入(不包含本部门收入) = 总收入 - 本部门收入。" width="170px" rowSpan={2} highlight="change" divider badge />
+                                                <AnalysisTh label="企业内收入(元)" align="center" colSpan={2} tip="内部企业收入，含内部结算与外部结算两部分。" divider />
                                                 {productAnalysisLayout.map((item) =>
                                                     item.type === "single" ? (
                                                         item.key === "productCost" ? (
-                                                            <AnalysisTh key={item.key} label="部门成本(元)" tip="部门成本 = 产品成本 - 本部门收入。" width="150px" highlight="cost" rowSpan={2} divider badge />
+                                                            <AnalysisTh key={item.key} label="部门成本(元)" tip="部门成本 = 归属到部门下的产品成本和 - 本部门内结算部分。本部门内结算部分 = 本部门收入。" width="150px" highlight="cost" rowSpan={2} divider badge />
                                                         ) : (
                                                             <AnalysisTh key={item.key} label={analysisColumnMap[item.key].label} tip={analysisColumnMap[item.key].tip} width={analysisColumnMap[item.key].width} rowSpan={2} divider />
                                                         )
@@ -16419,15 +16474,20 @@ export default function AdminPage() {
                                             </tr>
                                             <tr className="border-b border-gray-300 bg-gray-100">
                                                 <AnalysisTh label="企业内内结非经营部门收入(元)" width="110px" divider />
+                                                <AnalysisTh label={analysisColumnMap.outerGroupRevenue.label} tip={analysisColumnMap.outerGroupRevenue.tip} width={analysisColumnMap.outerGroupRevenue.width} divider />
                                                 {productAnalysisLayout.flatMap((item) =>
                                                     item.type === "group"
                                                         ? item.keys.map((k) => {
                                                             const c = analysisColumnMap[k];
+                                                            // 提示文案与「结算单元分析」一致，仅将「结算单元」替换为「部门」
                                                             if (k === "innerTotalRevenue") {
-                                                                return <AnalysisTh key={k} label="内部结算总收入(元)" tip="内部结算总收入 = 现在内部结算总收入 - 本结算单元收入。" width="160px" highlight="change" divider badge />;
+                                                                return <AnalysisTh key={k} label="内部结算总收入(元)" tip="内部结算总收入 = 归属到部门下的产品的内结价收入总和 - 本部门的自己收自己的内结价和。本部门的自己收自己的内结价 = 本部门收入，因为本部门是内结价。" width="160px" highlight="change" divider badge />;
+                                                            }
+                                                            if (unitAnalysisTipOverrides[k]) {
+                                                                return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={unitAnalysisTipOverrides[k].replace(/结算单元/g, "部门")} width={c.width} divider />;
                                                             }
                                                             const tip = productAnalysisTipOverrides[k] ?? c.tip;
-                                                            return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={k.endsWith("Margin") ? `${tip ?? ""}部门按关联结算单元合计值计算。` : tip} width={c.width} divider />;
+                                                            return <AnalysisTh key={k} label={productAnalysisLabelOverrides[k] ?? c.label} tip={k.endsWith("Margin") ? `${tip ?? ""}部门按合计值计算。` : tip} width={c.width} divider />;
                                                         })
                                                         : []
                                                 )}
@@ -16482,7 +16542,7 @@ export default function AdminPage() {
                                             })}
                                             {pagedDeptRows.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={5 + productAnalysisColumns.length} className="px-4 py-12 text-center text-sm text-gray-400">
+                                                    <td colSpan={6 + productAnalysisColumns.length} className="px-4 py-12 text-center text-sm text-gray-400">
                                                         暂无符合条件的数据
                                                     </td>
                                                 </tr>
@@ -16686,6 +16746,96 @@ export default function AdminPage() {
 
                         </div>
                     )}
+
+                    {/* 经营分析 - 账单核对页面 */}
+                    {currentMenu === 'analysis-bill-check' && (() => {
+                        const rows = billCheckRawRows.map((r) => {
+                            const curEstFull = r.curActualRevenue + r.curEstSupplement;   // 本月预计完整月份收入
+                            const lastDaily = r.lastMonthRevenue / r.lastMonthDays;       // 上月日均
+                            const curDaily = r.curActualRevenue / r.actualDays;           // 本月实际日均
+                            const change = curEstFull - r.lastMonthRevenue;               // 收入变化量
+                            const dailyChange = curDaily - lastDaily;                     // 日均收入变化量
+                            return {
+                                ...r,
+                                curEstFull,
+                                lastDaily,
+                                curDaily,
+                                change,
+                                changeRatio: r.lastMonthRevenue ? change / r.lastMonthRevenue : 0,
+                                dailyChange,
+                                dailyChangeRatio: lastDaily ? dailyChange / lastDaily : 0,
+                            };
+                        });
+                        const thBase = "px-3 py-2.5 text-[13px] font-medium whitespace-nowrap border-r border-gray-300";
+                        const tdNum = "px-3 py-3 text-sm text-right whitespace-nowrap border-r border-gray-200";
+                        const tdText = "px-3 py-3 text-sm whitespace-nowrap border-r border-gray-200";
+                        return (
+                            <div className="flex-1 bg-gray-50 p-6 overflow-auto">
+                                <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
+                                    <p className="text-[13px] leading-[1.9] text-blue-600">
+                                        按大产品对比统计月与对比月的收入。本月预计完整月份收入 = 本月实际收入 + 本月预计补齐收入；收入变化量 = 本月预计完整月份收入 - 上月完整收入；收入变化比例 = 收入变化量 / 上月完整收入；日均收入变化量 = 本月实际日均 - 上月日均；日均收入变化比例 = 日均收入变化量 / 上月日均。
+                                    </p>
+                                </div>
+                                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full min-w-[2400px] border-collapse">
+                                            <thead>
+                                                <tr className="border-b border-gray-300 bg-[#fde9e1] text-gray-800">
+                                                    <th className={`${thBase} text-left`}>统计月</th>
+                                                    <th className={`${thBase} text-left`}>对比月</th>
+                                                    <th className={`${thBase} text-left`}>大产品标识</th>
+                                                    <th className={`${thBase} text-left`}>大产品名称</th>
+                                                    <th className={`${thBase} text-left`}>账单费用类型</th>
+                                                    <th className={`${thBase} text-right`}>上月完整收入(元)</th>
+                                                    <th className={`${thBase} text-right`}>本月实际收入(元)</th>
+                                                    <th className={`${thBase} text-right`}>本月预计补齐收入(元)</th>
+                                                    <th className={`${thBase} text-right`}>本月预计完整月份收入(元)</th>
+                                                    <th className={`${thBase} text-right`}>上月日均(元)</th>
+                                                    <th className={`${thBase} text-right`}>本月实际日均(元)</th>
+                                                    <th className={`${thBase} text-right bg-red-600 text-white`}>收入变化量(元)</th>
+                                                    <th className={`${thBase} text-right bg-red-600 text-white`}>收入变化比例</th>
+                                                    <th className={`${thBase} text-left bg-[#a9d18e] min-w-[340px]`}>异常原因</th>
+                                                    <th className={`${thBase} text-right`}>日均收入变化量(元)</th>
+                                                    <th className={`${thBase} text-right`}>日均收入变化比例</th>
+                                                    <th className={`${thBase} text-right`}>实际天数</th>
+                                                    <th className={`${thBase} text-right`}>剩余天数</th>
+                                                    <th className="px-3 py-2.5 text-[13px] font-medium whitespace-nowrap text-center">是否包月</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {rows.map((r) => (
+                                                    <tr key={`${r.statMonth}-${r.productKey}`} className="hover:bg-gray-50 text-red-600">
+                                                        <td className={tdText}>{r.statMonth}</td>
+                                                        <td className={tdText}>{r.compareMonth}</td>
+                                                        <td className={tdText}>{r.productKey}</td>
+                                                        <td className={tdText}>{r.productName}</td>
+                                                        <td className={tdText}>{r.feeType}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.lastMonthRevenue)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.curActualRevenue)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.curEstSupplement)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.curEstFull)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.lastDaily)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.curDaily)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.change)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckPct(r.changeRatio)}</td>
+                                                        <td className={`${tdText} text-gray-900 whitespace-normal`}>{r.reason}</td>
+                                                        <td className={tdNum}>{fmtBillCheckNum(r.dailyChange)}</td>
+                                                        <td className={tdNum}>{fmtBillCheckPct(r.dailyChangeRatio)}</td>
+                                                        <td className={tdNum}>{r.actualDays}</td>
+                                                        <td className={tdNum}>{r.remainDays}</td>
+                                                        <td className="px-3 py-3 text-sm text-center whitespace-nowrap">{r.isMonthly ? "TRUE" : "FALSE"}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div className="mt-4 rounded-b-lg border-t border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
+                                    共 <span className="font-medium">{rows.length}</span> 个大产品
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* 经营分析 - 监控看板页面 */}
                     {currentMenu === 'analysis-monitor' && (
@@ -19603,7 +19753,6 @@ export default function AdminPage() {
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">名称</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">标识</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">状态</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">操作</th>
@@ -19611,15 +19760,12 @@ export default function AdminPage() {
                                                 </thead>
                                                 <tbody>
                                                     {filteredMainSubProducts.length === 0 ? (
-                                                        <tr><td colSpan={7} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                        <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
                                                     ) : filteredMainSubProducts.map((v, idx) => (
                                                         <tr key={v.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                             <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
                                                             <td className="py-3 px-4 text-sm text-gray-900">{v.name}</td>
                                                             <td className="py-3 px-4 text-sm text-gray-500 font-mono">{v.code}</td>
-                                                            <td className="py-3 px-4 text-sm">
-                                                                <span className={v.status === '使用中' ? 'text-gray-700' : 'text-gray-400'}>{v.status}</span>
-                                                            </td>
                                                             <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.createTime}</td>
                                                             <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.updateTime}</td>
                                                             <td className="py-3 px-4 text-sm whitespace-nowrap">
@@ -19657,7 +19803,6 @@ export default function AdminPage() {
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-16">序号</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">供应商名称</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">供应商标识</th>
-                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">状态</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">创建时间</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">操作</th>
@@ -19665,15 +19810,12 @@ export default function AdminPage() {
                                                 </thead>
                                                 <tbody>
                                                     {filteredSupplierConfigs.length === 0 ? (
-                                                        <tr><td colSpan={7} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                        <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
                                                     ) : filteredSupplierConfigs.map((v, idx) => (
                                                         <tr key={v.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                             <td className="py-3 px-4 text-sm text-gray-600">{idx + 1}</td>
                                                             <td className="py-3 px-4 text-sm text-gray-900">{v.name}</td>
                                                             <td className="py-3 px-4 text-sm text-gray-500 font-mono">{v.code}</td>
-                                                            <td className="py-3 px-4 text-sm">
-                                                                <span className={v.status === '使用中' ? 'text-gray-700' : 'text-gray-400'}>{v.status}</span>
-                                                            </td>
                                                             <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.createTime}</td>
                                                             <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">{v.updateTime}</td>
                                                             <td className="py-3 px-4 text-sm whitespace-nowrap">
