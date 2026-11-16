@@ -1271,34 +1271,73 @@ const deptProductRevenueMap: Record<string, { productName: string; amount: numbe
 };
 
 // ===== 经营分析 - 账单核对 =====
-// 按大产品对比本月与上月收入，列结构与核对表一致；变化量、比例、日均等由原始收入推算
-interface BillCheckRow {
-    statMonth: string;        // 统计月
-    compareMonth: string;     // 对比月
-    productKey: string;       // 大产品标识
-    productName: string;      // 大产品名称
-    feeType: string;          // 账单费用类型
-    lastMonthRevenue: number; // 上月完整收入
-    curActualRevenue: number; // 本月实际收入
-    curEstSupplement: number; // 本月预计补齐收入
-    lastMonthDays: number;    // 上月天数（用于计算上月日均）
-    actualDays: number;       // 实际天数
-    remainDays: number;       // 剩余天数
-    reason: string;           // 异常原因
-    isMonthly: boolean;       // 是否包月
+// 按产品对比统计月份与对比月份的各项金额：按量计费、资源包购买、资源包抵扣、增减项金额，均展示本月、上月、环比
+interface BillCheckAmount {
+    cur: number;   // 本月
+    last: number;  // 上月
 }
 
+interface BillCheckRow {
+    statMonth: string;        // 统计月份
+    compareMonth: string;     // 对比月份
+    productName: string;      // 产品名称
+    productKey: string;       // 产品标识
+    feeType: "normal" | "supplement"; // 费用类型：正常 / 补账
+    payg: BillCheckAmount;       // 按量计费
+    pkgBuy: BillCheckAmount;     // 资源包购买
+    pkgOffset: BillCheckAmount;  // 资源包抵扣
+    adjust: BillCheckAmount;     // 增减项金额
+}
+
+const billCheckFeeTypeLabel: Record<BillCheckRow["feeType"], string> = {
+    normal: "正常",
+    supplement: "补账",
+};
+
+// 合并列定义（每个合并列下包含：本月、上月、环比，合并列后紧跟一个「确认」列）
+// headBg / subHeadBg / cellBg：各合并列的区分背景色（表头 / 子表头 / 单元格）
+const billCheckAmountGroups = [
+    { key: "payg", label: "按量计费", headBg: "bg-blue-100", subHeadBg: "bg-blue-50", cellBg: "bg-blue-50/40" },
+    { key: "pkgBuy", label: "资源包购买", headBg: "bg-emerald-100", subHeadBg: "bg-emerald-50", cellBg: "bg-emerald-50/40" },
+    { key: "pkgOffset", label: "资源包抵扣", headBg: "bg-amber-100", subHeadBg: "bg-amber-50", cellBg: "bg-amber-50/40" },
+    { key: "adjust", label: "增减项金额", headBg: "bg-purple-100", subHeadBg: "bg-purple-50", cellBg: "bg-purple-50/40" },
+] as const;
+
+type BillCheckGroupKey = (typeof billCheckAmountGroups)[number]["key"];
+
+// 账单核对 - 确认记录（按 行 + 合并列 维度确认）
+interface BillCheckConfirm {
+    operator: string;  // 操作人
+    time: string;      // 确认时间
+    remark: string;    // 备注
+}
+
+// 当前登录操作人（原型 mock）
+const billCheckCurrentOperator = "lujingbao";
+
+// 行唯一标识
+const billCheckRowKey = (r: { statMonth: string; productKey: string; feeType: string }) => `${r.statMonth}-${r.productKey}-${r.feeType}`;
+
+// 初始确认记录（mock）
+const billCheckInitialConfirms: Record<string, BillCheckConfirm> = {
+    "202610-sandbox-normal|payg": { operator: "zhangwei", time: "2026-11-03 10:21:45", remark: "环比增长主要因新客户接入，已与产品核实" },
+    "202610-sandbox-normal|pkgBuy": { operator: "zhangwei", time: "2026-11-03 10:23:12", remark: "" },
+    "202610-cdw_qilin-normal|adjust": { operator: "liuyang", time: "2026-11-04 15:08:30", remark: "减项为商务返还，已核对合同" },
+};
+
 const billCheckRawRows: BillCheckRow[] = [
-    { statMonth: "202610", compareMonth: "202609", productKey: "sandbox", productName: "AI沙箱 Sandbox", feeType: "normal", lastMonthRevenue: 29147.17, curActualRevenue: 121544.9, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "9月1-22号由于推账异常，没有收费", isMonthly: false },
-    { statMonth: "202610", compareMonth: "202609", productKey: "cdw_qilin", productName: "云数仓 DLW", feeType: "normal", lastMonthRevenue: 155205.31, curActualRevenue: 198412.27, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "正常，10 月接入商业化业务，净增 4W+", isMonthly: false },
-    { statMonth: "202610", compareMonth: "202609", productKey: "starrocks", productName: "MPP数据库 StarRocks", feeType: "normal", lastMonthRevenue: 160207.09, curActualRevenue: 192281.48, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "正常，第一大业务AI 搜索用量有暴涨，确认为业务正常增长", isMonthly: false },
-    { statMonth: "202610", compareMonth: "202609", productKey: "pgsql_hulk", productName: "云数据库 PGSQL", feeType: "normal", lastMonthRevenue: 49207.67, curActualRevenue: 54389.26, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "业务正常波动", isMonthly: false },
-    { statMonth: "202610", compareMonth: "202609", productKey: "firehawk", productName: "云舟观测 GC", feeType: "normal", lastMonthRevenue: 26866.43, curActualRevenue: 29383.55, curEstSupplement: 0, lastMonthDays: 30, actualDays: 31, remainDays: 0, reason: "正常，日志存储正常增量", isMonthly: false },
+    { statMonth: "202610", compareMonth: "202609", productName: "AI沙箱 Sandbox", productKey: "sandbox", feeType: "normal", payg: { cur: 121544.9, last: 29147.17 }, pkgBuy: { cur: 20000, last: 10000 }, pkgOffset: { cur: 15320.5, last: 8650.22 }, adjust: { cur: 0, last: 0 } },
+    { statMonth: "202610", compareMonth: "202609", productName: "AI沙箱 Sandbox", productKey: "sandbox", feeType: "supplement", payg: { cur: 18630.42, last: 0 }, pkgBuy: { cur: 0, last: 0 }, pkgOffset: { cur: 0, last: 0 }, adjust: { cur: 1200, last: 0 } },
+    { statMonth: "202610", compareMonth: "202609", productName: "云数仓 DLW", productKey: "cdw_qilin", feeType: "normal", payg: { cur: 198412.27, last: 155205.31 }, pkgBuy: { cur: 50000, last: 50000 }, pkgOffset: { cur: 46210.8, last: 42108.65 }, adjust: { cur: -3500, last: -2000 } },
+    { statMonth: "202610", compareMonth: "202609", productName: "MPP数据库 StarRocks", productKey: "starrocks", feeType: "normal", payg: { cur: 192281.48, last: 160207.09 }, pkgBuy: { cur: 30000, last: 45000 }, pkgOffset: { cur: 38760.12, last: 40210.37 }, adjust: { cur: 0, last: 800 } },
+    { statMonth: "202610", compareMonth: "202609", productName: "云数据库 PGSQL", productKey: "pgsql_hulk", feeType: "normal", payg: { cur: 54389.26, last: 49207.67 }, pkgBuy: { cur: 8000, last: 8000 }, pkgOffset: { cur: 7650.3, last: 7420.18 }, adjust: { cur: 0, last: 0 } },
+    { statMonth: "202610", compareMonth: "202609", productName: "云舟观测 GC", productKey: "firehawk", feeType: "normal", payg: { cur: 29383.55, last: 26866.43 }, pkgBuy: { cur: 5000, last: 3000 }, pkgOffset: { cur: 4210.66, last: 2980.15 }, adjust: { cur: 500, last: 0 } },
 ];
 
-// 账单核对 - 数值展示：最多保留 2 位小数，去掉末尾 0（与核对表一致，如 121544.9）
-const fmtBillCheckNum = (n: number) => String(Number(n.toFixed(2)));
-const fmtBillCheckPct = (n: number) => `${(n * 100).toFixed(2)}%`;
+// 账单核对 - 数值展示：保留 2 位小数并加千分位
+const fmtBillCheckNum = (n: number) => n.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// 环比 = (本月 - 上月) / 上月；上月为 0 时无法计算，返回 null
+const calcBillCheckMom = (a: BillCheckAmount): number | null => (a.last ? (a.cur - a.last) / Math.abs(a.last) : null);
 
 // ===== 经营分析 - 监控看板 =====
 // 计费节点定义：计量上报 → 聚合出账 → 结算（抵扣、扣费） → 账单聚合 → 成本（成本聚合、成本生产） → 账单核验（按字段逐项核验）
@@ -7158,6 +7197,10 @@ export default function AdminPage() {
     const [monitorProductBillFilter, setMonitorProductBillFilter] = useState("");         // 出账列头状态筛选
     const [monitorOffsetFilter, setMonitorOffsetFilter] = useState("");                   // 结算-抵扣列头状态筛选
     const [monitorChargeFilter, setMonitorChargeFilter] = useState("");                   // 结算-扣费列头状态筛选
+    // 账单核对 - 确认记录 & 确认弹窗
+    const [billCheckConfirms, setBillCheckConfirms] = useState<Record<string, BillCheckConfirm>>(billCheckInitialConfirms);
+    const [billCheckConfirmTarget, setBillCheckConfirmTarget] = useState<{ key: string; productName: string; feeType: BillCheckRow["feeType"]; groupLabel: string } | null>(null);
+    const [billCheckConfirmRemark, setBillCheckConfirmRemark] = useState("");
     const [monitorHourBillAggFilter, setMonitorHourBillAggFilter] = useState("");         // 控制台账单聚合-小时账单列头状态筛选
     const [monitorDayBillAggFilter, setMonitorDayBillAggFilter] = useState("");           // 控制台账单聚合-天账单列头状态筛选
     const [monitorMonthBillAggFilter, setMonitorMonthBillAggFilter] = useState("");       // 控制台账单聚合-月账单列头状态筛选
@@ -10635,7 +10678,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>产品定义</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('product-addon')}
@@ -10676,7 +10718,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>产品分类</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                             </div>
                         )}
@@ -10761,7 +10802,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>产品分析</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-unit')}
@@ -10772,7 +10812,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>结算单元分析</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-department')}
@@ -10783,7 +10822,6 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>部门分析</span>
-                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                                 <div
                                     onClick={() => setCurrentMenu('analysis-monitor')}
@@ -10804,6 +10842,7 @@ export default function AdminPage() {
                                     }`}
                                 >
                                     <span>账单核对</span>
+                                    <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                 </div>
                             </div>
                         )}
@@ -16749,90 +16788,197 @@ export default function AdminPage() {
 
                     {/* 经营分析 - 账单核对页面 */}
                     {currentMenu === 'analysis-bill-check' && (() => {
-                        const rows = billCheckRawRows.map((r) => {
-                            const curEstFull = r.curActualRevenue + r.curEstSupplement;   // 本月预计完整月份收入
-                            const lastDaily = r.lastMonthRevenue / r.lastMonthDays;       // 上月日均
-                            const curDaily = r.curActualRevenue / r.actualDays;           // 本月实际日均
-                            const change = curEstFull - r.lastMonthRevenue;               // 收入变化量
-                            const dailyChange = curDaily - lastDaily;                     // 日均收入变化量
-                            return {
-                                ...r,
-                                curEstFull,
-                                lastDaily,
-                                curDaily,
-                                change,
-                                changeRatio: r.lastMonthRevenue ? change / r.lastMonthRevenue : 0,
-                                dailyChange,
-                                dailyChangeRatio: lastDaily ? dailyChange / lastDaily : 0,
-                            };
-                        });
-                        const thBase = "px-3 py-2.5 text-[13px] font-medium whitespace-nowrap border-r border-gray-300";
-                        const tdNum = "px-3 py-3 text-sm text-right whitespace-nowrap border-r border-gray-200";
-                        const tdText = "px-3 py-3 text-sm whitespace-nowrap border-r border-gray-200";
+                        const rows = billCheckRawRows;
+                        const thBase = "px-3 py-2.5 text-[13px] font-medium text-gray-600 whitespace-nowrap border-r border-gray-200";
+                        const tdNum = "px-3 py-3 text-sm text-gray-900 text-right whitespace-nowrap border-r border-gray-200";
+                        const tdText = "px-3 py-3 text-sm text-gray-900 whitespace-nowrap border-r border-gray-200";
+                        const renderMom = (v: number | null) => {
+                            if (v === null) return <span className="text-gray-400">-</span>;
+                            const cls = v > 0 ? "text-red-600" : v < 0 ? "text-green-600" : "text-gray-900";
+                            return <span className={cls}>{`${v > 0 ? "+" : ""}${(v * 100).toFixed(2)}%`}</span>;
+                        };
                         return (
                             <div className="flex-1 bg-gray-50 p-6 overflow-auto">
                                 <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
                                     <p className="text-[13px] leading-[1.9] text-blue-600">
-                                        按大产品对比统计月与对比月的收入。本月预计完整月份收入 = 本月实际收入 + 本月预计补齐收入；收入变化量 = 本月预计完整月份收入 - 上月完整收入；收入变化比例 = 收入变化量 / 上月完整收入；日均收入变化量 = 本月实际日均 - 上月日均；日均收入变化比例 = 日均收入变化量 / 上月日均。
+                                        按产品对比统计月份与对比月份的各项金额（单位：元）。按量计费、资源包购买、资源包抵扣、增减项金额均展示本月、上月及环比；环比 = (本月 - 上月) / 上月，上月为 0 时展示「-」。
                                     </p>
                                 </div>
                                 <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                     <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[2400px] border-collapse">
-                                            <thead>
-                                                <tr className="border-b border-gray-300 bg-[#fde9e1] text-gray-800">
-                                                    <th className={`${thBase} text-left`}>统计月</th>
-                                                    <th className={`${thBase} text-left`}>对比月</th>
-                                                    <th className={`${thBase} text-left`}>大产品标识</th>
-                                                    <th className={`${thBase} text-left`}>大产品名称</th>
-                                                    <th className={`${thBase} text-left`}>账单费用类型</th>
-                                                    <th className={`${thBase} text-right`}>上月完整收入(元)</th>
-                                                    <th className={`${thBase} text-right`}>本月实际收入(元)</th>
-                                                    <th className={`${thBase} text-right`}>本月预计补齐收入(元)</th>
-                                                    <th className={`${thBase} text-right`}>本月预计完整月份收入(元)</th>
-                                                    <th className={`${thBase} text-right`}>上月日均(元)</th>
-                                                    <th className={`${thBase} text-right`}>本月实际日均(元)</th>
-                                                    <th className={`${thBase} text-right bg-red-600 text-white`}>收入变化量(元)</th>
-                                                    <th className={`${thBase} text-right bg-red-600 text-white`}>收入变化比例</th>
-                                                    <th className={`${thBase} text-left bg-[#a9d18e] min-w-[340px]`}>异常原因</th>
-                                                    <th className={`${thBase} text-right`}>日均收入变化量(元)</th>
-                                                    <th className={`${thBase} text-right`}>日均收入变化比例</th>
-                                                    <th className={`${thBase} text-right`}>实际天数</th>
-                                                    <th className={`${thBase} text-right`}>剩余天数</th>
-                                                    <th className="px-3 py-2.5 text-[13px] font-medium whitespace-nowrap text-center">是否包月</th>
+                                        <table className="w-full min-w-[2700px] border-collapse">
+                                            <thead className="bg-gray-50">
+                                                <tr className="border-b border-gray-200">
+                                                    <th rowSpan={2} className={`${thBase} text-left`}>统计月份</th>
+                                                    <th rowSpan={2} className={`${thBase} text-left`}>对比月份</th>
+                                                    <th rowSpan={2} className={`${thBase} text-left`}>产品名称</th>
+                                                    <th rowSpan={2} className={`${thBase} text-left`}>产品标识</th>
+                                                    <th rowSpan={2} className={`${thBase} text-left`}>费用类型</th>
+                                                    {billCheckAmountGroups.map((g, gi) => (
+                                                        <Fragment key={g.key}>
+                                                            <th colSpan={3} className={`${thBase} text-center ${g.headBg}`}>
+                                                                {g.label}
+                                                            </th>
+                                                            <th
+                                                                rowSpan={2}
+                                                                className={`${thBase} text-center min-w-[200px] ${g.headBg} ${gi === billCheckAmountGroups.length - 1 ? "border-r-0" : ""}`}
+                                                            >
+                                                                {g.label}确认
+                                                            </th>
+                                                        </Fragment>
+                                                    ))}
+                                                </tr>
+                                                <tr className="border-b border-gray-200">
+                                                    {billCheckAmountGroups.map((g) => (
+                                                        <Fragment key={g.key}>
+                                                            <th className={`${thBase} text-right ${g.subHeadBg}`}>本月</th>
+                                                            <th className={`${thBase} text-right ${g.subHeadBg}`}>上月</th>
+                                                            <th className={`${thBase} text-right ${g.subHeadBg}`}>环比</th>
+                                                        </Fragment>
+                                                    ))}
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-200">
-                                                {rows.map((r) => (
-                                                    <tr key={`${r.statMonth}-${r.productKey}`} className="hover:bg-gray-50 text-red-600">
+                                                {rows.map((r) => {
+                                                    const rowKey = billCheckRowKey(r);
+                                                    return (
+                                                    <tr key={rowKey} className="hover:bg-gray-50">
                                                         <td className={tdText}>{r.statMonth}</td>
                                                         <td className={tdText}>{r.compareMonth}</td>
-                                                        <td className={tdText}>{r.productKey}</td>
                                                         <td className={tdText}>{r.productName}</td>
-                                                        <td className={tdText}>{r.feeType}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.lastMonthRevenue)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.curActualRevenue)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.curEstSupplement)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.curEstFull)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.lastDaily)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.curDaily)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.change)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckPct(r.changeRatio)}</td>
-                                                        <td className={`${tdText} text-gray-900 whitespace-normal`}>{r.reason}</td>
-                                                        <td className={tdNum}>{fmtBillCheckNum(r.dailyChange)}</td>
-                                                        <td className={tdNum}>{fmtBillCheckPct(r.dailyChangeRatio)}</td>
-                                                        <td className={tdNum}>{r.actualDays}</td>
-                                                        <td className={tdNum}>{r.remainDays}</td>
-                                                        <td className="px-3 py-3 text-sm text-center whitespace-nowrap">{r.isMonthly ? "TRUE" : "FALSE"}</td>
+                                                        <td className={tdText}>{r.productKey}</td>
+                                                        <td className={tdText}>
+                                                            <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs ${r.feeType === "normal" ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600"}`}>
+                                                                {billCheckFeeTypeLabel[r.feeType]}
+                                                            </span>
+                                                        </td>
+                                                        {billCheckAmountGroups.map((g, gi) => {
+                                                            const a = r[g.key];
+                                                            const confirmKey = `${rowKey}|${g.key}`;
+                                                            const c = billCheckConfirms[confirmKey];
+                                                            const openConfirm = () => {
+                                                                setBillCheckConfirmTarget({ key: confirmKey, productName: r.productName, feeType: r.feeType, groupLabel: g.label });
+                                                                setBillCheckConfirmRemark(c?.remark ?? "");
+                                                            };
+                                                            return (
+                                                                <Fragment key={g.key}>
+                                                                    <td className={`${tdNum} ${g.cellBg}`}>{fmtBillCheckNum(a.cur)}</td>
+                                                                    <td className={`${tdNum} ${g.cellBg}`}>{fmtBillCheckNum(a.last)}</td>
+                                                                    <td className={`${tdNum} ${g.cellBg}`}>{renderMom(calcBillCheckMom(a))}</td>
+                                                                    <td className={`px-3 py-2 text-sm align-middle border-r border-gray-200 ${g.cellBg} ${gi === billCheckAmountGroups.length - 1 ? "border-r-0" : ""}`}>
+                                                                        {c ? (
+                                                                            <div className="flex flex-col gap-1 text-xs">
+                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                    <span className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-0.5 text-green-600">
+                                                                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                                                        已确认
+                                                                                    </span>
+                                                                                    <button onClick={openConfirm} className="text-blue-600 hover:text-blue-700">修改</button>
+                                                                                </div>
+                                                                                <div className="whitespace-nowrap text-gray-500">
+                                                                                    操作人：<span className="text-gray-700">{c.operator}</span>
+                                                                                </div>
+                                                                                <div className="whitespace-nowrap text-gray-400">{c.time}</div>
+                                                                                <div className="max-w-[200px] truncate text-gray-500" title={c.remark || "无备注"}>
+                                                                                    备注：<span className="text-gray-700">{c.remark || "-"}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex justify-center">
+                                                                                <button
+                                                                                    onClick={openConfirm}
+                                                                                    className="rounded border border-blue-500 bg-white px-3 py-1 text-xs text-blue-600 transition-colors hover:bg-blue-50"
+                                                                                >
+                                                                                    确认
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                </Fragment>
+                                                            );
+                                                        })}
                                                     </tr>
-                                                ))}
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                                 <div className="mt-4 rounded-b-lg border-t border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
-                                    共 <span className="font-medium">{rows.length}</span> 个大产品
+                                    共 <span className="font-medium">{rows.length}</span> 条记录
                                 </div>
+
+                                {/* 账单核对 - 确认弹窗（可填写备注） */}
+                                {billCheckConfirmTarget && (() => {
+                                    const t = billCheckConfirmTarget;
+                                    const existed = billCheckConfirms[t.key];
+                                    const close = () => { setBillCheckConfirmTarget(null); setBillCheckConfirmRemark(""); };
+                                    const submit = () => {
+                                        const d = new Date();
+                                        const p = (n: number) => String(n).padStart(2, "0");
+                                        const time = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+                                        setBillCheckConfirms((prev) => ({ ...prev, [t.key]: { operator: billCheckCurrentOperator, time, remark: billCheckConfirmRemark.trim() } }));
+                                        close();
+                                    };
+                                    const revoke = () => {
+                                        setBillCheckConfirms((prev) => {
+                                            const next = { ...prev };
+                                            delete next[t.key];
+                                            return next;
+                                        });
+                                        close();
+                                    };
+                                    return (
+                                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={close}>
+                                            <div className="w-[480px] max-w-[90vw] rounded-lg bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                                                    <h3 className="text-base font-semibold text-gray-900">{existed ? "修改确认" : "确认"}「{t.groupLabel}」</h3>
+                                                    <button onClick={close} className="text-gray-400 hover:text-gray-600">
+                                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-4 px-6 py-5 text-sm">
+                                                    <div className="grid grid-cols-[72px_1fr] gap-y-2 text-gray-600">
+                                                        <span className="text-gray-500">产品名称</span>
+                                                        <span className="text-gray-900">{t.productName}（{billCheckFeeTypeLabel[t.feeType]}）</span>
+                                                        <span className="text-gray-500">确认项</span>
+                                                        <span className="text-gray-900">{t.groupLabel}</span>
+                                                        <span className="text-gray-500">操作人</span>
+                                                        <span className="text-gray-900">{billCheckCurrentOperator}</span>
+                                                        {existed && (
+                                                            <>
+                                                                <span className="text-gray-500">上次确认</span>
+                                                                <span className="text-gray-900">{existed.operator} · {existed.time}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <label className="mb-1.5 block text-gray-700">备注</label>
+                                                        <textarea
+                                                            value={billCheckConfirmRemark}
+                                                            onChange={(e) => setBillCheckConfirmRemark(e.target.value.slice(0, 200))}
+                                                            rows={4}
+                                                            placeholder="请输入备注（选填），如差异原因、核对说明等"
+                                                            className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                                        />
+                                                        <div className="mt-1 text-right text-xs text-gray-400">{billCheckConfirmRemark.length}/200</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-3 rounded-b-lg border-t border-gray-200 bg-gray-50 px-6 py-4">
+                                                    <div>
+                                                        {existed && (
+                                                            <button onClick={revoke} className="text-sm text-red-500 hover:text-red-600">撤销确认</button>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <button onClick={close} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100">取消</button>
+                                                        <button onClick={submit} className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700">确认</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         );
                     })()}
@@ -19534,7 +19680,7 @@ export default function AdminPage() {
                                                 className={`px-4 py-3 text-sm font-medium transition-colors relative flex items-center ${billingPageTab === t.key ? 'text-[#006bff]' : 'text-gray-600 hover:text-gray-900'}`}
                                             >
                                                 {t.label}
-                                                {['tag', 'mainSubProduct', 'supplierConfig'].includes(t.key) && (
+                                                {['mainSubProduct', 'supplierConfig'].includes(t.key) && (
                                                     <span className="ml-1.5 px-1 py-0.5 text-[10px] leading-none rounded bg-orange-500 text-white flex-shrink-0">本期改动</span>
                                                 )}
                                                 {billingPageTab === t.key && (
