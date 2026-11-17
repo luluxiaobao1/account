@@ -1332,7 +1332,21 @@ const billCheckRawRows: BillCheckRow[] = [
     { statMonth: "202610", compareMonth: "202609", productName: "MPP数据库 StarRocks", productKey: "starrocks", feeType: "normal", payg: { cur: 192281.48, last: 160207.09 }, pkgBuy: { cur: 30000, last: 45000 }, pkgOffset: { cur: 38760.12, last: 40210.37 }, adjust: { cur: 0, last: 800 } },
     { statMonth: "202610", compareMonth: "202609", productName: "云数据库 PGSQL", productKey: "pgsql_hulk", feeType: "normal", payg: { cur: 54389.26, last: 49207.67 }, pkgBuy: { cur: 8000, last: 8000 }, pkgOffset: { cur: 7650.3, last: 7420.18 }, adjust: { cur: 0, last: 0 } },
     { statMonth: "202610", compareMonth: "202609", productName: "云舟观测 GC", productKey: "firehawk", feeType: "normal", payg: { cur: 29383.55, last: 26866.43 }, pkgBuy: { cur: 5000, last: 3000 }, pkgOffset: { cur: 4210.66, last: 2980.15 }, adjust: { cur: 500, last: 0 } },
+    { statMonth: "202609", compareMonth: "202608", productName: "AI沙箱 Sandbox", productKey: "sandbox", feeType: "normal", payg: { cur: 29147.17, last: 21360.04 }, pkgBuy: { cur: 10000, last: 10000 }, pkgOffset: { cur: 8650.22, last: 6120.5 }, adjust: { cur: 0, last: 0 } },
+    { statMonth: "202609", compareMonth: "202608", productName: "云数仓 DLW", productKey: "cdw_qilin", feeType: "normal", payg: { cur: 155205.31, last: 148730.66 }, pkgBuy: { cur: 50000, last: 40000 }, pkgOffset: { cur: 42108.65, last: 39876.2 }, adjust: { cur: -2000, last: 0 } },
+    { statMonth: "202609", compareMonth: "202608", productName: "MPP数据库 StarRocks", productKey: "starrocks", feeType: "normal", payg: { cur: 160207.09, last: 171455.83 }, pkgBuy: { cur: 45000, last: 30000 }, pkgOffset: { cur: 40210.37, last: 36540.9 }, adjust: { cur: 800, last: 800 } },
+    { statMonth: "202609", compareMonth: "202608", productName: "云数据库 PGSQL", productKey: "pgsql_hulk", feeType: "normal", payg: { cur: 49207.67, last: 47810.25 }, pkgBuy: { cur: 8000, last: 6000 }, pkgOffset: { cur: 7420.18, last: 6955.4 }, adjust: { cur: 0, last: 0 } },
+    { statMonth: "202609", compareMonth: "202608", productName: "云舟观测 GC", productKey: "firehawk", feeType: "normal", payg: { cur: 26866.43, last: 25102.7 }, pkgBuy: { cur: 3000, last: 3000 }, pkgOffset: { cur: 2980.15, last: 2733.6 }, adjust: { cur: 0, last: 0 } },
+    { statMonth: "202609", compareMonth: "202608", productName: "云舟观测 GC", productKey: "firehawk", feeType: "supplement", payg: { cur: 3260.8, last: 0 }, pkgBuy: { cur: 0, last: 0 }, pkgOffset: { cur: 0, last: 0 }, adjust: { cur: -300, last: 0 } },
 ];
+
+// 账单核对 - 产品筛选下拉选项（按产品标识去重）
+const billCheckProductOptions = Array.from(new Map(billCheckRawRows.map((r) => [r.productKey, r.productName])).entries()).map(([key, name]) => ({ key, name }));
+// 账单核对 - 默认账期月份：数据中最新的统计月份，转为 <input type="month"> 的 YYYY-MM 格式
+const billCheckDefaultMonth = (() => {
+    const m = billCheckRawRows.reduce((max, r) => (r.statMonth > max ? r.statMonth : max), "");
+    return m ? `${m.slice(0, 4)}-${m.slice(4, 6)}` : "";
+})();
 
 // 账单核对 - 数值展示：保留 2 位小数并加千分位
 const fmtBillCheckNum = (n: number) => n.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -5292,6 +5306,13 @@ const enterpriseTenantOptions: EnterpriseTenantOption[] = [
     { id: '100000006', name: '360企业安全集团' },
 ];
 
+// 平台配置 - 地域可见范围：可选的外部租户（非内部企业关联的租户，仅可整体指定，不可选择结算单元）
+const regionExternalTenantOptions: EnterpriseTenantOption[] = [
+    { id: '200000101', name: '北京星河科技有限公司' },
+    { id: '200000102', name: '上海云帆数据有限公司' },
+    { id: '200000103', name: '深圳极光网络科技有限公司' },
+];
+
 // 企业配置 - 租户下的组织架构（部门树）
 // units：该部门在 ops 侧已关联的结算单元（一个部门可关联 N 个结算单元），有值即代表「已关联结算单元」
 type OrgDeptNode = { id: string; name: string; units?: string[]; children?: OrgDeptNode[] };
@@ -7201,6 +7222,9 @@ export default function AdminPage() {
     const [billCheckConfirms, setBillCheckConfirms] = useState<Record<string, BillCheckConfirm>>(billCheckInitialConfirms);
     const [billCheckConfirmTarget, setBillCheckConfirmTarget] = useState<{ key: string; productName: string; feeType: BillCheckRow["feeType"]; groupLabel: string } | null>(null);
     const [billCheckConfirmRemark, setBillCheckConfirmRemark] = useState("");
+    // 账单核对 - 筛选：产品（productKey，空=全部）、账期月份（YYYY-MM，空=全部）
+    const [billCheckProductFilter, setBillCheckProductFilter] = useState("");
+    const [billCheckMonthFilter, setBillCheckMonthFilter] = useState(billCheckDefaultMonth);
     const [monitorHourBillAggFilter, setMonitorHourBillAggFilter] = useState("");         // 控制台账单聚合-小时账单列头状态筛选
     const [monitorDayBillAggFilter, setMonitorDayBillAggFilter] = useState("");           // 控制台账单聚合-天账单列头状态筛选
     const [monitorMonthBillAggFilter, setMonitorMonthBillAggFilter] = useState("");       // 控制台账单聚合-月账单列头状态筛选
@@ -7575,7 +7599,21 @@ export default function AdminPage() {
     const [regionConfigSection, setRegionConfigSection] = useState<'provider' | 'region'>('region');
 
     type ServiceProvider = { id: number; name: string; createTime: string; updateTime: string };
-    type RegionItem = { id: number; name: string; code: string; createTime: string; updateTime: string };
+    // 地域可见范围：不限 / 指定可见 / 指定不可见
+    type RegionVisibility = 'all' | 'visible' | 'invisible';
+    // 可见范围中选中的组织（租户）：内部租户可再细化到结算单元（不选则对整个组织生效）；外部租户仅能整体指定
+    type RegionVisibleOrg = { tenantId: string; units: string[] };
+    type RegionItem = {
+        id: number; name: string; code: string;
+        visibility: RegionVisibility;
+        visibleOrgs: RegionVisibleOrg[];
+        createTime: string; updateTime: string;
+    };
+    const regionVisibilityOptions: { value: RegionVisibility; label: string; tip: string }[] = [
+        { value: 'all', label: '不限', tip: '所有租户均可见该地域' },
+        { value: 'visible', label: '指定可见', tip: '仅选中的租户 / 结算单元可见该地域' },
+        { value: 'invisible', label: '指定不可见', tip: '选中的租户 / 结算单元不可见该地域，其余均可见' },
+    ];
     type RegionGroup = { id: number; name: string; regionIds: number[]; createTime: string; updateTime: string };
 
     const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([
@@ -7586,13 +7624,13 @@ export default function AdminPage() {
         { id: 5, name: 'AWS', createTime: '2025-06-02 11:41:08', updateTime: '2025-06-02 11:41:08' },
     ]);
     const [regionItems, setRegionItems] = useState<RegionItem[]>([
-        { id: 1, name: '北京', code: 'beijing', createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
-        { id: 2, name: '上海', code: 'shanghai', createTime: '2024-08-10 13:07:02', updateTime: '2024-08-10 13:07:02' },
-        { id: 3, name: '广州', code: 'guangzhou', createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03' },
-        { id: 4, name: '郑州', code: 'zhengzhou', createTime: '2024-08-10 13:07:04', updateTime: '2024-08-10 13:07:04' },
-        { id: 5, name: '天津', code: 'tianjin', createTime: '2025-01-15 10:12:20', updateTime: '2025-01-15 10:12:20' },
-        { id: 6, name: '香港', code: 'hongkong', createTime: '2025-02-20 16:30:44', updateTime: '2025-02-20 16:30:44' },
-        { id: 7, name: '新加坡', code: 'singapore', createTime: '2025-07-01 09:05:12', updateTime: '2025-07-01 09:05:12' },
+        { id: 1, name: '北京', code: 'beijing', visibility: 'all', visibleOrgs: [], createTime: '2024-08-10 13:07:01', updateTime: '2024-08-10 13:07:01' },
+        { id: 2, name: '上海', code: 'shanghai', visibility: 'all', visibleOrgs: [], createTime: '2024-08-10 13:07:02', updateTime: '2024-08-10 13:07:02' },
+        { id: 3, name: '广州', code: 'guangzhou', visibility: 'all', visibleOrgs: [], createTime: '2024-08-10 13:07:03', updateTime: '2024-08-10 13:07:03' },
+        { id: 4, name: '郑州', code: 'zhengzhou', visibility: 'visible', visibleOrgs: [{ tenantId: '100000001', units: ['智汇云-云平台部-弹性计算', '智汇云-系统部-存储'] }], createTime: '2024-08-10 13:07:04', updateTime: '2024-08-10 13:07:04' },
+        { id: 5, name: '天津', code: 'tianjin', visibility: 'all', visibleOrgs: [], createTime: '2025-01-15 10:12:20', updateTime: '2025-01-15 10:12:20' },
+        { id: 6, name: '香港', code: 'hongkong', visibility: 'visible', visibleOrgs: [{ tenantId: '100000001', units: [] }, { tenantId: '200000101', units: [] }], createTime: '2025-02-20 16:30:44', updateTime: '2025-02-20 16:30:44' },
+        { id: 7, name: '新加坡', code: 'singapore', visibility: 'invisible', visibleOrgs: [{ tenantId: '200000102', units: [] }], createTime: '2025-07-01 09:05:12', updateTime: '2025-07-01 09:05:12' },
     ]);
     const [regionGroups, setRegionGroups] = useState<RegionGroup[]>([
         { id: 1, name: '国内', regionIds: [1, 2, 3, 4, 5], createTime: '2024-08-10 13:10:00', updateTime: '2025-12-18 16:40:12' },
@@ -7613,9 +7651,13 @@ export default function AdminPage() {
     // 地域弹窗
     const [regionItemDialogOpen, setRegionItemDialogOpen] = useState(false);
     const [editingRegionItemId, setEditingRegionItemId] = useState<number | null>(null);
-    const [regionItemForm, setRegionItemForm] = useState<{ name: string; code: string; groupIds: number[] }>({ name: '', code: '', groupIds: [] });
+    const [regionItemForm, setRegionItemForm] = useState<{ name: string; code: string; groupIds: number[]; visibility: RegionVisibility; visibleOrgs: RegionVisibleOrg[] }>({ name: '', code: '', groupIds: [], visibility: 'all', visibleOrgs: [] });
     const [regionItemFormError, setRegionItemFormError] = useState('');
     const [regionGroupPickerOpen, setRegionGroupPickerOpen] = useState(false);
+    // 可见范围：组织下拉、结算单元下拉（记录当前展开的租户ID）
+    const [regionOrgPickerOpen, setRegionOrgPickerOpen] = useState(false);
+    const [regionOrgKeyword, setRegionOrgKeyword] = useState('');
+    const [regionUnitPickerTenant, setRegionUnitPickerTenant] = useState<string | null>(null);
 
     // 地域标签弹窗
     const [regionGroupDialogOpen, setRegionGroupDialogOpen] = useState(false);
@@ -7790,9 +7832,11 @@ export default function AdminPage() {
         setEditingRegionItemId(null);
         // 若当前选中的是具体标签，默认预选该标签
         const preset = typeof selectedGroupKey === 'number' ? [selectedGroupKey] : [];
-        setRegionItemForm({ name: '', code: '', groupIds: preset });
+        setRegionItemForm({ name: '', code: '', groupIds: preset, visibility: 'all', visibleOrgs: [] });
         setRegionItemFormError('');
         setRegionGroupPickerOpen(false);
+        setRegionOrgPickerOpen(false);
+        setRegionUnitPickerTenant(null);
         setRegionItemDialogOpen(true);
     };
     const handleOpenEditRegionItem = (r: RegionItem) => {
@@ -7801,10 +7845,57 @@ export default function AdminPage() {
             name: r.name,
             code: r.code,
             groupIds: regionGroups.filter(g => g.regionIds.includes(r.id)).map(g => g.id),
+            visibility: r.visibility,
+            // 内部租户未指定结算单元（整个租户）时，回显为全选
+            visibleOrgs: r.visibleOrgs.map(o => ({
+                tenantId: o.tenantId,
+                units: isRegionInternalTenant(o.tenantId) && o.units.length === 0
+                    ? collectTenantSettlementUnits(o.tenantId).map(u => u.unit)
+                    : [...o.units],
+            })),
         });
         setRegionItemFormError('');
         setRegionGroupPickerOpen(false);
+        setRegionOrgPickerOpen(false);
+        setRegionUnitPickerTenant(null);
         setRegionItemDialogOpen(true);
+    };
+    // 可见范围 - 勾选/取消租户；勾选内部租户时其结算单元默认全选
+    const toggleRegionVisibleOrg = (tenantId: string) => {
+        setRegionItemForm(prev => prev.visibleOrgs.some(o => o.tenantId === tenantId)
+            ? { ...prev, visibleOrgs: prev.visibleOrgs.filter(o => o.tenantId !== tenantId) }
+            : {
+                ...prev,
+                visibleOrgs: [...prev.visibleOrgs, {
+                    tenantId,
+                    units: isRegionInternalTenant(tenantId) ? collectTenantSettlementUnits(tenantId).map(u => u.unit) : [],
+                }],
+            });
+        if (regionUnitPickerTenant === tenantId) setRegionUnitPickerTenant(null);
+        setRegionItemFormError('');
+    };
+    // 可见范围 - 勾选/取消内部租户下的结算单元
+    const toggleRegionVisibleOrgUnit = (tenantId: string, unit: string) => {
+        setRegionItemForm(prev => ({
+            ...prev,
+            visibleOrgs: prev.visibleOrgs.map(o => o.tenantId !== tenantId ? o : {
+                ...o,
+                units: o.units.includes(unit) ? o.units.filter(u => u !== unit) : [...o.units, unit],
+            }),
+        }));
+        setRegionItemFormError('');
+    };
+    // 可见范围 - 内部租户结算单元全选/取消全选
+    const toggleRegionVisibleOrgAllUnits = (tenantId: string) => {
+        const all = collectTenantSettlementUnits(tenantId).map(u => u.unit);
+        setRegionItemForm(prev => ({
+            ...prev,
+            visibleOrgs: prev.visibleOrgs.map(o => o.tenantId !== tenantId ? o : {
+                ...o,
+                units: all.every(u => o.units.includes(u)) ? [] : all,
+            }),
+        }));
+        setRegionItemFormError('');
     };
     const toggleRegionItemGroup = (gid: number) => {
         setRegionItemForm(prev => prev.groupIds.includes(gid)
@@ -7819,6 +7910,20 @@ export default function AdminPage() {
         if (!code) { setRegionItemFormError('请输入地域标识'); return; }
         if (!/^[A-Za-z0-9_-]+$/.test(code)) { setRegionItemFormError('地域标识仅支持英文、数字、_、-'); return; }
         if (groupIds.length === 0) { setRegionItemFormError('请选择地域标签'); return; }
+        const visibility = regionItemForm.visibility;
+        if (visibility !== 'all' && regionItemForm.visibleOrgs.length === 0) {
+            setRegionItemFormError(visibility === 'visible' ? '请选择可见的租户' : '请选择不可见的租户'); return;
+        }
+        // 选中内部租户时，至少选择一个结算单元
+        if (visibility !== 'all' && regionItemForm.visibleOrgs.some(o =>
+            isRegionInternalTenant(o.tenantId) && collectTenantSettlementUnits(o.tenantId).length > 0 && o.units.length === 0)) {
+            setRegionItemFormError('请至少选择一个结算单元'); return;
+        }
+        // 不限时清空组织；外部租户不保存结算单元
+        const visibleOrgs: RegionVisibleOrg[] = visibility === 'all' ? [] : regionItemForm.visibleOrgs.map(o => ({
+            tenantId: o.tenantId,
+            units: isRegionInternalTenant(o.tenantId) ? [...o.units] : [],
+        }));
         if (regionItems.some(r => r.name === name && r.id !== editingRegionItemId)) {
             setRegionItemFormError('地域名称已存在'); return;
         }
@@ -7829,14 +7934,14 @@ export default function AdminPage() {
         let targetId = editingRegionItemId;
         if (editingRegionItemId != null) {
             const old = regionItems.find(r => r.id === editingRegionItemId);
-            setRegionItems(prev => prev.map(r => r.id === editingRegionItemId ? { ...r, name, code, updateTime: now } : r));
+            setRegionItems(prev => prev.map(r => r.id === editingRegionItemId ? { ...r, name, code, visibility, visibleOrgs, updateTime: now } : r));
             if (old && old.name !== name) {
                 setRegionZones(prev => prev.map(z => z.region === old.name ? { ...z, region: name } : z));
             }
         } else {
             const nextId = regionItems.length ? Math.max(...regionItems.map(r => r.id)) + 1 : 1;
             targetId = nextId;
-            setRegionItems(prev => [...prev, { id: nextId, name, code, createTime: now, updateTime: now }]);
+            setRegionItems(prev => [...prev, { id: nextId, name, code, visibility, visibleOrgs, createTime: now, updateTime: now }]);
         }
         // 同步地域与分组的归属关系
         if (targetId != null) {
@@ -8515,6 +8620,14 @@ export default function AdminPage() {
     const internalPortalTenant = internalEnterpriseConfig
         ? [{ id: internalEnterpriseConfig.tenantId, name: internalEnterpriseConfig.tenantName || internalEnterpriseConfig.name }]
         : [];
+    // 地域可见范围 - 可选组织（租户）：企业配置可选租户 + 外部租户；
+    // 内部租户 = 企业配置中内部企业关联的租户，可再选择结算单元；其余为外部租户，不可选择结算单元
+    const isRegionInternalTenant = (tenantId: string) =>
+        !!internalEnterpriseConfig && internalEnterpriseConfig.tenantId === tenantId;
+    const regionOrgOptions = [...enterpriseTenantOptions, ...regionExternalTenantOptions].map(t => ({
+        ...t, internal: isRegionInternalTenant(t.id),
+    })).sort((a, b) => Number(b.internal) - Number(a.internal));
+    const getRegionOrgName = (tenantId: string) => regionOrgOptions.find(o => o.id === tenantId)?.name || tenantId;
     const [enterpriseDialogOpen, setEnterpriseDialogOpen] = useState(false);
     const [editingEnterpriseId, setEditingEnterpriseId] = useState<number | null>(null);
     const emptyEnterpriseForm = {
@@ -16788,7 +16901,12 @@ export default function AdminPage() {
 
                     {/* 经营分析 - 账单核对页面 */}
                     {currentMenu === 'analysis-bill-check' && (() => {
-                        const rows = billCheckRawRows;
+                        const monthKey = billCheckMonthFilter.replace("-", "");
+                        const rows = billCheckRawRows.filter((r) =>
+                            (!billCheckProductFilter || r.productKey === billCheckProductFilter) &&
+                            (!monthKey || r.statMonth === monthKey)
+                        );
+                        const filterChanged = billCheckProductFilter !== "" || billCheckMonthFilter !== billCheckDefaultMonth;
                         const thBase = "px-3 py-2.5 text-[13px] font-medium text-gray-600 whitespace-nowrap border-r border-gray-200";
                         const tdNum = "px-3 py-3 text-sm text-gray-900 text-right whitespace-nowrap border-r border-gray-200";
                         const tdText = "px-3 py-3 text-sm text-gray-900 whitespace-nowrap border-r border-gray-200";
@@ -16803,6 +16921,36 @@ export default function AdminPage() {
                                     <p className="text-[13px] leading-[1.9] text-blue-600">
                                         按产品对比统计月份与对比月份的各项金额（单位：元）。按量计费、资源包购买、资源包抵扣、增减项金额均展示本月、上月及环比；环比 = (本月 - 上月) / 上月，上月为 0 时展示「-」。
                                     </p>
+                                </div>
+                                {/* 筛选工具栏：产品、账期月份 */}
+                                <div className="mb-4 flex flex-wrap items-center gap-3">
+                                    <select
+                                        value={billCheckProductFilter}
+                                        onChange={(e) => setBillCheckProductFilter(e.target.value)}
+                                        className={`h-9 w-[220px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500 ${billCheckProductFilter ? "text-gray-900" : "text-gray-500"}`}
+                                    >
+                                        <option value="">全部产品</option>
+                                        {billCheckProductOptions.map((p) => (
+                                            <option key={p.key} value={p.key}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-600">账期月份</span>
+                                        <input
+                                            type="month"
+                                            value={billCheckMonthFilter}
+                                            onChange={(e) => setBillCheckMonthFilter(e.target.value)}
+                                            className="h-9 w-[180px] px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    {filterChanged && (
+                                        <button
+                                            onClick={() => { setBillCheckProductFilter(""); setBillCheckMonthFilter(billCheckDefaultMonth); }}
+                                            className="h-9 px-3 text-sm text-gray-600 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                                        >
+                                            重置
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                                     <div className="overflow-x-auto">
@@ -16900,6 +17048,13 @@ export default function AdminPage() {
                                                     </tr>
                                                     );
                                                 })}
+                                                {rows.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={5 + billCheckAmountGroups.length * 4} className="px-3 py-12 text-center text-sm text-gray-400">
+                                                            暂无符合条件的数据
+                                                        </td>
+                                                    </tr>
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
@@ -19240,13 +19395,14 @@ export default function AdminPage() {
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域名称</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">地域标识</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">所属标签</th>
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">可见范围</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">更新时间</th>
                                                         <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 w-40">操作</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {visibleRegionItems.length === 0 ? (
-                                                        <tr><td colSpan={6} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
+                                                        <tr><td colSpan={7} className="py-16 text-center text-sm text-gray-400">暂无数据</td></tr>
                                                     ) : visibleRegionItems.map((r, idx) => {
                                                         const groups = regionGroups.filter(g => g.regionIds.includes(r.id));
                                                         return (
@@ -19260,6 +19416,25 @@ export default function AdminPage() {
                                                                     ) : groups.map(g => (
                                                                         <span key={g.id} className="inline-block mr-1 px-2 py-0.5 text-xs rounded bg-blue-50 text-[#006bff]">{g.name}</span>
                                                                     ))}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-sm">
+                                                                    {r.visibility === 'all' ? (
+                                                                        <span className="text-gray-500">不限</span>
+                                                                    ) : (
+                                                                        <div className="space-y-1">
+                                                                            <span className={`inline-block px-2 py-0.5 text-xs rounded ${r.visibility === 'visible' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+                                                                                {r.visibility === 'visible' ? '指定可见' : '指定不可见'}
+                                                                            </span>
+                                                                            {r.visibleOrgs.map(o => (
+                                                                                <div key={o.tenantId} className="text-xs text-gray-600" title={o.units.join('、')}>
+                                                                                    {getRegionOrgName(o.tenantId)}
+                                                                                    <span className="text-gray-400">
+                                                                                        {o.units.length > 0 ? `（${o.units.length} 个结算单元）` : '（整个组织）'}
+                                                                                    </span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </td>
                                                                 <td className="py-3 px-4 text-sm text-gray-600">{r.updateTime}</td>
                                                                 <td className="py-3 px-4 text-sm whitespace-nowrap">
@@ -19492,11 +19667,12 @@ export default function AdminPage() {
                                 </div>
                             )}
 
-                            {/* 新建/编辑地域弹窗 */}
+                            {/* 新建/编辑地域抽屉（右侧滑出） */}
                             {regionItemDialogOpen && (
-                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                                    <div className="bg-white rounded-lg shadow-xl w-[560px]">
-                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#f7f9fc] rounded-t-lg">
+                                <div className="fixed inset-0 z-[110]">
+                                    <div className="absolute inset-0 bg-black/50" onClick={() => setRegionItemDialogOpen(false)} />
+                                    <div className="absolute right-0 top-0 bottom-0 w-[800px] max-w-[94vw] bg-white shadow-xl flex flex-col">
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
                                             <h3 className="text-base font-semibold text-gray-900">{editingRegionItemId != null ? '编辑地域' : '新建地域'}</h3>
                                             <button onClick={() => setRegionItemDialogOpen(false)} className="text-gray-400 hover:text-gray-600">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -19504,7 +19680,7 @@ export default function AdminPage() {
                                                 </svg>
                                             </button>
                                         </div>
-                                        <div className="px-6 py-6 space-y-5">
+                                        <div className="flex-1 px-8 py-6 space-y-5 overflow-y-auto">
                                             <div className="flex items-center gap-3">
                                                 <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0">
                                                     <span className="text-red-500 mr-0.5">*</span>地域名称:
@@ -19566,7 +19742,11 @@ export default function AdminPage() {
                                                             </svg>
                                                         </button>
                                                         {regionGroupPickerOpen && (
-                                                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-auto py-1">
+                                                            <>
+                                                            {/* 点击下拉外部区域收起 */}
+                                                            <div className="fixed inset-0 z-10" onClick={() => setRegionGroupPickerOpen(false)} />
+                                                            {/* 内联展开（占据文档流），避免弹窗高度不足时被裁切 */}
+                                                            <div className="relative z-20 mt-1.5 w-full bg-white border border-gray-300 rounded-lg shadow-sm max-h-52 overflow-auto py-1">
                                                                 {regionGroups.length === 0 ? (
                                                                     <div className="px-3 py-4 text-sm text-gray-400 text-center">暂无地域标签</div>
                                                                 ) : regionGroups.map(g => (
@@ -19582,14 +19762,248 @@ export default function AdminPage() {
                                                                     </label>
                                                                 ))}
                                                             </div>
+                                                            </>
                                                         )}
                                                     </div>
                                                     <div className="mt-1.5 text-xs text-gray-400">可多选；至少选择一个地域标签</div>
                                                 </div>
                                             </div>
+                                            {/* 可见范围：不限 / 指定可见 / 指定不可见 */}
+                                            <div className="flex items-start gap-3">
+                                                <label className="w-24 text-sm text-gray-700 text-right flex-shrink-0 pt-1.5">
+                                                    <span className="text-red-500 mr-0.5">*</span>可见范围:
+                                                </label>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+                                                        {regionVisibilityOptions.map((opt, i) => {
+                                                            const active = regionItemForm.visibility === opt.value;
+                                                            return (
+                                                                <button
+                                                                    key={opt.value}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setRegionItemForm(prev => ({ ...prev, visibility: opt.value }));
+                                                                        setRegionOrgPickerOpen(false);
+                                                                        setRegionUnitPickerTenant(null);
+                                                                        setRegionItemFormError('');
+                                                                    }}
+                                                                    className={`px-4 py-1.5 text-sm transition-colors ${i > 0 ? 'border-l border-gray-300' : ''} ${active ? 'bg-[#006bff] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                                                                >{opt.label}</button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="mt-1.5 text-xs text-gray-400">
+                                                        {regionVisibilityOptions.find(o => o.value === regionItemForm.visibility)?.tip}
+                                                    </div>
+
+                                                    {regionItemForm.visibility !== 'all' && (
+                                                        <div className="mt-3 space-y-3">
+                                                            {/* 第一步：选择租户（多选） */}
+                                                            <div>
+                                                                <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-500">
+                                                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#006bff] text-[10px] leading-none text-white">1</span>
+                                                                    选择租户（可多选）
+                                                                </div>
+                                                                <div className="relative">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { setRegionOrgPickerOpen(v => !v); setRegionOrgKeyword(''); setRegionUnitPickerTenant(null); setRegionGroupPickerOpen(false); }}
+                                                                    className="w-full flex items-center justify-between gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-left hover:border-gray-400 transition-colors"
+                                                                >
+                                                                    <span className={regionItemForm.visibleOrgs.length === 0 ? 'text-gray-400' : 'text-gray-700'}>
+                                                                        {regionItemForm.visibleOrgs.length === 0
+                                                                            ? `请选择${regionItemForm.visibility === 'visible' ? '可见' : '不可见'}的租户（可多选）`
+                                                                            : `已选择 ${regionItemForm.visibleOrgs.length} 个租户`}
+                                                                    </span>
+                                                                    <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${regionOrgPickerOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                    </svg>
+                                                                </button>
+                                                                {regionOrgPickerOpen && (() => {
+                                                                    const kw = regionOrgKeyword.trim().toLowerCase();
+                                                                    const filteredOrgs = regionOrgOptions.filter(o => !kw || o.name.toLowerCase().includes(kw) || o.id.includes(kw));
+                                                                    return (
+                                                                    <>
+                                                                    {/* 点击下拉外部区域收起 */}
+                                                                    <div className="fixed inset-0 z-10" onClick={() => setRegionOrgPickerOpen(false)} />
+                                                                    {/* 内联展开（占据文档流），避免弹窗高度不足时被裁切 */}
+                                                                    <div className="relative z-20 mt-1.5 w-full bg-white border border-gray-300 rounded-lg shadow-sm flex flex-col">
+                                                                        <div className="p-2 border-b border-gray-100">
+                                                                            <input
+                                                                                type="text"
+                                                                                autoFocus
+                                                                                value={regionOrgKeyword}
+                                                                                onChange={(e) => setRegionOrgKeyword(e.target.value)}
+                                                                                onKeyDown={(e) => { if (e.key === 'Escape') setRegionOrgPickerOpen(false); }}
+                                                                                placeholder="输入租户名称或ID搜索"
+                                                                                className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-500"
+                                                                            />
+                                                                        </div>
+                                                                        <div className="max-h-56 overflow-auto py-1">
+                                                                            {filteredOrgs.length === 0 ? (
+                                                                                <div className="px-3 py-4 text-sm text-gray-400 text-center">未匹配到租户</div>
+                                                                            ) : filteredOrgs.map(o => (
+                                                                                <label key={o.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        checked={regionItemForm.visibleOrgs.some(v => v.tenantId === o.id)}
+                                                                                        onChange={() => toggleRegionVisibleOrg(o.id)}
+                                                                                        className="w-4 h-4 accent-[#006bff]"
+                                                                                    />
+                                                                                    <span className="text-sm text-gray-700 flex-1 truncate">{o.name}</span>
+                                                                                    <span className="text-xs text-gray-400 font-mono">{o.id}</span>
+                                                                                    <span className={`px-1.5 py-0.5 text-[10px] leading-none rounded ${o.internal ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                                                        {o.internal ? '内部租户' : '外部租户'}
+                                                                                    </span>
+                                                                                </label>
+                                                                            ))}
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 bg-gray-50 rounded-b-lg">
+                                                                            <span className="text-xs text-gray-500">已选 {regionItemForm.visibleOrgs.length} 个租户</span>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    disabled={regionItemForm.visibleOrgs.length === 0}
+                                                                                    onClick={() => { setRegionItemForm(prev => ({ ...prev, visibleOrgs: [] })); setRegionUnitPickerTenant(null); }}
+                                                                                    className="px-2.5 py-1 text-xs text-gray-600 hover:text-gray-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                                                                                >清空</button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setRegionOrgPickerOpen(false)}
+                                                                                    className="px-3 py-1 text-xs bg-[#006bff] text-white rounded hover:bg-blue-600"
+                                                                                >确定</button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    </>
+                                                                    );
+                                                                })()}
+                                                                </div>
+                                                                {/* 已选租户标签 */}
+                                                                {regionItemForm.visibleOrgs.length > 0 && (
+                                                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                        {regionItemForm.visibleOrgs.map(org => {
+                                                                            const internal = isRegionInternalTenant(org.tenantId);
+                                                                            return (
+                                                                                <span key={org.tenantId} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border border-gray-200 bg-gray-50 text-gray-700">
+                                                                                    {getRegionOrgName(org.tenantId)}
+                                                                                    <span className={`px-1 py-0.5 text-[10px] leading-none rounded ${internal ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                                                        {internal ? '内部' : '外部'}
+                                                                                    </span>
+                                                                                    <span
+                                                                                        role="button"
+                                                                                        onClick={() => toggleRegionVisibleOrg(org.tenantId)}
+                                                                                        className="text-gray-400 hover:text-red-500 cursor-pointer"
+                                                                                    >×</span>
+                                                                                </span>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* 第二步：选择结算单元（仅当选中的租户中包含内部租户时可选；默认全选，可多选） */}
+                                                            {regionItemForm.visibleOrgs.length > 0 && (
+                                                                <div>
+                                                                    <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-500">
+                                                                        <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] leading-none text-white ${regionItemForm.visibleOrgs.some(o => isRegionInternalTenant(o.tenantId)) ? 'bg-[#006bff]' : 'bg-gray-300'}`}>2</span>
+                                                                        选择结算单元（默认全选，可多选）
+                                                                    </div>
+                                                                    {!regionItemForm.visibleOrgs.some(o => isRegionInternalTenant(o.tenantId)) ? (
+                                                                        <div className="px-3 py-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 text-xs text-gray-400">
+                                                                            已选租户均为外部租户，不支持选择结算单元，对整个租户生效
+                                                                        </div>
+                                                                    ) : (
+                                                                <div className="space-y-2">
+                                                                    {regionItemForm.visibleOrgs.filter(o => isRegionInternalTenant(o.tenantId)).map(org => {
+                                                                        const unitOptions = collectTenantSettlementUnits(org.tenantId);
+                                                                        const unitPickerOpen = regionUnitPickerTenant === org.tenantId;
+                                                                        const allChecked = unitOptions.length > 0 && unitOptions.every(u => org.units.includes(u.unit));
+                                                                        return (
+                                                                            <div key={org.tenantId}>
+                                                                                {regionItemForm.visibleOrgs.filter(o => isRegionInternalTenant(o.tenantId)).length > 1 && (
+                                                                                    <div className="mb-1 text-xs text-gray-600">{getRegionOrgName(org.tenantId)}</div>
+                                                                                )}
+                                                                                    <div className="relative">
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => { setRegionUnitPickerTenant(unitPickerOpen ? null : org.tenantId); setRegionOrgPickerOpen(false); }}
+                                                                                            className="w-full flex items-center justify-between gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-left hover:border-gray-400 transition-colors"
+                                                                                        >
+                                                                                            <span className="flex-1 min-w-0 flex flex-wrap gap-1">
+                                                                                                {unitOptions.length === 0 ? (
+                                                                                                    <span className="text-gray-400">该租户下暂无结算单元，对整个租户生效</span>
+                                                                                                ) : org.units.length === 0 ? (
+                                                                                                    <span className="text-gray-400">请选择结算单元</span>
+                                                                                                ) : allChecked ? (
+                                                                                                    <span className="text-gray-700">全部结算单元（{unitOptions.length} 个）</span>
+                                                                                                ) : org.units.map(u => (
+                                                                                                    <span key={u} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-blue-50 text-[#006bff]">
+                                                                                                        {u}
+                                                                                                        <span
+                                                                                                            role="button"
+                                                                                                            onClick={(e) => { e.stopPropagation(); toggleRegionVisibleOrgUnit(org.tenantId, u); }}
+                                                                                                            className="hover:text-blue-700 cursor-pointer"
+                                                                                                        >×</span>
+                                                                                                    </span>
+                                                                                                ))}
+                                                                                            </span>
+                                                                                            <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${unitPickerOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                                            </svg>
+                                                                                        </button>
+                                                                                        {unitPickerOpen && (
+                                                                                            <>
+                                                                                            {/* 点击下拉外部区域收起 */}
+                                                                                            <div className="fixed inset-0 z-10" onClick={() => setRegionUnitPickerTenant(null)} />
+                                                                                            {/* 内联展开（占据文档流），避免弹窗高度不足时被裁切 */}
+                                                                                            <div className="relative z-20 mt-1.5 w-full bg-white border border-gray-300 rounded-lg shadow-sm max-h-64 overflow-auto py-1">
+                                                                                                {unitOptions.length > 0 && (
+                                                                                                    <label className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 border-b border-gray-100">
+                                                                                                        <input
+                                                                                                            type="checkbox"
+                                                                                                            checked={allChecked}
+                                                                                                            onChange={() => toggleRegionVisibleOrgAllUnits(org.tenantId)}
+                                                                                                            className="w-4 h-4 accent-[#006bff]"
+                                                                                                        />
+                                                                                                        <span className="text-sm text-gray-700">全选</span>
+                                                                                                    </label>
+                                                                                                )}
+                                                                                                {unitOptions.length === 0 ? (
+                                                                                                    <div className="px-3 py-4 text-sm text-gray-400 text-center">该租户下暂无结算单元</div>
+                                                                                                ) : unitOptions.map(u => (
+                                                                                                    <label key={u.unit} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                                                                                                        <input
+                                                                                                            type="checkbox"
+                                                                                                            checked={org.units.includes(u.unit)}
+                                                                                                            onChange={() => toggleRegionVisibleOrgUnit(org.tenantId, u.unit)}
+                                                                                                            className="w-4 h-4 accent-[#006bff]"
+                                                                                                        />
+                                                                                                        <span className="text-sm text-gray-700 flex-1 truncate">{u.unit}</span>
+                                                                                                        <span className="text-xs text-gray-400 truncate max-w-[240px]">{u.deptPath || '未关联部门'}</span>
+                                                                                                    </label>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                            </>
+                                                                                        )}
+                                                                                    </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                    {regionItemForm.visibleOrgs.some(o => !isRegionInternalTenant(o.tenantId)) && (
+                                                                        <div className="text-xs text-gray-400">外部租户不支持选择结算单元，对整个租户生效</div>
+                                                                    )}
+                                                                </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                             {regionItemFormError && <div className="pl-[108px] text-xs text-red-500">{regionItemFormError}</div>}
                                         </div>
-                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
                                             <button onClick={() => setRegionItemDialogOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">取消</button>
                                             <button onClick={handleSaveRegionItem} className="px-4 py-2 bg-[#006bff] text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">确定</button>
                                         </div>
